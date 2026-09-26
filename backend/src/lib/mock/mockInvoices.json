@@ -1,0 +1,67 @@
+[
+  {
+    "invoiceType": "STANDARD",
+    "invoiceNumber": "INV-B2B-001",
+    "issueDate": "2026-09-20T10:00:00Z",
+    "seller": {
+      "name": "Acme Corp",
+      "vatNumber": "31234567890123",
+      "address": "Riyadh"
+    },
+    "buyer": {
+      "name": "Globex",
+      "vatNumber": "39876543210983",
+      "address": "Jeddah"
+    },
+    "lineItems": [
+      {
+        "lineNumber": 1,
+        "description": "Consulting Services",
+        "quantity": 1,
+        "unitCode": "EA",
+        "unitPrice": 1000,
+        "taxPercent": 15,
+        "taxAmount": 150,
+        "lineTotal": 1150
+      }
+    ],
+    "subtotalAmount": 1000,
+    "totalVatAmount": 150,
+    "totalAmount": 1150,
+    "currencyCode": "SAR",
+    "typeCode": "388"
+  },
+  {
+    "invoiceType": "STANDARD",
+    "invoiceNumber": "CN-B2B-001",
+    "issueDate": "2026-09-20T11:00:00Z",
+    "seller": {
+      "name": "Acme Corp",
+      "vatNumber": "31234567890123",
+      "address": "Riyadh"
+    },
+    "buyer": {
+      "name": "Globex",
+      "vatNumber": "39876543210983",
+      "address": "Jeddah"
+    },
+    "lineItems": [
+      {
+        "lineNumber": 1,
+        "description": "Refund Consulting",
+        "quantity": -1,
+        "unitCode": "EA",
+        "unitPrice": 1000,
+        "taxPercent": 15,
+        "taxAmount": -150,
+        "lineTotal": -1150
+      }
+    ],
+    "subtotalAmount": -1000,
+    "totalVatAmount": -150,
+    "totalAmount": -1150,
+    "currencyCode": "SAR",
+    "typeCode": "381",
+    "previousInvoiceHash": "hash-from-inv-001"
+  }
+]

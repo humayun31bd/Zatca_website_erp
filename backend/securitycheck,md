@@ -1,0 +1,97 @@
+Viewed solutions.md:1-42
+
+# Security & Vulnerability Audit Report
+
+A detailed security review of **[prompt.md](file:///e:/aiprojects/UAE-Invoice/prompt.md)**, **[prd.md](file:///e:/aiprojects/UAE-Invoice/prd.md)**, and **[Architecture.md](file:///e:/aiprojects/UAE-Invoice/Architecture.md)** was conducted. Below are the identified **vulnerabilities, privacy risks, security flaws, and compliance gaps**, along with recommended remediations.
+
+---
+
+## 🚨 Critical Security Vulnerabilities & Flaws
+
+### 1. WhatsApp Webhook Signature Forgery (CWE-345 / Missing Authentication)
+* **Vulnerability:** In `prompt.md` (Prompt 7), `POST /api/v1/webhooks/whatsapp` processes incoming status callbacks (`SENT`, `DELIVERED`, `READ`, `FAILED`) without signature validation.
+* **Security Risk:** Meta WhatsApp Cloud API sends an `X-Hub-Signature-256` header containing an SHA-256 HMAC calculated using your App Secret. Without validating this header, **anyone on the internet can spoof webhook requests** to mark fraudulent invoices as `DELIVERED` or `READ`, polluting financial logs and audit trails.
+* **Remediation:** 
+  ```typescript
+  // Must verify Meta HMAC-SHA256 signature on raw request body
+  const signature = req.headers.get('x-hub-signature-256');
+  const expectedSignature = 'sha256=' + crypto.createHmac('sha256', APP_SECRET).update(rawBody).digest('hex');
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+  }
+  ```
+
+---
+
+### 2. Broken Object-Level Authorization (BOLA / IDOR) & Tenant Isolation (CWE-639)
+* **Vulnerability:** `prompt.md` (Prompt 5 & 6) performs basic API Key authentication check, but does **not enforce Tenant Scoping (Multi-Tenant Isolation)** on API routes or log queries.
+* **Security Risk:** If Tenant A passes an API key, but requests details for an `invoiceId` belonging to Tenant B (e.g. `GET /api/v1/invoices/INV-999`), Tenant A could view competitor financial data, customer phone numbers, or PDF files.
+* **Remediation:** Ensure all queries implicitly filter by the authenticated `tenant_id` associated with the validated API key (e.g. `WHERE id = :invoiceId AND tenant_id = :authenticatedTenantId`).
+
+---
+
+### 3. API Key Storage & Timing Attack Vulnerabilities (CWE-208 & CWE-307)
+* **Vulnerability:**
+  1. `prompt.md` compares incoming API keys via standard string comparison (`apiKey === process.env.MOCK_API_KEY`), which is susceptible to **side-channel timing attacks**.
+  2. `prd.md` stores tenant API keys in PostgreSQL. If stored in plaintext, a database leak compromises all client keys.
+* **Remediation:** 
+  - Compare secrets using `crypto.timingSafeEqual()`.
+  - Store API keys as hashed values (e.g. SHA-256 of key prefix + secret hash) in the database, similar to GitHub personal access tokens.
+
+---
+
+### 4. Public PDF Bucket Enumeration & PII Exposure (CWE-552 / Saudi PDPL Violation)
+* **Vulnerability:** `prompt.md` (Prompt 4 & 6) generates dynamic PDF links sent via WhatsApp.
+* **Security Risk:** If PDFs are stored in a public S3 bucket using predictable naming (e.g., `s3.amazonaws.com/invoices/INV-2027-001.pdf`), attackers can scan/crawl the bucket and download private tax invoices containing buyer names, addresses, phone numbers, and purchase totals. This constitutes a severe breach of the **Saudi Personal Data Protection Law (PDPL)**.
+* **Remediation:** 
+  - Generate non-guessable cryptographically random paths (`/invoices/9f8b1c4e-7a2d-4b89-a1e2.../invoice.pdf`).
+  - Use **short-lived AWS S3 Pre-signed URLs** (e.g., valid for 24–48 hours) or a proxy endpoint with auth tokens.
+
+---
+
+### 5. Race Conditions & Mutex Lock Missing in Invoice Hash Chaining (CWE-362)
+* **Vulnerability:** ZATCA requires cryptographic chaining where Invoice $N$ contains the SHA-256 hash of Invoice $N-1$ (PIH - Previous Invoice Hash).
+* **Security Risk:** If a high-volume merchant triggers concurrent API calls (e.g., 20 simultaneous checkout requests at a POS), two threads will read the *same* previous invoice hash concurrently. Both will generate an invoice pointing to the same parent hash, breaking the sequential chain. ZATCA Fatoora Portal will reject the second invoice with a `KSA-16` hash validation error.
+* **Remediation:** Implement distributed lock synchronization (e.g., **Redis Mutex lock `redlock`** per `seller_vat_number`) to ensure strict sequential processing of hashes.
+
+---
+
+### 6. HTML / Server-Side PDF Injection & SSRF (CWE-79 / CWE-918)
+* **Vulnerability:** User-controlled fields in JSON payloads (seller name, customer notes, item descriptions) are rendered into HTML templates to generate PDF invoices.
+* **Security Risk:** If input strings are not sanitized before rendering (e.g. using Puppeteer or HTML-to-PDF converters), an attacker can inject malicious HTML/JS (`<iframe src="file:///etc/passwd">` or `<img src="http://internal-service/api">`), leading to **Server-Side Request Forgery (SSRF)** or local file reading.
+* **Remediation:** Sanitize all string fields using `DOMPurify` / HTML entity escaping before rendering templates. Restrict browser engine network and local file access flags.
+
+---
+
+### 7. Private Cryptographic Key (CSID) Management Flaws (CWE-320)
+* **Vulnerability:** ZATCA Phase 2 requires an ECDSA `secp256k1` private key to sign XML invoices.
+* **Security Risk:** Storing private keys in plain database columns or environment variables exposes the merchant's cryptographic signature identity. If a key is leaked, attackers can issue legally binding, fraudulent tax invoices in the merchant's name.
+* **Remediation:** 
+  - Encrypt private keys at rest using **AES-256-GCM** with KMS envelope encryption.
+  - Store keys inside dedicated Secret Management Vaults (e.g. AWS KMS, HashiCorp Vault, or GCP Secret Manager).
+
+---
+
+### 8. Sensitive Data Leakage in Application Logs (CWE-532)
+* **Vulnerability:** In `prompt.md` Prompt 4, `MockWhatsAppService` prints full payloads (customer phone numbers, invoice amounts, tokens) to `console.log`.
+* **Security Risk:** Printing raw PII (phone numbers, full names) to stdout violates log privacy guidelines and exposes customer data to centralized log management platforms.
+* **Remediation:** Implement log masking rules for sensitive fields:
+  - Phone: `+9665*****123`
+  - Buyer Name: `A**** M****`
+  - Tokens / Secrets: Completely redacted.
+
+---
+
+## 📋 Security Action Checklist for Developers
+
+| # | Security Feature | Implementation Requirement | Status in Specs |
+| :--- | :--- | :--- | :---: |
+| 1 | **Webhook Verification** | HMAC-SHA256 signature check on WhatsApp incoming POSTs | ❌ Missing in `prompt.md` |
+| 2 | **API Key Hashing** | SHA-256 hash API keys in Postgres; use `timingSafeEqual` | ❌ Missing in `prompt.md` |
+| 3 | **Rate Limiting** | Redis token bucket rate limiting (500 req/min per key) | ⚠️ Future only (`Architecture.md`) |
+| 4 | **PDF Storage Security** | Expiring AWS S3 Pre-signed URLs for WhatsApp links | ❌ Missing in `prompt.md` |
+| 5 | **Hash Chain Mutex** | Redis lock for sequential PIH (Previous Invoice Hash) calculation | ❌ Missing across all files |
+| 6 | **Private Key Vaulting** | AES-256-GCM envelope encryption via AWS KMS / Vault | ⚠️ Mentioned in `prd.md`, missing in code prompts |
+| 7 | **HTML PDF Sanitization** | Escape user input to prevent HTML/SSRF injection in PDF generation | ❌ Missing in `prompt.md` |
+| 8 | **Log Masking** | Redact PII (phone numbers, customer identity) from console logs | ❌ Missing in `prompt.md` |
+

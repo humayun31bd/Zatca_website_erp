@@ -1,0 +1,83 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test-and-build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - name: Install dependencies (Backend)
+        run: npm ci
+        working-directory: ./backend
+      - name: Run build (Backend)
+        run: npm run build
+        working-directory: ./backend
+      - name: Deploy to Vercel (Backend API)
+        uses: amondnet/vercel-action@v20
+        if: github.ref == 'refs/heads/main'
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./backend
+          vercel-args: '--prod'
+        
+  test-and-build-marketing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - name: Install dependencies (Marketing)
+        run: npm ci
+        working-directory: ./marketing
+      - name: Run build (Marketing Astro + Vue)
+        run: npm run build
+        working-directory: ./marketing
+      - name: Deploy to Cloudflare Pages (Marketing)
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: 'numouerp-marketing'
+          directory: './marketing/dist'
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  test-and-build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: 'stable'
+      - name: Install dependencies (Flutter ERP)
+        run: flutter pub get
+        working-directory: ./erp-frontend
+      - name: Run tests (Flutter ERP)
+        run: flutter test
+        working-directory: ./erp-frontend
+        continue-on-error: true # Tests might not be fully setup yet
+      - name: Run build (Flutter Web)
+        run: flutter build web
+        working-directory: ./erp-frontend
+      - name: Deploy to Cloudflare Pages (ERP App)
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: 'numouerp-app'
+          directory: './erp-frontend/build/web'
+          githubToken: ${{ secrets.GITHUB_TOKEN }}

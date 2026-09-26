@@ -26,6 +26,7 @@
 13. [Database Schema](#13-database-schema)
 14. [Deployment Architecture](#14-deployment-architecture)
 15. [Success Metrics & KPIs](#15-success-metrics--kpis)
+16. [Go-to-Market & Positioning](#16-go-to-market--positioning)
 
 ---
 
@@ -475,13 +476,16 @@ Total JS sent to browser: ~12KB (vs 56KB current)
 | Module | Features |
 |---|---|
 | **Dashboard** | KPI cards (Revenue, Invoices Cleared, Overdue SAR), Revenue chart, ZATCA health status, Recent activity |
-| **Invoicing** | Create ZATCA-compliant invoice, View list (filter/search), Invoice detail with QR, Share PDF, WhatsApp send |
-| **Clients** | Add/Edit/Delete clients, Client invoice history, Saudi CRN validation |
+| **Invoicing** | Create ZATCA-compliant invoice, Credit/Debit notes (ZATCA-compliant returns), View list (filter/search), Invoice detail with QR, Share PDF, WhatsApp send |
+| **Clients** | Add/Edit/Delete clients, Client invoice history, Saudi CRN validation, Customer balance report |
 | **WhatsApp** | Delivery logs (Sent/Delivered/Read), Template management, Bulk send |
 | **Payments** | Payment links, Transaction history, Moyasar/PayTabs integration |
+| **Purchases** | Supplier ledger, Purchase invoices, Payment tracking, Due date alerts |
+| **Inventory** | Real-time stock tracking, Multi-unit support (piece/carton/kg), Low-stock alerts, Barcode scanner |
+| **Cash & Bank** | Cash book, Daily cash summary, Bank reconciliation (bank feed matching) |
 | **Agency** | Multi-tenant list, Add tenant, Tenant usage stats, API key management |
-| **Reports** | Revenue by period, VAT reports (ZATCA format), Export CSV/PDF |
-| **Settings** | Profile, Language (AR/EN/UR), Dark/Light mode, Notification preferences, Billing |
+| **Reports** | Revenue by period, P&L by month, Top-selling items, Customer balances, VAT reports (ZATCA format), Export CSV/PDF |
+| **Settings** | Profile, Language (AR/EN/UR), Hijri/Gregorian date display, Dark/Light mode, Notification preferences, Billing |
 
 ### 5.4 Architecture Pattern (Feature-First Clean Architecture)
 
@@ -531,11 +535,22 @@ Mobile (<600px):         Bottom Navigation Bar + Full-screen content
 | `/api/v1/invoices` | GET | List invoices | Bearer JWT |
 | `/api/v1/invoices` | POST | Create invoice → ZATCA clearance | Bearer JWT |
 | `/api/v1/invoices/:id` | GET | Invoice detail + QR | Bearer JWT |
+| `/api/v1/invoices/:id/credit-note` | POST | Issue ZATCA-compliant credit note | Bearer JWT |
+| `/api/v1/invoices/:id/debit-note` | POST | Issue ZATCA-compliant debit note | Bearer JWT |
 | `/api/v1/clients` | GET/POST/PUT/DELETE | Client CRUD | Bearer JWT |
+| `/api/v1/clients/:id/balance` | GET | Client outstanding balance | Bearer JWT |
+| `/api/v1/suppliers` | GET/POST/PUT/DELETE | Supplier CRUD | Bearer JWT |
+| `/api/v1/purchases` | GET/POST | Purchase invoice management | Bearer JWT |
+| `/api/v1/purchases/:id` | GET/PUT | Purchase invoice detail | Bearer JWT |
+| `/api/v1/cash/book` | GET | Daily cash book entries | Bearer JWT |
+| `/api/v1/cash/summary` | GET | Daily cash summary | Bearer JWT |
 | `/api/v1/whatsapp/send` | POST | Send invoice to WhatsApp | Bearer JWT |
 | `/api/v1/payments/link` | POST | Generate Click-to-Pay link | Bearer JWT |
 | `/api/v1/agency/tenants` | GET/POST | Agency multi-tenant management | Bearer JWT + Agency role |
 | `/api/v1/reports/vat` | GET | VAT report export | Bearer JWT |
+| `/api/v1/reports/pnl` | GET | Profit & Loss by month | Bearer JWT |
+| `/api/v1/reports/top-items` | GET | Top-selling items report | Bearer JWT |
+| `/api/v1/reports/customer-balances` | GET | Customer balance aging report | Bearer JWT |
 | `/api/v1/leads` | POST | Marketing lead capture | Rate limited (5/min) |
 | `/api/v1/demo-simulator` | POST | WhatsApp demo trigger | Rate limited (3/hr) |
 
@@ -683,6 +698,29 @@ MaterialApp.router(
 )
 ```
 
+### 8.4 Hijri Calendar & Arabic Number Formatting
+
+**Hijri Calendar Support:**
+- Display dates in both **Hijri (هجري)** and **Gregorian** formats — user-selectable in Settings
+- Flutter package: `hijri` (for Hijri ↔ Gregorian conversion)
+- Invoice date field shows dual format: `١٤٤٧/٠٣/٠٢ هـ  |  25 Sep 2026`
+- ZATCA XML always uses ISO 8601 Gregorian (compliance requirement)
+
+**Arabic Number Formatting:**
+- User preference: Arabic-Indic numerals (`٠١٢٣٤٥٦٧٨٩`) or Western (`0123456789`)
+- `sar_formatter.dart` extended to support both numeral systems
+- Invoice PDFs generated in the user's selected numeral format
+- Currency display: `١٬٢٥٠٫٠٠ ر.س` (Arabic) or `SAR 1,250.00` (English)
+
+```dart
+// core/utils/sar_formatter.dart
+String formatSAR(double amount, {bool arabicNumerals = false}) {
+  final formatted = NumberFormat('#,##0.00', 'en_US').format(amount);
+  if (arabicNumerals) return _toArabicNumerals(formatted) + ' ر.س';
+  return 'SAR $formatted';
+}
+```
+
 ---
 
 ## 9. Design System & UI Standards
@@ -729,13 +767,17 @@ MaterialApp.router(
 ## 10. ERP Feature Modules
 
 ### 10.1 Module 1: ZATCA Phase 2 Cryptographic Clearance Engine
-- UBL 2.1 compliant XML auto-generation
+- UBL 2.1 compliant XML auto-generation (Standard B2B + Simplified B2C)
 - ECDSA cryptographic signing (secp256k1)
 - PIH (Previous Invoice Hash) chain maintenance
 - Base64 TLV Phase 2 QR code generation
 - Real-time synchronous clearance (B2B)
 - 24-hr batch reporting (B2C)
 - CSID onboarding wizard (3-step guided)
+- **Credit & Debit Notes:** ZATCA-compliant XML credit/debit notes for returns and adjustments
+- **Tamper Resistance:** Invoices are immutable after generation — no deletion or modification permitted post-clearance
+- **Full Audit Log:** Append-only audit trail for every invoice action (created, sent, viewed, clearance response)
+- **6-Year Secure Archiving:** Encrypted invoice archive stored on AWS S3 (me-central-1) with mandatory 6-year retention policy per ZATCA regulations
 
 ### 10.2 Module 2: Native WhatsApp Invoicing & Commerce
 - Official Meta WhatsApp Cloud API (zero ban risk)
@@ -753,13 +795,30 @@ MaterialApp.router(
 - Double-entry bookkeeping with auto-journal entries
 - Automatic bank reconciliation (bank feed matching)
 - VAT return reports (ZATCA format)
+- **Profit & Loss Report:** Monthly P&L with revenue, cost of goods, gross/net profit breakdown
+- **Top-Selling Items Report:** Ranked by quantity sold and revenue contribution
+- **Customer Balance Report:** Outstanding balances per client with aging (30/60/90 days)
+- **Pre-Configured Chart of Accounts:** Industry-specific templates for grocery, spare parts, fashion, clinics, restaurants — selected during onboarding setup wizard
 
 ### 10.4 Module 4: POS & Inventory
 - Point of Sale (tablet-optimized)
+- **POS Dashboard & Core Features:**
+  - **Transactions:** Sales invoice, Purchase order, Shipments, Payment & Receipts, Expenses, Sales Order, Cash Ledger.
+  - **Entities:** Customer and Vendor management.
+  - **POS Configuration:** Enable/disable Restaurant POS mode, Currency configuration, Printer settings, Contact us.
+  - **More Options:** Categories, products, options, taxes, payment method, floor & tables, Receipts templates, Backup & Restore, Language Setting.
 - Real-time inventory tracking
-- Low-stock alerts
+- **Multi-Branch Inventory & Product Locations:** Track stock levels across multiple branches/stores independently. Record specific shelf locations and aisles per product per branch.
+- Low-stock alerts (low stock products view)
 - ZATCA simplified invoice generation at checkout
 - Barcode scanner support
+- **Multi-Unit of Measure (UoM) & Conversions:** Sell and track stock in piece, carton, kg, litre, box. Configure advanced unit conversions per product (e.g., 1 Carton = 12 Pieces) with separate pricing and barcodes for alternative units.
+- **Cost & Margin Tracking:** Purchase cost vs. selling price margin display per item
+- **Returns at POS:** Issue credit note at checkout for returned items with ZATCA compliance
+- **Sales and Reporting (Graphical Tracking):**
+  - Track sales transactions graphically.
+  - **Revenue Report:** Pie chart by products, date search option, product-wise sold items list.
+  - **Inventory Report:** Pie chart by products, date search option, product-wise sold items list.
 
 ### 10.5 Module 5: Agency White-Label Portal
 *(Full details in [Agency White-Label Program](#11-agency-white-label-program))*
@@ -769,11 +828,58 @@ MaterialApp.router(
 - Tenant provisioning in < 2 minutes
 - Dedicated WhatsApp sender ID per agency
 
+### 10.6 Module 6: Purchases & Supplier Management
+- Supplier ledger with full contact profile (CR number, VAT number, bank details)
+- Purchase invoice creation and listing (linked to supplier)
+- Expense categorisation with GL account mapping
+- Payment tracking: mark as paid/partial, due date reminders
+- Supplier aging report (outstanding payables 30/60/90 days)
+- Purchase returns: credit note to supplier with ZATCA-compliant documentation
+- API endpoints: `GET/POST/PUT/DELETE /api/v1/suppliers`, `GET/POST /api/v1/purchases`
+
+### 10.7 Module 7: Cash Book & Daily Cash Management
+- Cash book: record cash-in / cash-out transactions with category
+- Daily cash summary: opening balance → receipts → payments → closing balance
+- Petty cash management with approval workflow
+- Cash vs. bank position dashboard widget
+- End-of-day cash reconciliation report (printable)
+- Integration with bank reconciliation in Module 3 (AI Copilot)
+
 ---
 
-## 11. Agency White-Label Program
+## 11. Pricing Plans
 
-### 11.1 Partner Subscription Tiers
+### 11.1 SME Business Plans (Track A — Direct Customers)
+
+> **Free Trial:** 30-day full-feature trial, no credit card required. Cancel anytime.
+
+| Feature | **Starter** | **Standard** | **Pro** |
+|---|---|---|---|
+| **Monthly Price (SAR)** | **SAR 149/mo** | **SAR 349/mo** | **SAR 649/mo** |
+| **Annual Price (SAR)** | SAR 1,430/yr *(save 20%)* | SAR 3,350/yr *(save 20%)* | SAR 6,230/yr *(save 20%)* |
+| **Users** | 1 user | 2–3 users | Up to 10 users |
+| **ZATCA e-Invoices** | ✅ Included | ✅ Included | ✅ Included |
+| **Monthly Invoices** | 200 | 1,000 | 5,000 |
+| **POS & Inventory** | Basic | ✅ Full + multi-unit UoM | ✅ Full + multi-branch |
+| **Purchases & Suppliers** | ❌ | ✅ | ✅ |
+| **Cash Book & Daily Summary** | ❌ | ✅ | ✅ |
+| **WhatsApp Invoicing** | ❌ | ✅ | ✅ |
+| **VAT Reports** | Basic | ✅ ZATCA format | ✅ ZATCA format |
+| **P&L, Top Items, Balances** | ❌ | ✅ | ✅ |
+| **AI Financial Copilot** | ❌ | ❌ | ✅ |
+| **Multi-branch** | ❌ | ❌ | ✅ (up to 5 branches) |
+| **API Access** | ❌ | ❌ | ✅ |
+| **Support** | Email | Email + WhatsApp | Priority WhatsApp + Phone |
+
+**Per-branch pricing (chains):** SAR 99/branch/mo added to any Pro plan.
+
+**ZATCA Phase 2 included** on all plans — prominently displayed in all marketing and demos.
+
+---
+
+## 12. Agency White-Label Program
+
+### 12.1 Partner Subscription Tiers
 
 | Feature | Agency Starter | Agency Growth | Agency Enterprise |
 |---|---|---|---|
@@ -788,7 +894,7 @@ MaterialApp.router(
 | **WhatsApp Sender ID** | Shared pool | Dedicated WABA | Multiple WABAs |
 | **Support** | Email | Priority email + WA | Dedicated account manager |
 
-### 11.2 Partner Economics
+### 12.2 Partner Economics
 
 **Typical scenario: 30 clients at SAR 349/client/mo:**
 ```
@@ -905,3 +1011,53 @@ flowchart LR
 | WhatsApp delivery success rate | > 99% |
 | API uptime SLA | 99.95% (multi-AZ) |
 | Monthly Churn Rate | < 3% |
+
+---
+
+## 16. Go-to-Market & Positioning
+
+### 16.1 Competitive Positioning
+**Niche Focus:** "Accounting for Riyadh retail shops and service businesses."
+
+| Competitor | Their Focus | Numou Differentiation |
+|---|---|---|
+| **Qoyod / Daftra** | General SMEs, heavy accounting | Hyper-focused on retail/services, WhatsApp-first invoicing |
+| **Zoho Books / Odoo** | Enterprise / complex workflows | 1-Click ZATCA setup, zero-configuration local compliance |
+| **QuickBooks / Xero** | Global standards | Built specifically for Saudi market (RTL, Hijri, ZATCA native) |
+
+### 16.2 Go-to-Market Tactics (GTM)
+- **Local Accountant Partnerships:** Incentivize accounting firms to onboard their clients for easy ZATCA compliance.
+- **POS Hardware Vendor Partnerships:** Bundle Numou ERP with tablet and barcode scanner sales.
+- **On-Ground Demos:** Field sales in major Riyadh commercial hubs (e.g., Batha, Olaya) targeting small shop owners.
+- **Arabic Content Marketing:** YouTube tutorials on ZATCA compliance, VAT return checklists, and small business tips.
+- **Search Advertising:** Google Ads targeted at Arabic ZATCA keywords ("فاتورة إلكترونية زاتكا", "برنامج محاسبة للمحلات").
+
+### 16.3 Industry-Specific Chart of Accounts
+To reduce onboarding friction, Numou provides 1-click tailored Chart of Accounts templates during tenant provisioning:
+- **Retail & POS:** Heavy focus on Cost of Goods Sold (COGS), Inventory Adjustments, Cash Over/Short.
+- **Services & Clinics:** Focus on Professional Fees Revenue, Unearned Revenue, Medical Supplies Expense.
+- **Logistics:** Fleet Maintenance, Fuel Expenses, Subcontractor Costs, Freight Revenue.
+- **Food & Beverage (F&B):** Spoilage Expense, Delivery Platform Commissions (Jahez/HungerStation), Food Cost Analysis.
+
+---
+
+## 17. Pricing & Commercial Model
+
+### 17.1 Free Trial Policy
+- **14-Day Full-Access Trial:** Includes ZATCA Sandbox environment (Simulation) for risk-free testing.
+- **No Credit Card Required** for sign-up to maximize top-of-funnel conversion.
+- Hard lock at 14 days unless a package is selected.
+
+### 17.2 SME Pricing Tiers (B2B)
+| Tier | Price (SAR/mo) | Target Audience | Features |
+|---|---|---|---|
+| **Starter** | SAR 99 | Micro businesses, Freelancers | Up to 100 Invoices/mo, Basic ZATCA (Simplified), 1 User |
+| **Growth** | SAR 299 | Retail shops, small clinics | Unlimited Invoices, Advanced ZATCA (Standard + B2B), WhatsApp Delivery, 3 Users, Inventory |
+| **Enterprise** | SAR 799 | Multi-branch operations | Multi-branch, Custom Chart of Accounts, API Access, Unlimited Users, Dedicated Account Manager |
+
+### 17.3 Agency / White-Label Tiers (B2B2B)
+| Tier | Price (SAR/mo) | Included Tenants | Additional Tenant Cost | Features |
+|---|---|---|---|---|
+| **Partner Pro** | SAR 999 | 10 Tenants | SAR 75/mo | White-label UI, API Access, Sub-tenant Billing Dashboard |
+| **Distributor** | SAR 3,999 | 50 Tenants | SAR 50/mo | Full White-label, Custom Domain (app.agency.com), Priority ZATCA Onboarding Support |
+

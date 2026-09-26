@@ -1,0 +1,16 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import Header from '../components/Header.vue';
+import Hero from '../components/Hero.vue';
+import Features from '../components/Features.vue';
+import Pricing from '../components/Pricing.vue';
+---
+
+<MainLayout title="Numou ERP - ZATCA Compliance Made Effortless" description="Accounting and ERP software for Riyadh retail shops and service businesses. 1-click ZATCA setup, zero-configuration local compliance.">
+  <Header client:load />
+  <main>
+    <Hero client:load />
+    <Features client:load />
+    <Pricing client:load />
+  </main>
+</MainLayout>

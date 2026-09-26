@@ -1,0 +1,17 @@
+- [x] Phase 1: Foundation & Architecture Setup
+  - [x] Prompt 1: Project Initialization
+  - [x] Prompt 2: Core Domain Types & Service Interfaces
+- [x] Phase 2: Mock Engine & Service Locator Setup
+  - [x] Prompt 3: Mock ZATCA Cryptography & Clearance Engine
+  - [x] Prompt 4: Mock WhatsApp Cloud API Engine & Webhook Simulator
+  - [x] Prompt 5: Service Locator & Environment Switcher
+- [x] Phase 3: Core API Endpoints Implementation
+  - [x] Prompt 6: Unified Invoice Processing API Endpoint
+  - [x] Prompt 7: CSID Onboarding & WhatsApp Webhook Endpoints
+- [x] Phase 4: White-Label Agency Dashboard UI
+  - [x] Prompt 8: Agency Portal Dashboard & Transaction Logs UI
+    - [x] Create layout and components
+    - [x] Create `src/app/(dashboard)/page.tsx`
+    - [x] Create `src/app/(dashboard)/keys/page.tsx`
+- [x] Phase 5: Verification & Production Readiness
+  - [x] Prompt 9: Testing Suite & API Verification Script
