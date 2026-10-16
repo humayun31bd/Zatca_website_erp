@@ -1,0 +1,271 @@
+.login-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #f8fafc;
+}
+
+/* Brand Showcase Side */
+.brand-panel {
+  flex: 1.1;
+  background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  padding: 48px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(37, 99, 235, 0) 70%);
+  }
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+}
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+
+  .brand-icon {
+    font-size: 1.5rem;
+    color: #3b82f6;
+  }
+}
+
+.brand-center {
+  max-width: 520px;
+}
+
+.hero-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0 0 16px;
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+  font-size: 1.05rem;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin: 0 0 36px;
+}
+
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  .feature-icon {
+    color: #10b981;
+    font-size: 1.25rem;
+    margin-top: 2px;
+  }
+
+  strong {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 0.825rem;
+    color: #94a3b8;
+  }
+}
+
+.brand-footer {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Form Side */
+.form-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+}
+
+.form-card {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.form-header {
+  margin-bottom: 24px;
+}
+
+.form-title {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.form-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #ef4444;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.forgot-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  i {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+    pointer-events: none;
+  }
+
+  input {
+    padding-left: 36px;
+  }
+}
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 0 8px;
+}
+
+.remember-label {
+  font-size: 0.825rem;
+  color: #475569;
+  cursor: pointer;
+}
+
+.submit-btn {
+  padding: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Demo box */
+.demo-box {
+  margin-top: 24px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+}
+
+.demo-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+
+  i {
+    color: #2563eb;
+  }
+}
+
+.demo-desc {
+  margin: 0 0 10px;
+  font-size: 0.775rem;
+  color: #64748b;
+}
+
+.demo-btn {
+  font-size: 0.8rem;
+  border-color: #cbd5e1;
+  color: #334155;
+
+  &:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #2563eb;
+  }
+}

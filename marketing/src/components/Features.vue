@@ -1,39 +1,66 @@
 <template>
-  <section id="features" class="features-section">
+  <section id="features" class="features-section" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Everything You Need to Run Your Business</h2>
-        <p class="section-subtitle">A comprehensive suite of tools built for modern retailers and service providers in Saudi Arabia.</p>
+        <h2 class="section-title">{{ t('features.title') }}</h2>
+        <p class="section-subtitle">{{ t('features.subtitle') }}</p>
       </div>
       
       <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">🚀</div>
-          <h3 class="feature-title">1-Click ZATCA Setup</h3>
-          <p class="feature-desc">Instantly connect with ZATCA Phase 2 without complex configurations. Generate compliant e-invoices out of the box.</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon">💰</div>
-          <h3 class="feature-title">Smart POS System</h3>
-          <p class="feature-desc">Fast, responsive point of sale. Handle multiple payment methods, cash drawers, and generate dynamic QR codes instantly.</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon">📦</div>
-          <h3 class="feature-title">Advanced Inventory</h3>
-          <p class="feature-desc">Track stock across multiple branches. Multi-unit support, automated low stock alerts, and real-time valuation.</p>
-        </div>
-        
-        <div class="feature-card">
-          <div class="feature-icon">📱</div>
-          <h3 class="feature-title">WhatsApp Integration</h3>
-          <p class="feature-desc">Send invoices and receipts directly to your customers' WhatsApp automatically upon checkout completion.</p>
+        <div v-for="(item, idx) in featureItems" :key="idx" class="feature-card">
+          <div class="feature-icon">{{ item.icon }}</div>
+          <h3 class="feature-title">{{ item.title }}</h3>
+          <p class="feature-desc">{{ item.desc }}</p>
         </div>
       </div>
     </div>
   </section>
 </template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { translations as allTranslations } from '../data/translations.js'
+
+const currentLang = ref('en')
+
+function t(key) {
+  const parts = key.split('.')
+  let obj = allTranslations[currentLang.value] || allTranslations['en']
+  for (const p of parts) {
+    if (obj && obj[p] !== undefined) {
+      obj = obj[p]
+    } else {
+      return key
+    }
+  }
+  return obj
+}
+
+const featureItems = computed(() => {
+  const langObj = allTranslations[currentLang.value] || allTranslations['en']
+  return langObj.features?.items || allTranslations['en'].features.items
+})
+
+const handleLangChange = (e) => {
+  if (e.detail) {
+    currentLang.value = e.detail
+  }
+}
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('user_lang')
+    if (saved) currentLang.value = saved
+    window.addEventListener('language-change', handleLangChange)
+  }
+})
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('language-change', handleLangChange)
+  }
+})
+</script>
 
 <style scoped>
 .features-section {

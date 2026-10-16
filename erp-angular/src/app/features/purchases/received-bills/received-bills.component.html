@@ -1,0 +1,152 @@
+<div class="purchases-page">
+  <!-- Page Header -->
+  <div class="page-title-row">
+    <div>
+      <h1 class="page-title">Received Bills & Procurement</h1>
+      <p class="page-subtitle">Track supplier bills, GRN records, payment aging, and disbursements</p>
+    </div>
+    <div class="action-buttons">
+      <p-button icon="pi pi-refresh" label="Refresh" [outlined]="true" size="small" (click)="loadBills()" [loading]="isLoading()"></p-button>
+      <p-button icon="pi pi-plus" label="Record Bill" size="small" (click)="openRecordDialog()"></p-button>
+    </div>
+  </div>
+
+  <!-- KPI Metrics -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-title">Total Bills</span>
+        <div class="kpi-icon-box" style="background-color: #3b82f615; color: #3b82f6;">
+          <i class="pi pi-file"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ totalBillsCount() }}</div>
+      <span class="kpi-sub">Total recorded vouchers</span>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-title">Total Incurred</span>
+        <div class="kpi-icon-box" style="background-color: #10b98115; color: #10b981;">
+          <i class="pi pi-dollar"></i>
+        </div>
+      </div>
+      <div class="kpi-value">SAR {{ totalIncurredAmount() | number:'1.2-2' }}</div>
+      <span class="kpi-sub">Gross procurement expenses</span>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-title">Unpaid Balance</span>
+        <div class="kpi-icon-box" style="background-color: #f59e0b15; color: #f59e0b;">
+          <i class="pi pi-clock"></i>
+        </div>
+      </div>
+      <div class="kpi-value">SAR {{ totalUnpaidBalance() | number:'1.2-2' }}</div>
+      <span class="kpi-sub">Pending supplier payables</span>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-title">Overdue Invoices</span>
+        <div class="kpi-icon-box" style="background-color: #ef444415; color: #ef4444;">
+          <i class="pi pi-exclamation-triangle"></i>
+        </div>
+      </div>
+      <div class="kpi-value" [class.danger]="overdueCount() > 0">{{ overdueCount() }}</div>
+      <span class="kpi-sub">Past due settlement date</span>
+    </div>
+  </div>
+
+  <!-- Table Container with Filter Toolbar -->
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div class="filter-group">
+        <span class="search-input-wrapper">
+          <i class="pi pi-search search-icon"></i>
+          <input 
+            type="text" 
+            pInputText 
+            placeholder="Search bill # or supplier..." 
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            class="search-input"
+          />
+        </span>
+
+        <p-select 
+          [options]="statusOptions" 
+          optionLabel="label" 
+          optionValue="value" 
+          [ngModel]="selectedStatus()"
+          (ngModelChange)="selectedStatus.set($event)"
+          placeholder="Status"
+          styleClass="status-dropdown"
+        ></p-select>
+      </div>
+
+      <div class="results-count">
+        Showing <strong>{{ filteredBills().length }}</strong> bills
+      </div>
+    </div>
+
+    <p-table 
+      [value]="filteredBills()" 
+      [paginator]="true" 
+      [rows]="10" 
+      [rowsPerPageOptions]="[10, 25, 50]" 
+      [loading]="isLoading()"
+      [tableStyle]="{ 'min-width': '65rem' }" 
+      styleClass="p-datatable-sm p-datatable-striped"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="billNumber">Bill #</th>
+          <th pSortableColumn="supplierName">Supplier</th>
+          <th pSortableColumn="issueDate">Issue Date</th>
+          <th pSortableColumn="dueDate">Due Date</th>
+          <th pSortableColumn="totalAmount" class="text-right">Total (SAR)</th>
+          <th pSortableColumn="paidAmount" class="text-right">Paid (SAR)</th>
+          <th>Status</th>
+          <th style="width: 7rem" class="text-center">Action</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-bill>
+        <tr>
+          <td class="font-semibold text-primary">{{ bill.billNumber }}</td>
+          <td>{{ bill.supplierName }}</td>
+          <td>{{ bill.issueDate | date:'mediumDate' }}</td>
+          <td>{{ bill.dueDate ? (bill.dueDate | date:'mediumDate') : '—' }}</td>
+          <td class="text-right font-semibold">SAR {{ bill.totalAmount | number:'1.2-2' }}</td>
+          <td class="text-right">SAR {{ bill.paidAmount | number:'1.2-2' }}</td>
+          <td>
+            <p-tag [value]="bill.paymentStatus" [severity]="getSeverity(bill.paymentStatus)"></p-tag>
+          </td>
+          <td class="text-center">
+            <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" pTooltip="View Bill Details"></p-button>
+            <p-button icon="pi pi-print" [text]="true" [rounded]="true" size="small" pTooltip="Print Voucher"></p-button>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="8" class="text-center py-6 text-500">
+            <div class="empty-state">
+              <i class="pi pi-folder-open empty-icon"></i>
+              <p>No supplier bills found matching your criteria.</p>
+              <p-button label="Record First Bill" icon="pi pi-plus" size="small" (click)="openRecordDialog()"></p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Record Bill Dialog -->
+  <app-record-bill-dialog 
+    [(visible)]="isRecordDialogOpen" 
+    (billSaved)="loadBills()"
+  ></app-record-bill-dialog>
+</div>

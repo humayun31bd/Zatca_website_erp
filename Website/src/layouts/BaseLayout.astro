@@ -9,7 +9,7 @@ interface Props {
   canonicalUrl: string;
 }
 
-const { title, description = "Numou ERP - Empowering Smart Business Growth", lang, dir, canonicalUrl } = Astro.props;
+const { title, description = "Intelligent ERP - Empowering Smart Business Growth", lang, dir, canonicalUrl } = Astro.props;
 ---
 
 <!doctype html>
@@ -25,15 +25,15 @@ const { title, description = "Numou ERP - Empowering Smart Business Growth", lan
 
     <!-- SEO & i18n -->
     <link rel="canonical" href={canonicalUrl} />
-    <link rel="alternate" hreflang="ar" href="https://numouerp.com/ar/" />
-    <link rel="alternate" hreflang="en" href="https://numouerp.com/en/" />
-    <link rel="alternate" hreflang="x-default" href="https://numouerp.com/ar/" />
+    <link rel="alternate" hreflang="ar" href="https://intelligentdive.com/ar/" />
+    <link rel="alternate" hreflang="en" href="https://intelligentdive.com/en/" />
+    <link rel="alternate" hreflang="x-default" href="https://intelligentdive.com/ar/" />
     
     <!-- JSON-LD -->
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": lang === 'ar' ? "نومو إي آر بي" : "Numou ERP",
+      "name": lang === 'ar' ? "إي آر بي الذكي" : "Intelligent ERP",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web, Android, iOS"
     })} />

@@ -1,0 +1,1043 @@
+<div class="categories-container min-h-screen bg-slate-950 text-slate-100 p-4 md:p-6 space-y-6">
+
+  <!-- Toast Notification -->
+  @if (toast()) {
+    <div class="fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md border transition-all animate-fade-in"
+         [ngClass]="{
+           'bg-emerald-500/20 border-emerald-500/40 text-emerald-200': toast()?.type === 'success',
+           'bg-rose-500/20 border-rose-500/40 text-rose-200': toast()?.type === 'error',
+           'bg-blue-500/20 border-blue-500/40 text-blue-200': toast()?.type === 'info'
+         }">
+      <i [class]="toast()?.type === 'success' ? 'pi pi-check-circle text-emerald-400' : toast()?.type === 'error' ? 'pi pi-exclamation-triangle text-rose-400' : 'pi pi-info-circle text-blue-400'"></i>
+      <span class="text-sm font-medium">{{ toast()?.message }}</span>
+      <button (click)="toast.set(null)" class="text-slate-400 hover:text-white ml-2">
+        <i class="pi pi-times text-xs"></i>
+      </button>
+    </div>
+  }
+
+  <!-- Header & Navigation Bar -->
+  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
+        <a routerLink="/inventory" class="hover:underline">Inventory</a>
+        <span>/</span>
+        <span class="text-slate-400">Categories & Hierarchies</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+          <i class="pi pi-tags text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-white tracking-tight">Product Categories</h1>
+          <p class="text-xs text-slate-400">تصنيفات وهيكلة المنتجات وتفرعاتها</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Tab Switcher -->
+    <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 p-1.5 rounded-2xl self-start lg:self-auto">
+      <button (click)="switchTab('categories')"
+              [class]="activeTab() === 'categories'
+                ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium'"
+              class="px-4 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+        <i class="pi pi-tags"></i>
+        <span>Categories</span>
+        <span class="text-xs px-1.5 py-0.5 rounded-full"
+              [class]="activeTab() === 'categories' ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-slate-300'">
+          {{ totalCategories() }}
+        </span>
+      </button>
+
+      <button (click)="switchTab('subcategories')"
+              [class]="activeTab() === 'subcategories'
+                ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium'"
+              class="px-4 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+        <i class="pi pi-sitemap"></i>
+        <span>Sub-Categories</span>
+        <span class="text-xs px-1.5 py-0.5 rounded-full"
+              [class]="activeTab() === 'subcategories' ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-slate-300'">
+          {{ totalSubCategories() }}
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Overview Bar -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- Total Categories -->
+    <div class="kpi-card bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+      <div>
+        <span class="text-xs text-slate-400 font-medium block">Total Categories</span>
+        <span class="text-2xl font-black text-white mt-1 block">{{ totalCategories() }}</span>
+        <span class="text-[11px] text-emerald-400 flex items-center gap-1 mt-1 font-medium">
+          <i class="pi pi-check"></i> Master Taxonomy
+        </span>
+      </div>
+      <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+        <i class="pi pi-tags text-xl"></i>
+      </div>
+    </div>
+
+    <!-- Total Sub-Categories -->
+    <div class="kpi-card bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+      <div>
+        <span class="text-xs text-slate-400 font-medium block">Sub-Categories</span>
+        <span class="text-2xl font-black text-teal-400 mt-1 block">{{ totalSubCategories() }}</span>
+        <span class="text-[11px] text-teal-300 flex items-center gap-1 mt-1 font-medium">
+          <i class="pi pi-sitemap"></i> Nested Branches
+        </span>
+      </div>
+      <div class="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+        <i class="pi pi-sitemap text-xl"></i>
+      </div>
+    </div>
+
+    <!-- Products Mapped -->
+    <div class="kpi-card bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+      <div>
+        <span class="text-xs text-slate-400 font-medium block">Catalog Mapped</span>
+        <span class="text-2xl font-black text-blue-400 mt-1 block">{{ totalProductsMapped() }}</span>
+        <span class="text-[11px] text-slate-400 flex items-center gap-1 mt-1 font-medium">
+          of {{ products().length }} active items
+        </span>
+      </div>
+      <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+        <i class="pi pi-box text-xl"></i>
+      </div>
+    </div>
+
+    <!-- Active Utilization -->
+    <div class="kpi-card bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+      <div>
+        <span class="text-xs text-slate-400 font-medium block">Utilized Categories</span>
+        <span class="text-2xl font-black text-amber-400 mt-1 block">{{ activeCategoriesCount() }} / {{ totalCategories() }}</span>
+        <span class="text-[11px] text-amber-300/80 flex items-center gap-1 mt-1 font-medium">
+          {{ coveragePercentage() }}% coverage
+        </span>
+      </div>
+      <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+        <i class="pi pi-chart-pie text-xl"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Toolbar & Filters -->
+  <div class="bg-slate-900/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+    <!-- Search Bar -->
+    <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div class="relative flex-1">
+        <i class="pi pi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+        <input type="text"
+               [ngModel]="searchQuery()"
+               (ngModelChange)="searchQuery.set($event)"
+               [placeholder]="activeTab() === 'categories' ? 'Search categories by name or description...' : 'Search sub-categories...'"
+               class="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+        @if (searchQuery()) {
+          <button (click)="searchQuery.set('')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+            <i class="pi pi-times text-xs"></i>
+          </button>
+        }
+      </div>
+
+      <!-- Parent Filter Dropdown (Sub-Categories Tab) -->
+      @if (activeTab() === 'subcategories') {
+        <div class="sm:w-64">
+          <select [ngModel]="selectedParentFilter()"
+                  (ngModelChange)="selectedParentFilter.set($event)"
+                  class="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors">
+            <option value="ALL">All Parent Categories ({{ totalSubCategories() }})</option>
+            @for (cat of categories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.name }} ({{ categorySubCategoryCounts()[cat.id] || 0 }})</option>
+            }
+          </select>
+        </div>
+      }
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-wrap items-center gap-2 self-end md:self-auto">
+      <!-- Grid / Table View Toggle -->
+      <div class="flex items-center bg-slate-950/70 border border-slate-700/80 rounded-xl p-1">
+        <button (click)="isGridView.set(true)"
+                [class]="isGridView() ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white'"
+                class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all"
+                title="Grid Cards View">
+          <i class="pi pi-th-large"></i>
+          <span class="hidden sm:inline">Cards</span>
+        </button>
+        <button (click)="isGridView.set(false)"
+                [class]="!isGridView() ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white'"
+                class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all"
+                title="Table View">
+          <i class="pi pi-list"></i>
+          <span class="hidden sm:inline">Table</span>
+        </button>
+      </div>
+
+      <!-- CSV Utilities -->
+      <button (click)="downloadTemplate()"
+              class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700/70 flex items-center gap-1.5 transition-all"
+              title="Download Sample CSV Template">
+        <i class="pi pi-file-excel text-emerald-400"></i>
+        <span class="hidden lg:inline">Template</span>
+      </button>
+
+      <button (click)="openImportCsvModal()"
+              class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700/70 flex items-center gap-1.5 transition-all"
+              title="Import Categories from CSV">
+        <i class="pi pi-upload text-blue-400"></i>
+        <span class="hidden lg:inline">Import</span>
+      </button>
+
+      <button (click)="exportToCsv()"
+              class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700/70 flex items-center gap-1.5 transition-all"
+              title="Export Current View to CSV">
+        <i class="pi pi-download text-amber-400"></i>
+        <span class="hidden lg:inline">Export</span>
+      </button>
+
+      <button (click)="loadData()"
+              [disabled]="isLoading()"
+              class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700/70 flex items-center gap-1.5 transition-all"
+              title="Reload Data">
+        <i class="pi pi-refresh" [ngClass]="{ 'animate-spin': isLoading() }"></i>
+      </button>
+
+      <!-- Dynamic Primary Add Buttons -->
+      @if (activeTab() === 'categories') {
+        <button (click)="openBatchAddCategory()"
+                class="px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all">
+          <i class="pi pi-plus-circle"></i>
+          <span>Batch Add</span>
+        </button>
+
+        <button (click)="openAddCategory()"
+                class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition-all">
+          <i class="pi pi-plus font-bold"></i>
+          <span>+ Add Category</span>
+        </button>
+      } @else {
+        <button (click)="openBatchAddSubCategory(selectedParentFilter() !== 'ALL' ? selectedParentFilter() : undefined)"
+                class="px-3.5 py-2 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all">
+          <i class="pi pi-plus-circle"></i>
+          <span>Batch Add</span>
+        </button>
+
+        <button (click)="openAddSubCategory(selectedParentFilter() !== 'ALL' ? selectedParentFilter() : undefined)"
+                class="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl text-xs font-bold shadow-lg shadow-teal-500/20 flex items-center gap-1.5 transition-all">
+          <i class="pi pi-plus font-bold"></i>
+          <span>+ Add Sub-Category</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="py-20 flex flex-col items-center justify-center space-y-4">
+      <div class="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+      <p class="text-sm text-slate-400">Loading catalog taxonomy and structure...</p>
+    </div>
+  } @else {
+
+    <!-- TAB 1: CATEGORIES VIEW -->
+    @if (activeTab() === 'categories') {
+      @if (filteredCategories().length === 0) {
+        <div class="py-20 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-800/50 flex items-center justify-center text-slate-500 mb-3">
+            <i class="pi pi-tags text-3xl"></i>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-1">No Categories Found</h3>
+          <p class="text-xs text-slate-400 max-w-sm mx-auto mb-5">
+            {{ searchQuery() ? 'No categories match your search "' + searchQuery() + '".' : 'No product categories have been configured yet.' }}
+          </p>
+          <div class="flex items-center justify-center gap-3">
+            @if (searchQuery()) {
+              <button (click)="searchQuery.set('')" class="px-4 py-2 bg-slate-800 text-slate-200 text-xs font-medium rounded-xl hover:bg-slate-700">Clear Search</button>
+            } @else {
+              <button (click)="openAddCategory()" class="px-4 py-2 bg-emerald-500 text-slate-950 text-xs font-bold rounded-xl hover:bg-emerald-400 shadow-lg shadow-emerald-500/20">+ Create First Category</button>
+              <button (click)="openBatchAddCategory()" class="px-4 py-2 bg-slate-800 text-emerald-400 text-xs font-semibold rounded-xl hover:bg-slate-700 border border-emerald-500/30">Batch Add</button>
+            }
+          </div>
+        </div>
+      } @else {
+
+        <!-- Grid Cards View -->
+        @if (isGridView()) {
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            @for (cat of filteredCategories(); track cat.id) {
+              @let theme = getCategoryTheme(cat.name);
+              <div class="category-card group bg-slate-900/90 hover:bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-200 hover:shadow-2xl hover:shadow-black/50">
+                <div>
+                  <!-- Top Hero Gradient Banner (Flutter Parity) -->
+                  <div class="relative w-full h-28 bg-gradient-to-br flex items-center justify-center border-b border-slate-800/80 transition-all duration-300"
+                       [ngClass]="[theme.gradient]">
+                    <!-- Glowing Category Icon -->
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-lg transition-transform group-hover:scale-110"
+                         [ngClass]="theme.iconBg">
+                      <i class="pi pi-tags"></i>
+                    </div>
+
+                    <!-- Category ID Badge Top Left -->
+                    <div class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-slate-950/70 border border-slate-800 text-[10px] font-mono text-slate-400 backdrop-blur-md">
+                      #{{ cat.id.slice(0, 6) }}
+                    </div>
+
+                    <!-- Quick Actions Top Right -->
+                    <div class="absolute top-2.5 right-2.5 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                      <button (click)="openEditCategory(cat)"
+                              class="w-8 h-8 rounded-xl bg-slate-950/70 hover:bg-blue-500/20 text-slate-300 hover:text-blue-400 border border-slate-800/80 backdrop-blur-md flex items-center justify-center text-xs transition-colors"
+                              title="Edit Category">
+                        <i class="pi pi-pencil"></i>
+                      </button>
+                      <button (click)="confirmDeleteCategory(cat)"
+                              class="w-8 h-8 rounded-xl bg-slate-950/70 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 border border-slate-800/80 backdrop-blur-md flex items-center justify-center text-xs transition-colors"
+                              title="Delete Category">
+                        <i class="pi pi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Category Info Body -->
+                  <div class="p-4">
+                    <h3 class="text-base font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-1 mb-1">
+                      {{ cat.name }}
+                    </h3>
+                    <p class="text-xs text-slate-400 line-clamp-2 min-h-[32px] leading-relaxed">
+                      {{ cat.description || 'No description provided.' }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Footer Stats & Sub-categories Link -->
+                <div class="p-4 pt-0">
+                  <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                    <button (click)="viewSubCategoriesOf(cat.id)"
+                            class="px-2.5 py-1.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/20 flex items-center gap-1.5 transition-colors font-medium">
+                      <i class="pi pi-sitemap text-[10px]"></i>
+                      <span>{{ categorySubCategoryCounts()[cat.id] || 0 }} Sub-categories</span>
+                    </button>
+
+                    <div class="flex items-center gap-1.5 text-slate-400 font-medium"
+                         title="Products assigned to this category">
+                      <i class="pi pi-box text-xs text-blue-400"></i>
+                      <span>{{ categoryProductCounts()[cat.id] || 0 }} items</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Table View -->
+          <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-slate-300">
+                <thead class="bg-slate-950/70 text-xs font-semibold uppercase text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th class="py-3.5 px-4 w-12 text-center">#</th>
+                    <th class="py-3.5 px-4">Category Name</th>
+                    <th class="py-3.5 px-4">Description</th>
+                    <th class="py-3.5 px-4 text-center">Sub-Categories</th>
+                    <th class="py-3.5 px-4 text-center">Mapped Products</th>
+                    <th class="py-3.5 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  @for (cat of filteredCategories(); track cat.id; let idx = $index) {
+                    @let theme = getCategoryTheme(cat.name);
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                      <td class="py-3 px-4 text-xs text-slate-500 text-center font-mono">{{ idx + 1 }}</td>
+                      <td class="py-3 px-4">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
+                               [ngClass]="theme.iconBg">
+                            <i class="pi pi-box text-xs"></i>
+                          </div>
+                          <div>
+                            <span class="font-bold text-white block">{{ cat.name }}</span>
+                            <span class="text-[11px] text-slate-500 font-mono">{{ cat.id.slice(0, 8) }}...</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="py-3 px-4 text-xs text-slate-400 max-w-xs truncate">
+                        {{ cat.description || '—' }}
+                      </td>
+                      <td class="py-3 px-4 text-center">
+                        <button (click)="viewSubCategoriesOf(cat.id)"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-500/10 text-teal-300 hover:bg-teal-500/20 border border-teal-500/20 transition-colors">
+                          <i class="pi pi-sitemap text-[10px]"></i>
+                          {{ categorySubCategoryCounts()[cat.id] || 0 }}
+                        </button>
+                      </td>
+                      <td class="py-3 px-4 text-center">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                          <i class="pi pi-box text-[10px]"></i>
+                          {{ categoryProductCounts()[cat.id] || 0 }}
+                        </span>
+                      </td>
+                      <td class="py-3 px-4 text-right">
+                        <div class="inline-flex items-center gap-1.5">
+                          <button (click)="openBatchAddSubCategory(cat.id)"
+                                  class="px-2 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 text-xs font-medium transition-colors"
+                                  title="Add Sub-Category under this category">
+                            <i class="pi pi-plus text-[10px]"></i> Sub
+                          </button>
+                          <button (click)="openEditCategory(cat)"
+                                  class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 inline-flex items-center justify-center text-xs transition-colors"
+                                  title="Edit Category">
+                            <i class="pi pi-pencil"></i>
+                          </button>
+                          <button (click)="confirmDeleteCategory(cat)"
+                                  class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 inline-flex items-center justify-center text-xs transition-colors"
+                                  title="Delete Category">
+                            <i class="pi pi-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      }
+    }
+
+    <!-- TAB 2: SUB-CATEGORIES VIEW -->
+    @if (activeTab() === 'subcategories') {
+      @if (filteredSubCategories().length === 0) {
+        <div class="py-20 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-800/50 flex items-center justify-center text-slate-500 mb-3">
+            <i class="pi pi-sitemap text-3xl"></i>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-1">No Sub-Categories Found</h3>
+          <p class="text-xs text-slate-400 max-w-sm mx-auto mb-5">
+            {{ searchQuery() ? 'No sub-categories match your search filter.' : 'No sub-categories have been configured for the selected parent.' }}
+          </p>
+          <div class="flex items-center justify-center gap-3">
+            <button (click)="openAddSubCategory(selectedParentFilter() !== 'ALL' ? selectedParentFilter() : undefined)"
+                    class="px-4 py-2 bg-teal-500 text-slate-950 text-xs font-bold rounded-xl hover:bg-teal-400 shadow-lg shadow-teal-500/20">
+              + Create Sub-Category
+            </button>
+          </div>
+        </div>
+      } @else {
+
+        <!-- Sub-Categories Grid Cards -->
+        @if (isGridView()) {
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            @for (sub of filteredSubCategories(); track sub.id) {
+              @let parentCat = categoryMap()[sub.categoryId];
+              <div class="group bg-slate-900/80 hover:bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:shadow-black/40">
+                <div>
+                  <div class="flex items-start justify-between gap-3 mb-2">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <i class="pi pi-tags text-[9px]"></i>
+                      <span>{{ parentCat?.name || 'Unassigned Parent' }}</span>
+                    </span>
+
+                    <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                      <button (click)="openEditSubCategory(sub)"
+                              class="w-7 h-7 rounded-lg bg-slate-800/80 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 flex items-center justify-center text-xs transition-colors"
+                              title="Edit Sub-Category">
+                        <i class="pi pi-pencil"></i>
+                      </button>
+                      <button (click)="confirmDeleteSubCategory(sub)"
+                              class="w-7 h-7 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs transition-colors"
+                              title="Delete Sub-Category">
+                        <i class="pi pi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <h3 class="text-base font-bold text-white group-hover:text-teal-400 transition-colors line-clamp-1 mb-1 mt-2">
+                    {{ sub.name }}
+                  </h3>
+                  <p class="text-xs text-slate-400 line-clamp-2 min-h-[32px] mb-4">
+                    {{ sub.description || 'No description provided.' }}
+                  </p>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                  <span class="font-mono text-[11px] text-slate-500">ID: {{ sub.id.slice(0, 8) }}...</span>
+                  <div class="flex items-center gap-1 font-medium">
+                    <i class="pi pi-box text-xs text-blue-400"></i>
+                    <span>{{ subCategoryProductCounts()[sub.id] || 0 }} items</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Sub-Categories Table View -->
+          <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-slate-300">
+                <thead class="bg-slate-950/70 text-xs font-semibold uppercase text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th class="py-3.5 px-4 w-12 text-center">#</th>
+                    <th class="py-3.5 px-4">Sub-Category Name</th>
+                    <th class="py-3.5 px-4">Parent Category</th>
+                    <th class="py-3.5 px-4">Description</th>
+                    <th class="py-3.5 px-4 text-center">Mapped Products</th>
+                    <th class="py-3.5 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  @for (sub of filteredSubCategories(); track sub.id; let idx = $index) {
+                    @let parentCat = categoryMap()[sub.categoryId];
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                      <td class="py-3 px-4 text-xs text-slate-500 text-center font-mono">{{ idx + 1 }}</td>
+                      <td class="py-3 px-4 font-bold text-white">
+                        <div class="flex items-center gap-2">
+                          <i class="pi pi-sitemap text-teal-400 text-xs"></i>
+                          <span>{{ sub.name }}</span>
+                        </div>
+                      </td>
+                      <td class="py-3 px-4">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                          <i class="pi pi-tags text-[10px]"></i>
+                          {{ parentCat?.name || 'Unknown' }}
+                        </span>
+                      </td>
+                      <td class="py-3 px-4 text-xs text-slate-400 max-w-xs truncate">
+                        {{ sub.description || '—' }}
+                      </td>
+                      <td class="py-3 px-4 text-center">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                          <i class="pi pi-box text-[10px]"></i>
+                          {{ subCategoryProductCounts()[sub.id] || 0 }}
+                        </span>
+                      </td>
+                      <td class="py-3 px-4 text-right">
+                        <div class="inline-flex items-center gap-1.5">
+                          <button (click)="openEditSubCategory(sub)"
+                                  class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 inline-flex items-center justify-center text-xs transition-colors"
+                                  title="Edit Sub-Category">
+                            <i class="pi pi-pencil"></i>
+                          </button>
+                          <button (click)="confirmDeleteSubCategory(sub)"
+                                  class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 inline-flex items-center justify-center text-xs transition-colors"
+                                  title="Delete Sub-Category">
+                            <i class="pi pi-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      }
+    }
+
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ADD / EDIT SINGLE CATEGORY                                         -->
+  <!-- ========================================================================= -->
+  @if (showCategoryModal()) {
+    <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-scale-up">
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <i class="pi pi-tags"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">
+                {{ editingCategory() ? 'Edit Category' : 'New Category' }}
+              </h3>
+              <p class="text-xs text-slate-400">
+                {{ editingCategory() ? 'تعديل بيانات الفئة' : 'إضافة فئة جديدة للكتالوج' }}
+              </p>
+            </div>
+          </div>
+          <button (click)="showCategoryModal.set(false)" class="text-slate-400 hover:text-white">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Category Name <span class="text-rose-400">*</span>
+            </label>
+            <input type="text"
+                   [(ngModel)]="categoryForm.name"
+                   placeholder="e.g. Beverages, Pastries, Office Supplies..."
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Description (Optional)
+            </label>
+            <textarea [(ngModel)]="categoryForm.description"
+                      rows="3"
+                      placeholder="Add an optional description or notes..."
+                      class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors resize-none"></textarea>
+          </div>
+        </div>
+
+        <div class="px-6 py-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button (click)="showCategoryModal.set(false)"
+                  class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+            Cancel
+          </button>
+          <button (click)="saveCategory()"
+                  [disabled]="isSubmitting() || !categoryForm.name.trim()"
+                  class="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all">
+            @if (isSubmitting()) {
+              <i class="pi pi-spin pi-spinner text-xs"></i>
+            }
+            <span>{{ editingCategory() ? 'Save Changes' : 'Create Category' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: BATCH ADD CATEGORIES (FLUTTER DYNAMIC LIST FEATURE)                  -->
+  <!-- ========================================================================= -->
+  @if (showBatchCategoryModal()) {
+    <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-up">
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <i class="pi pi-plus-circle"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Batch Add Categories</h3>
+              <p class="text-xs text-slate-400">إضافة عدة فئات رئيسية دفعة واحدة</p>
+            </div>
+          </div>
+          <button (click)="showBatchCategoryModal.set(false)" class="text-slate-400 hover:text-white">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+
+        <div class="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+          <p class="text-xs text-slate-400 mb-2">
+            Add category rows below. Only rows with a non-empty name will be saved.
+          </p>
+
+          @for (row of batchCategoryRows(); track $index; let idx = $index) {
+            <div class="flex items-center gap-3 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800">
+              <span class="w-6 text-center text-xs font-mono text-slate-500">{{ idx + 1 }}</span>
+              <div class="flex-1">
+                <input type="text"
+                       [(ngModel)]="row.name"
+                       placeholder="Category Name *"
+                       class="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+              </div>
+              <div class="flex-[1.5]">
+                <input type="text"
+                       [(ngModel)]="row.description"
+                       placeholder="Description (Optional)"
+                       class="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+              </div>
+              @if (batchCategoryRows().length > 1) {
+                <button (click)="removeBatchCategoryRow(idx)"
+                        class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs transition-colors"
+                        title="Remove Row">
+                  <i class="pi pi-trash"></i>
+                </button>
+              }
+            </div>
+          }
+
+          <button (click)="addBatchCategoryRow()"
+                  class="mt-3 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+            <i class="pi pi-plus"></i>
+            <span>Add Another Category Row</span>
+          </button>
+        </div>
+
+        <div class="px-6 py-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">
+            {{ batchCategoryRows().length }} rows configured
+          </span>
+          <div class="flex items-center gap-3">
+            <button (click)="showBatchCategoryModal.set(false)"
+                    class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+              Cancel
+            </button>
+            <button (click)="saveBatchCategories()"
+                    [disabled]="isSubmitting()"
+                    class="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all">
+              @if (isSubmitting()) {
+                <i class="pi pi-spin pi-spinner text-xs"></i>
+              }
+              <span>Save All Categories</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ADD / EDIT SINGLE SUB-CATEGORY                                     -->
+  <!-- ========================================================================= -->
+  @if (showSubCategoryModal()) {
+    <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-scale-up">
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+              <i class="pi pi-sitemap"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">
+                {{ editingSubCategory() ? 'Edit Sub-Category' : 'New Sub-Category' }}
+              </h3>
+              <p class="text-xs text-slate-400">
+                {{ editingSubCategory() ? 'تعديل فئة فرعية' : 'إضافة فئة فرعية جديدة' }}
+              </p>
+            </div>
+          </div>
+          <button (click)="showSubCategoryModal.set(false)" class="text-slate-400 hover:text-white">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Parent Category <span class="text-rose-400">*</span>
+            </label>
+            <select [(ngModel)]="subCategoryForm.categoryId"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors">
+              <option value="" disabled>Select parent category...</option>
+              @for (cat of categories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Sub-Category Name <span class="text-rose-400">*</span>
+            </label>
+            <input type="text"
+                   [(ngModel)]="subCategoryForm.name"
+                   placeholder="e.g. Hot Drinks, Cold Drinks, Sugar-Free..."
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Description (Optional)
+            </label>
+            <textarea [(ngModel)]="subCategoryForm.description"
+                      rows="3"
+                      placeholder="Add an optional description or notes..."
+                      class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors resize-none"></textarea>
+          </div>
+        </div>
+
+        <div class="px-6 py-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button (click)="showSubCategoryModal.set(false)"
+                  class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+            Cancel
+          </button>
+          <button (click)="saveSubCategory()"
+                  [disabled]="isSubmitting() || !subCategoryForm.name.trim() || !subCategoryForm.categoryId"
+                  class="px-5 py-2 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 rounded-xl text-xs font-bold shadow-lg shadow-teal-500/20 flex items-center gap-2 transition-all">
+            @if (isSubmitting()) {
+              <i class="pi pi-spin pi-spinner text-xs"></i>
+            }
+            <span>{{ editingSubCategory() ? 'Save Changes' : 'Create Sub-Category' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: BATCH ADD SUB-CATEGORIES                                           -->
+  <!-- ========================================================================= -->
+  @if (showBatchSubCategoryModal()) {
+    <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-up">
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+              <i class="pi pi-sitemap"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Batch Add Sub-Categories</h3>
+              <p class="text-xs text-slate-400">إضافة عدة فئات فرعية تحت فئة رئيسية واحدة</p>
+            </div>
+          </div>
+          <button (click)="showBatchSubCategoryModal.set(false)" class="text-slate-400 hover:text-white">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+
+        <div class="p-6 max-h-[60vh] overflow-y-auto space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Select Parent Category <span class="text-rose-400">*</span>
+            </label>
+            <select [ngModel]="batchSubCategoryParentId()"
+                    (ngModelChange)="batchSubCategoryParentId.set($event)"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500">
+              <option value="" disabled>Choose parent category...</option>
+              @for (cat of categories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="space-y-3 pt-2">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              Sub-Category Rows
+            </label>
+            @for (row of batchSubCategoryRows(); track $index; let idx = $index) {
+              <div class="flex items-center gap-3 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800">
+                <span class="w-6 text-center text-xs font-mono text-slate-500">{{ idx + 1 }}</span>
+                <div class="flex-1">
+                  <input type="text"
+                         [(ngModel)]="row.name"
+                         placeholder="Sub-Category Name *"
+                         class="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500" />
+                </div>
+                <div class="flex-[1.5]">
+                  <input type="text"
+                         [(ngModel)]="row.description"
+                         placeholder="Description (Optional)"
+                         class="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500" />
+                </div>
+                @if (batchSubCategoryRows().length > 1) {
+                  <button (click)="removeBatchSubCategoryRow(idx)"
+                          class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs transition-colors"
+                          title="Remove Row">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                }
+              </div>
+            }
+
+            <button (click)="addBatchSubCategoryRow()"
+                    class="mt-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-teal-400 border border-teal-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+              <i class="pi pi-plus"></i>
+              <span>Add Another Sub-Category Row</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="px-6 py-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">
+            {{ batchSubCategoryRows().length }} rows configured
+          </span>
+          <div class="flex items-center gap-3">
+            <button (click)="showBatchSubCategoryModal.set(false)"
+                    class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+              Cancel
+            </button>
+            <button (click)="saveBatchSubCategories()"
+                    [disabled]="isSubmitting() || !batchSubCategoryParentId()"
+                    class="px-5 py-2 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 rounded-xl text-xs font-bold shadow-lg shadow-teal-500/20 flex items-center gap-2 transition-all">
+              @if (isSubmitting()) {
+                <i class="pi pi-spin pi-spinner text-xs"></i>
+              }
+              <span>Save All Sub-Categories</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: DELETE CONFIRMATION                                                -->
+  <!-- ========================================================================= -->
+  @if (showDeleteModal() && deleteTarget()) {
+    <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-scale-up">
+        <div class="p-6 text-center space-y-4">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+            <i class="pi pi-exclamation-triangle text-2xl"></i>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-bold text-white">
+              Delete {{ deleteTarget()?.type === 'category' ? 'Category' : 'Sub-Category' }}?
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              هل أنت متأكد من رغبتك في حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.
+            </p>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-left space-y-2">
+            <div class="text-sm font-semibold text-white">
+              {{ deleteTarget()?.name }}
+            </div>
+            @if (deleteTarget()?.type === 'category') {
+              <div class="text-xs text-slate-400 flex items-center justify-between">
+                <span>Linked Sub-Categories:</span>
+                <span class="font-bold text-teal-400">{{ deleteTarget()?.subCount || 0 }}</span>
+              </div>
+              <div class="text-xs text-slate-400 flex items-center justify-between">
+                <span>Linked Products:</span>
+                <span class="font-bold text-blue-400">{{ deleteTarget()?.productCount || 0 }}</span>
+              </div>
+              @if ((deleteTarget()?.subCount || 0) > 0 || (deleteTarget()?.productCount || 0) > 0) {
+                <div class="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 font-medium">
+                  Notice: Deleting this category will remove associated hierarchy tags.
+                </div>
+              }
+            } @else {
+              <div class="text-xs text-slate-400 flex items-center justify-between">
+                <span>Linked Products:</span>
+                <span class="font-bold text-blue-400">{{ deleteTarget()?.productCount || 0 }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="px-6 py-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button (click)="showDeleteModal.set(false)"
+                  class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+            Cancel (إلغاء)
+          </button>
+          <button (click)="executeDelete()"
+                  [disabled]="isSubmitting()"
+                  class="px-5 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-600/30 flex items-center gap-2 transition-all">
+            @if (isSubmitting()) {
+              <i class="pi pi-spin pi-spinner text-xs"></i>
+            }
+            <span>Delete Permanently</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CSV IMPORT (FLUTTER PARITY)                                        -->
+  <!-- ========================================================================= -->
+  @if (showCsvImportModal()) {
+    <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-up">
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+              <i class="pi pi-file-excel"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Import Categories from CSV</h3>
+              <p class="text-xs text-slate-400">استيراد تصنيفات من ملف CSV</p>
+            </div>
+          </div>
+          <button (click)="showCsvImportModal.set(false)" class="text-slate-400 hover:text-white">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <!-- File dropzone -->
+          <div class="border-2 border-dashed border-slate-700 hover:border-emerald-500 rounded-2xl p-6 text-center transition-colors">
+            <i class="pi pi-cloud-upload text-3xl text-emerald-400 mb-2 block"></i>
+            <p class="text-xs text-slate-300 font-medium mb-1">
+              {{ csvFileName() || 'Click to browse or drop your .csv file here' }}
+            </p>
+            <p class="text-[11px] text-slate-500 mb-3">
+              Format: Column 1 = Name, Column 2 = Description
+            </p>
+            <input type="file"
+                   accept=".csv"
+                   (change)="onCsvFileChange($event)"
+                   class="hidden"
+                   #csvFileInput />
+            <div class="flex items-center justify-center gap-2">
+              <button (click)="csvFileInput.click()"
+                      class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all">
+                Select CSV File
+              </button>
+              <button (click)="downloadTemplate()"
+                      class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold rounded-xl transition-all border border-emerald-500/20">
+                Download Sample
+              </button>
+            </div>
+          </div>
+
+          <!-- Preview Table if rows loaded -->
+          @if (csvRowsToImport().length > 0) {
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                  Ready to Import ({{ csvRowsToImport().length }} categories)
+                </span>
+              </div>
+              <div class="max-h-48 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/60">
+                <table class="w-full text-left text-xs text-slate-300">
+                  <thead class="bg-slate-950 text-slate-500 sticky top-0 border-b border-slate-800">
+                    <tr>
+                      <th class="py-2 px-3">#</th>
+                      <th class="py-2 px-3">Name</th>
+                      <th class="py-2 px-3">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/40">
+                    @for (r of csvRowsToImport(); track $index; let idx = $index) {
+                      <tr>
+                        <td class="py-1.5 px-3 font-mono text-slate-500">{{ idx + 1 }}</td>
+                        <td class="py-1.5 px-3 font-bold text-white">{{ r.name }}</td>
+                        <td class="py-1.5 px-3 text-slate-400 truncate max-w-xs">{{ r.description || '—' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="px-6 py-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button (click)="showCsvImportModal.set(false)"
+                  class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+            Cancel
+          </button>
+          <button (click)="executeCsvImport()"
+                  [disabled]="isImporting() || csvRowsToImport().length === 0"
+                  class="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all">
+            @if (isImporting()) {
+              <i class="pi pi-spin pi-spinner text-xs"></i>
+            }
+            <span>Import {{ csvRowsToImport().length }} Categories</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Floating Action Button (FAB) - Flutter Parity -->
+  <div class="fixed bottom-6 right-6 z-40">
+    @if (activeTab() === 'categories') {
+      <button (click)="openAddCategory()"
+              class="flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-2xl shadow-emerald-500/40 border border-emerald-300/30 transition-all transform hover:-translate-y-1 hover:shadow-emerald-500/50">
+        <i class="pi pi-plus text-base font-black"></i>
+        <span class="tracking-wide">Add Category</span>
+      </button>
+    } @else {
+      <button (click)="openAddSubCategory(selectedParentFilter() !== 'ALL' ? selectedParentFilter() : undefined)"
+              class="flex items-center gap-2 px-5 py-3 rounded-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm shadow-2xl shadow-teal-500/40 border border-teal-300/30 transition-all transform hover:-translate-y-1 hover:shadow-teal-500/50">
+        <i class="pi pi-plus text-base font-black"></i>
+        <span class="tracking-wide">Add Sub-Category</span>
+      </button>
+    }
+  </div>
+
+</div>

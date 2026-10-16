@@ -1,0 +1,154 @@
+<div class="hr-dashboard-container">
+  <!-- Top Banner / Header -->
+  <div class="dashboard-header">
+    <div class="header-titles">
+      <h1 class="page-title">Human Resources (HR) Dashboard</h1>
+      <p class="page-subtitle">Workforce analytics, compliance tracking, and quick management actions</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary" (click)="navigateToAddEmployee()">
+        <i class="pi pi-user-plus"></i>
+        <span>Add Employee</span>
+      </button>
+      <a routerLink="/hr/attendance" class="btn-outline">
+        <i class="pi pi-clock"></i>
+        <span>Attendance</span>
+      </a>
+      <a routerLink="/hr/payroll" class="btn-outline">
+        <i class="pi pi-dollar"></i>
+        <span>Run Payroll</span>
+      </a>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Loading HR workforce metrics...</span>
+    </div>
+  } @else {
+    <!-- KPI Cards Grid -->
+    <div class="kpi-grid">
+      <!-- Total Employees -->
+      <div class="kpi-card blue">
+        <div class="kpi-icon-box">
+          <i class="pi pi-users"></i>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-value">{{ totalEmployees() }}</span>
+          <span class="kpi-label">Total Employees</span>
+        </div>
+      </div>
+
+      <!-- Active Employees -->
+      <div class="kpi-card emerald">
+        <div class="kpi-icon-box">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-value">{{ activeEmployees() }}</span>
+          <span class="kpi-label">Active on Payroll</span>
+        </div>
+      </div>
+
+      <!-- Iqama Expiring Soon -->
+      <div class="kpi-card" [class.amber]="upcomingIqamaExpiries() > 0" [class.gray]="upcomingIqamaExpiries() === 0">
+        <div class="kpi-icon-box">
+          <i class="pi pi-id-card"></i>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-value">{{ upcomingIqamaExpiries() }}</span>
+          <span class="kpi-label">Iqama Expiring (30 days)</span>
+        </div>
+      </div>
+
+      <!-- Passport Expiring Soon -->
+      <div class="kpi-card" [class.amber]="upcomingPassportExpiries() > 0" [class.gray]="upcomingPassportExpiries() === 0">
+        <div class="kpi-icon-box">
+          <i class="pi pi-globe"></i>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-value">{{ upcomingPassportExpiries() }}</span>
+          <span class="kpi-label">Passport Expiring (30 days)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Layout (Department Breakdown + Recent Staff) -->
+    <div class="grid-layout">
+      <!-- Department Breakdown -->
+      <div class="card-box">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i class="pi pi-sitemap"></i>
+            <span>Department Headcount</span>
+          </h2>
+          <span class="badge-count">{{ departmentStats().length }} Departments</span>
+        </div>
+        <div class="card-body">
+          @if (departmentStats().length === 0) {
+            <p class="empty-text">No department assignments recorded yet.</p>
+          } @else {
+            <div class="dept-list">
+              @for (dept of departmentStats(); track dept.name) {
+                <div class="dept-item">
+                  <div class="dept-info">
+                    <span class="dept-name">{{ dept.name }}</span>
+                    <span class="dept-share">{{ ((dept.count / (totalEmployees() || 1)) * 100) | number:'1.0-0' }}%</span>
+                  </div>
+                  <div class="dept-bar-track">
+                    <div class="dept-bar-fill" [style.width.%]="(dept.count / (totalEmployees() || 1)) * 100"></div>
+                  </div>
+                  <span class="dept-count">{{ dept.count }} staff</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Recent Employees -->
+      <div class="card-box">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i class="pi pi-user"></i>
+            <span>Recently Added Staff</span>
+          </h2>
+          <a routerLink="/hr/employees" class="view-all-link">
+            <span>View All</span>
+            <i class="pi pi-arrow-right"></i>
+          </a>
+        </div>
+        <div class="card-body">
+          @if (recentEmployees().length === 0) {
+            <div class="empty-state">
+              <i class="pi pi-users empty-icon"></i>
+              <p>No employees found. Start building your company roster.</p>
+              <button class="btn-primary-sm" (click)="navigateToAddEmployee()">Add First Employee</button>
+            </div>
+          } @else {
+            <div class="employee-list">
+              @for (emp of recentEmployees(); track emp.id) {
+                <div class="employee-row">
+                  <div class="emp-avatar">
+                    {{ emp.firstName.charAt(0) }}{{ emp.lastName.charAt(0) }}
+                  </div>
+                  <div class="emp-details">
+                    <span class="emp-name">{{ emp.firstName }} {{ emp.lastName }}</span>
+                    <span class="emp-role">{{ emp.designationName || 'Staff Member' }} &bull; {{ emp.departmentName || 'General' }}</span>
+                  </div>
+                  <div class="emp-meta">
+                    <span class="status-pill" [class.active]="emp.status === 'ACTIVE'" [class.inactive]="emp.status !== 'ACTIVE'">
+                      {{ emp.status }}
+                    </span>
+                    <span class="salary-tag">{{ emp.basicSalary ? (emp.basicSalary | currency:'SAR ':'symbol':'1.0-0') : 'N/A' }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

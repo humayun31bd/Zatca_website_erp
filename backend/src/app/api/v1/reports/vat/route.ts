@@ -31,9 +31,9 @@ export async function GET(req: NextRequest) {
     let netRevenue = 0;
 
     const invoiceList = allInvoices.map((inv) => {
-      const amount = parseFloat(inv.totalAmount as string);
-      const vat = parseFloat(inv.totalVatAmount as string);
-      const subtotal = parseFloat(inv.subtotalAmount as string);
+      const amount = Number(inv.totalAmount);
+      const vat = Number(inv.totalVatAmount);
+      const subtotal = Number(inv.subtotalAmount);
 
       totalSales += amount;
       totalVat += vat;

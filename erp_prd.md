@@ -1,7 +1,6 @@
-# Numou ERP — Full Product Requirements Document (ERP PRD)
-
-**Company:** Numou Technologies Limited  
-**Product:** Numou ERP  
+# Bizora ERP — Full Product Requirements Document (ERP PRD)
+**Platform:** Bizora ERP
+**Company:** Bizora Technologies Limited
 **Tagline:** Empowering Smart Business Growth. | تمكين نمو الأعمال الذكية.  
 **Target Market:** Kingdom of Saudi Arabia (KSA) + GCC Region  
 **Version:** 1.0 (Unified Full-Stack ERP Architecture)  
@@ -41,9 +40,9 @@ Saudi Arabia's digital economy is undergoing its largest compliance shift in mod
 - Local software agencies are overwhelmed with ZATCA's cryptographic requirements (UBL 2.1 XML, SHA-256, ECDSA secp256k1, Base64 TLV QR codes, mTLS)
 - Non-compliance penalties: **SAR 10,000+ per violation**
 
-### 1.2 The Solution: Numou ERP
+### 1.2 The Solution: Bizora ERP
 
-**Numou ERP** is a unified, hyper-modern AI-powered Cloud ERP platform with the core promise: **"Empowering Smart Business Growth."**
+**Bizora ERP** is a unified, hyper-modern AI-powered Cloud ERP platform with the core promise: **"Empowering Smart Business Growth."**
 
 **Two customer tracks:**
 
@@ -55,11 +54,11 @@ Saudi Arabia's digital economy is undergoing its largest compliance shift in mod
 ### 1.3 Product Ecosystem Overview
 
 ```
-numouerp.com           → Marketing Website (Astro + Vue) — Arabic SEO ✅
-app.numouerp.com       → ERP Dashboard (Flutter Web)
+Bizoraerp.com           → Marketing Website (Astro + Vue) — Arabic SEO ✅
+app.Bizoraerp.com       → ERP Dashboard (Flutter Web)
 Play Store + App Store  → ERP Mobile App (Flutter Android + iOS)
-api.numouerp.com       → Backend API (Next.js) ← Already built ✅
-zatca.numouerp.com     → ZATCA Engine (Separate service) ← Already built ✅
+api.Bizoraerp.com       → Backend API (Next.js) ← Already built ✅
+zatca.Bizoraerp.com     → ZATCA Engine (Separate service) ← Already built ✅
 ```
 
 ---
@@ -69,11 +68,11 @@ zatca.numouerp.com     → ZATCA Engine (Separate service) ← Already built ✅
 ```mermaid
 flowchart TD
     subgraph Marketing["🌐 Marketing Website"]
-        ASTRO["Astro 5 + Vue 3\nnumouerp.com"]
+        ASTRO["Astro 5 + Vue 3\nBizoraerp.com"]
     end
 
     subgraph Flutter_App["📱 ERP Application"]
-        FW["Flutter Web\napp.numouerp.com"]
+        FW["Flutter Web\napp.Bizoraerp.com"]
         FA["Flutter Android\nPlay Store"]
         FI["Flutter iOS\nApp Store"]
     end
@@ -155,7 +154,7 @@ Zatca_website/                    ← Root repository
 └── README.md
 ```
 
-> **Note:** Backend (`api.numouerp.com`) and ZATCA Engine are separate repositories, not in this folder.
+> **Note:** Backend (`api.Bizoraerp.com`) and ZATCA Engine are separate repositories, not in this folder.
 
 ### 3.2 Marketing Website — `Website/` Folder Structure
 
@@ -362,7 +361,7 @@ erp-frontend/                     ← Flutter ERP app
 | Urdu | `ur` | RTL → | 🔄 Phase 2 |
 | Hindi | `hi` | LTR ← | 🔄 Phase 3 |
 
-**Default redirect:** `numouerp.com/` → `/ar/` (Saudi-first)
+**Default redirect:** `Bizoraerp.com/` → `/ar/` (Saudi-first)
 
 ### 4.3 Pages & Sitemap
 
@@ -406,10 +405,10 @@ Total JS sent to browser: ~12KB (vs 56KB current)
 <html lang="ar" dir="rtl">
 <head>
   <!-- hreflang: all language versions -->
-  <link rel="alternate" hreflang="ar" href="https://numouerp.com/ar/pricing/" />
-  <link rel="alternate" hreflang="en" href="https://numouerp.com/en/pricing/" />
-  <link rel="alternate" hreflang="x-default" href="https://numouerp.com/ar/pricing/" />
-  <link rel="canonical" href="https://numouerp.com/ar/pricing/" />
+  <link rel="alternate" hreflang="ar" href="https://Bizoraerp.com/ar/pricing/" />
+  <link rel="alternate" hreflang="en" href="https://Bizoraerp.com/en/pricing/" />
+  <link rel="alternate" hreflang="x-default" href="https://Bizoraerp.com/ar/pricing/" />
+  <link rel="canonical" href="https://Bizoraerp.com/ar/pricing/" />
 
   <!-- JSON-LD Structured Data -->
   <script type="application/ld+json">{
@@ -458,7 +457,7 @@ Total JS sent to browser: ~12KB (vs 56KB current)
 | **Auth Storage** | flutter_secure_storage | — | Encrypted JWT (Keychain/Keystore) |
 | **Biometric** | local_auth | — | Fingerprint/Face ID |
 | **Offline** | Hive | 4.x | Local cache for offline use |
-| **Deploy Web** | Cloudflare Pages | — | `app.numouerp.com` |
+| **Deploy Web** | Cloudflare Pages | — | `app.Bizoraerp.com` |
 | **Deploy Mobile** | Play Store + App Store | — | Production builds |
 
 ### 5.2 Supported Languages (ERP App)
@@ -967,9 +966,9 @@ Referrer:      Referrer-Policy: strict-origin-when-cross-origin
 
 | Service | URL | Platform | CDN |
 |---|---|---|---|
-| **Marketing Website** | `numouerp.com` | Cloudflare Pages | Cloudflare Edge |
-| **ERP Web App** | `app.numouerp.com` | Cloudflare Pages | Cloudflare Edge |
-| **Backend API** | `api.numouerp.com` | AWS ECS / Vercel | CloudFront |
+| **Marketing Website** | `Bizoraerp.com` | Cloudflare Pages | Cloudflare Edge |
+| **ERP Web App** | `app.Bizoraerp.com` | Cloudflare Pages | Cloudflare Edge |
+| **Backend API** | `api.Bizoraerp.com` | AWS ECS / Vercel | CloudFront |
 | **ZATCA Engine** | Internal | AWS Lambda / ECS | N/A |
 | **Android App** | Play Store | Google Play | N/A |
 | **iOS App** | App Store | Apple TestFlight | N/A |
@@ -1019,7 +1018,7 @@ flowchart LR
 ### 16.1 Competitive Positioning
 **Niche Focus:** "Accounting for Riyadh retail shops and service businesses."
 
-| Competitor | Their Focus | Numou Differentiation |
+| Competitor | Their Focus | Bizora Differentiation |
 |---|---|---|
 | **Qoyod / Daftra** | General SMEs, heavy accounting | Hyper-focused on retail/services, WhatsApp-first invoicing |
 | **Zoho Books / Odoo** | Enterprise / complex workflows | 1-Click ZATCA setup, zero-configuration local compliance |
@@ -1027,13 +1026,13 @@ flowchart LR
 
 ### 16.2 Go-to-Market Tactics (GTM)
 - **Local Accountant Partnerships:** Incentivize accounting firms to onboard their clients for easy ZATCA compliance.
-- **POS Hardware Vendor Partnerships:** Bundle Numou ERP with tablet and barcode scanner sales.
+- **POS Hardware Vendor Partnerships:** Bundle Bizora ERP with tablet and barcode scanner sales.
 - **On-Ground Demos:** Field sales in major Riyadh commercial hubs (e.g., Batha, Olaya) targeting small shop owners.
 - **Arabic Content Marketing:** YouTube tutorials on ZATCA compliance, VAT return checklists, and small business tips.
 - **Search Advertising:** Google Ads targeted at Arabic ZATCA keywords ("فاتورة إلكترونية زاتكا", "برنامج محاسبة للمحلات").
 
 ### 16.3 Industry-Specific Chart of Accounts
-To reduce onboarding friction, Numou provides 1-click tailored Chart of Accounts templates during tenant provisioning:
+To reduce onboarding friction, Bizora provides 1-click tailored Chart of Accounts templates during tenant provisioning:
 - **Retail & POS:** Heavy focus on Cost of Goods Sold (COGS), Inventory Adjustments, Cash Over/Short.
 - **Services & Clinics:** Focus on Professional Fees Revenue, Unearned Revenue, Medical Supplies Expense.
 - **Logistics:** Fleet Maintenance, Fuel Expenses, Subcontractor Costs, Freight Revenue.

@@ -1,0 +1,338 @@
+<div class="invoices-page">
+  <!-- Header Row -->
+  <div class="page-title-row no-print">
+    <div>
+      <h1 class="page-title">Sales & Tax Invoices</h1>
+      <p class="page-subtitle">ZATCA Phase 2 clearance, Mushak compliance, simplified B2C, and corporate B2B tax billing</p>
+    </div>
+    <div class="action-buttons">
+      <p-button icon="pi pi-refresh" label="Refresh" [outlined]="true" size="small" (click)="loadInvoices()" [loading]="isLoading()"></p-button>
+      <p-button icon="pi pi-plus" label="New Tax Invoice" size="small" (click)="openCreateDialog()"></p-button>
+    </div>
+  </div>
+
+  <!-- KPI Grid -->
+  <div class="kpi-grid no-print">
+    <div class="kpi-card" (click)="activeQuickFilter.set('ALL')" [class.active-card]="activeQuickFilter() === 'ALL'">
+      <div class="kpi-top">
+        <span class="kpi-title">Total Revenue Invoiced</span>
+        <div class="kpi-icon-box" style="background-color: #10b98115; color: #10b981;">
+          <i class="pi pi-dollar"></i>
+        </div>
+      </div>
+      <div class="kpi-value font-mono">SAR {{ totalBilledAmount() | number:'1.2-2' }}</div>
+      <span class="kpi-sub">{{ totalInvoicesCount() }} tax invoices issued</span>
+    </div>
+
+    <div class="kpi-card" (click)="activeQuickFilter.set('CLEARED')" [class.active-card]="activeQuickFilter() === 'CLEARED'">
+      <div class="kpi-top">
+        <span class="kpi-title">ZATCA Verified</span>
+        <div class="kpi-icon-box" style="background-color: #3b82f615; color: #3b82f6;">
+          <i class="pi pi-verified"></i>
+        </div>
+      </div>
+      <div class="kpi-value font-mono">{{ zatcaClearedCount() }}</div>
+      <span class="kpi-sub">Cleared & reported to FATOORA</span>
+    </div>
+
+    <div class="kpi-card" (click)="activeQuickFilter.set('UNPAID')" [class.active-card]="activeQuickFilter() === 'UNPAID'">
+      <div class="kpi-top">
+        <span class="kpi-title">Unpaid Receivables</span>
+        <div class="kpi-icon-box" style="background-color: #f59e0b15; color: #f59e0b;">
+          <i class="pi pi-clock"></i>
+        </div>
+      </div>
+      <div class="kpi-value text-danger font-mono">SAR {{ unpaidTotalAmount() | number:'1.2-2' }}</div>
+      <span class="kpi-sub">Pending customer settlements</span>
+    </div>
+
+    <div class="kpi-card" (click)="activeQuickFilter.set('ALL')" [class.active-card]="activeQuickFilter() === 'ALL'">
+      <div class="kpi-top">
+        <span class="kpi-title">Total Invoices</span>
+        <div class="kpi-icon-box" style="background-color: #8b5cf615; color: #8b5cf6;">
+          <i class="pi pi-receipt"></i>
+        </div>
+      </div>
+      <div class="kpi-value font-mono">{{ totalInvoicesCount() }}</div>
+      <span class="kpi-sub">Lifetime billing vouchers</span>
+    </div>
+  </div>
+
+  <!-- Content Container -->
+  <div class="table-card">
+    <!-- Toolbar with Search, Quick Filters & View Switcher -->
+    <div class="table-toolbar no-print">
+      <div class="filter-group">
+        <span class="search-input-wrapper">
+          <i class="pi pi-search search-icon"></i>
+          <input 
+            type="text" 
+            pInputText 
+            placeholder="Search by invoice #, customer name, VAT #..." 
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            class="search-input"
+          />
+        </span>
+
+        <!-- Quick Filter Pills -->
+        <div class="quick-filter-pills">
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'ALL'"
+            (click)="activeQuickFilter.set('ALL')"
+          >
+            All ({{ totalInvoicesCount() }})
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'CLEARED'"
+            (click)="activeQuickFilter.set('CLEARED')"
+          >
+            <i class="pi pi-check-circle text-success"></i> Cleared
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'REPORTED'"
+            (click)="activeQuickFilter.set('REPORTED')"
+          >
+            Reported
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'PENDING'"
+            (click)="activeQuickFilter.set('PENDING')"
+          >
+            Pending
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'UNPAID'"
+            (click)="activeQuickFilter.set('UNPAID')"
+          >
+            <i class="pi pi-clock text-danger"></i> Unpaid
+          </button>
+        </div>
+
+        <p-select 
+          [options]="paymentStatusOptions" 
+          optionLabel="label" 
+          optionValue="value" 
+          [ngModel]="selectedPaymentStatus()"
+          (ngModelChange)="selectedPaymentStatus.set($event)"
+          placeholder="Payment Status"
+          styleClass="status-dropdown"
+        ></p-select>
+
+        <p-select 
+          [options]="zatcaStatusOptions" 
+          optionLabel="label" 
+          optionValue="value" 
+          [ngModel]="selectedZatcaStatus()"
+          (ngModelChange)="selectedZatcaStatus.set($event)"
+          placeholder="ZATCA Status"
+          styleClass="status-dropdown"
+        ></p-select>
+      </div>
+
+      <!-- Right Side: Count & View Switcher -->
+      <div class="toolbar-right">
+        <div class="results-count">
+          Showing <strong>{{ filteredInvoices().length }}</strong> invoices
+        </div>
+
+        <div class="view-switcher-group">
+          <button 
+            type="button" 
+            class="view-toggle-btn" 
+            [class.active]="viewMode() === 'table'"
+            (click)="viewMode.set('table')"
+            title="Table View"
+          >
+            <i class="pi pi-list"></i>
+            <span>Table</span>
+          </button>
+          <button 
+            type="button" 
+            class="view-toggle-btn" 
+            [class.active]="viewMode() === 'grid'"
+            (click)="viewMode.set('grid')"
+            title="Card / Grid View"
+          >
+            <i class="pi pi-th-large"></i>
+            <span>Grid Cards</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 1: TABLE VIEW -->
+    @if (viewMode() === 'table') {
+      <p-table 
+        [value]="filteredInvoices()" 
+        [paginator]="true" 
+        [rows]="10" 
+        [rowsPerPageOptions]="[10, 25, 50]" 
+        [loading]="isLoading()"
+        [tableStyle]="{ 'min-width': '65rem' }" 
+        styleClass="p-datatable-sm p-datatable-striped"
+      >
+        <ng-template pTemplate="header">
+          <tr>
+            <th pSortableColumn="invoiceNumber">Invoice #</th>
+            <th>Type</th>
+            <th pSortableColumn="buyerName">Customer (Buyer)</th>
+            <th pSortableColumn="issueDatetime">Issue Date</th>
+            <th pSortableColumn="subtotalAmount" class="text-right">Subtotal</th>
+            <th pSortableColumn="totalVatAmount" class="text-right">VAT (15%)</th>
+            <th pSortableColumn="totalAmount" class="text-right">Total (SAR)</th>
+            <th>ZATCA Status</th>
+            <th>Payment</th>
+            <th style="width: 7rem" class="text-center no-print">Action</th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-inv>
+          <tr>
+            <td class="font-semibold text-primary">
+              <span class="mono-code font-receipt clickable-inv" (click)="openViewDialog(inv)">{{ inv.invoiceNumber }}</span>
+            </td>
+            <td>
+              <span class="type-pill" [class.b2b]="inv.invoiceType === 'STANDARD'">
+                {{ inv.invoiceType === 'STANDARD' ? 'Standard B2B' : 'Simplified B2C' }}
+              </span>
+            </td>
+            <td>
+              <div class="buyer-cell">
+                <span class="buyer-name">{{ inv.buyerName }}</span>
+                @if (inv.buyerVat) {
+                  <span class="buyer-vat font-mono">VAT: {{ inv.buyerVat }}</span>
+                }
+              </div>
+            </td>
+            <td>{{ inv.issueDatetime | date:'mediumDate' }}</td>
+            <td class="text-right font-mono">SAR {{ inv.subtotalAmount | number:'1.2-2' }}</td>
+            <td class="text-right font-mono">SAR {{ inv.totalVatAmount | number:'1.2-2' }}</td>
+            <td class="text-right font-mono font-bold">SAR {{ inv.totalAmount | number:'1.2-2' }}</td>
+            <td>
+              <p-tag [value]="inv.zatcaStatus" [severity]="getZatcaSeverity(inv.zatcaStatus)"></p-tag>
+            </td>
+            <td>
+              <p-tag [value]="inv.paymentStatus" [severity]="getPaymentSeverity(inv.paymentStatus)"></p-tag>
+            </td>
+            <td class="text-center no-print">
+              <p-button icon="pi pi-eye" [text]="true" [rounded]="true" size="small" (click)="openViewDialog(inv)" pTooltip="View & Print Invoice"></p-button>
+              <p-button icon="pi pi-print" [text]="true" [rounded]="true" size="small" (click)="openViewDialog(inv)" pTooltip="Print Mushak / Tax Invoice"></p-button>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="10" class="text-center py-6 text-500">
+              <div class="empty-state">
+                <i class="pi pi-file empty-icon"></i>
+                <p>No tax invoices found matching your criteria.</p>
+                <p-button label="Generate First Invoice" icon="pi pi-plus" size="small" (click)="openCreateDialog()"></p-button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+
+    <!-- VIEW 2: CARD / GRID VIEW -->
+    @if (viewMode() === 'grid') {
+      <div class="invoices-card-grid">
+        @for (inv of filteredInvoices(); track inv.id) {
+          <div class="invoice-grid-card">
+            <!-- Card Header -->
+            <div class="inv-card-header">
+              <div class="inv-id-block">
+                <span class="inv-number font-receipt" (click)="openViewDialog(inv)">{{ inv.invoiceNumber }}</span>
+                <span class="type-pill" [class.b2b]="inv.invoiceType === 'STANDARD'">
+                  {{ inv.invoiceType === 'STANDARD' ? 'Standard B2B' : 'Simplified B2C' }}
+                </span>
+              </div>
+              <p-tag [value]="inv.zatcaStatus" [severity]="getZatcaSeverity(inv.zatcaStatus)"></p-tag>
+            </div>
+
+            <!-- Customer / Buyer -->
+            <div class="inv-card-body">
+              <div class="buyer-info">
+                <span class="label">Customer / Buyer</span>
+                <span class="buyer-name">{{ inv.buyerName }}</span>
+                @if (inv.buyerVat) {
+                  <span class="buyer-vat font-mono">VAT: {{ inv.buyerVat }}</span>
+                }
+              </div>
+
+              <!-- Dates & Payment -->
+              <div class="inv-dates-row">
+                <div class="date-item">
+                  <span class="label">Date</span>
+                  <span class="val">{{ inv.issueDatetime | date:'mediumDate' }}</span>
+                </div>
+                <div class="payment-item">
+                  <span class="label">Payment</span>
+                  <p-tag [value]="inv.paymentStatus" [severity]="getPaymentSeverity(inv.paymentStatus)"></p-tag>
+                </div>
+              </div>
+
+              <!-- Financial Breakdown -->
+              <div class="inv-financials">
+                <div class="fin-row">
+                  <span>Subtotal</span>
+                  <span class="font-mono">SAR {{ inv.subtotalAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="fin-row">
+                  <span>VAT (15%)</span>
+                  <span class="font-mono">SAR {{ inv.totalVatAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="fin-row total-row">
+                  <span>Total Amount</span>
+                  <span class="font-mono total-val">SAR {{ inv.totalAmount | number:'1.2-2' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="inv-card-footer">
+              <p-button 
+                icon="pi pi-eye" 
+                label="View Invoice" 
+                size="small" 
+                [outlined]="true" 
+                (click)="openViewDialog(inv)" 
+                styleClass="w-full"
+              ></p-button>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state-grid">
+            <i class="pi pi-file empty-icon"></i>
+            <p>No tax invoices found matching your criteria.</p>
+            <p-button label="Generate First Invoice" icon="pi pi-plus" size="small" (click)="openCreateDialog()"></p-button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Create Invoice Modal Dialog -->
+  <app-create-invoice-dialog 
+    [(visible)]="isCreateDialogOpen"
+    (invoiceCreated)="loadInvoices()"
+  ></app-create-invoice-dialog>
+
+  <!-- View & Print Dialog -->
+  <app-invoice-view-dialog 
+    [(visible)]="isViewDialogOpen" 
+    [invoiceId]="selectedInvoiceId()"
+  ></app-invoice-view-dialog>
+</div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -38,43 +39,45 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center items-center p-4">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to your UAE-Invoice dashboard</p>
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
+            Intelligent ERP
+          </h1>
+          <p className="text-slate-400 mt-2 text-sm">Sign in to your dedicated ERP dashboard</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Email Address
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Work Email
             </label>
             <input
               type="email"
               required
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="admin@uae-invoice.com"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition"
+              placeholder="admin@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               Password
             </label>
             <input
               type="password"
               required
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="••••••••"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition"
+              placeholder="••••••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -83,15 +86,22 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3.5 rounded-xl transition flex justify-center items-center disabled:opacity-50"
           >
             {loading ? (
-              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              "Sign In"
+              "Sign In to Dashboard"
             )}
           </button>
         </form>
+
+        <div className="mt-6 text-center text-xs text-slate-500 border-t border-slate-800 pt-4">
+          Don&apos;t have an account yet?{" "}
+          <Link href="/register" className="text-blue-400 hover:underline">
+            Start Free Trial / Register here
+          </Link>
+        </div>
       </div>
     </div>
   );

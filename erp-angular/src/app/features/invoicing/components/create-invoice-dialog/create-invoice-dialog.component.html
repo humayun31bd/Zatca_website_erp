@@ -1,0 +1,154 @@
+<p-dialog 
+  [(visible)]="visible" 
+  (onHide)="close()" 
+  [modal]="true" 
+  [style]="{ width: '75vw', maxWidth: '1050px' }" 
+  header="Generate Tax Invoice (ZATCA Phase 2)"
+  [draggable]="false"
+  [resizable]="false"
+>
+  <form [formGroup]="invoiceForm" (ngSubmit)="onSubmit()" class="invoice-form">
+    <!-- Invoice Type & Customer Selection Header -->
+    <div class="form-grid">
+      <div class="field-col">
+        <label class="field-label">Invoice Category *</label>
+        <p-select 
+          [options]="invoiceTypes" 
+          optionLabel="label" 
+          optionValue="value" 
+          formControlName="invoiceType" 
+          styleClass="w-full"
+        ></p-select>
+      </div>
+
+      <div class="field-col">
+        <label class="field-label">Document Type *</label>
+        <p-select 
+          [options]="typeCodes" 
+          optionLabel="label" 
+          optionValue="value" 
+          formControlName="typeCode" 
+          styleClass="w-full"
+        ></p-select>
+      </div>
+
+      <div class="field-col">
+        <label class="field-label">Select Customer (Directory)</label>
+        <p-select 
+          [options]="clients()" 
+          optionLabel="name" 
+          optionValue="id" 
+          formControlName="clientId" 
+          placeholder="Choose registered customer"
+          [filter]="true" 
+          filterBy="name"
+          styleClass="w-full"
+          (onChange)="onClientSelect($event.value)"
+        ></p-select>
+      </div>
+
+      <div class="field-col">
+        <label class="field-label">Buyer / Company Name *</label>
+        <input pInputText formControlName="buyerName" placeholder="e.g. Al-Bustan Trading Est." class="w-full" />
+      </div>
+
+      <div class="field-col">
+        <label class="field-label">Buyer ZATCA VAT Number</label>
+        <input pInputText formControlName="buyerVat" placeholder="15-digit VAT Number" class="w-full" />
+      </div>
+
+      <div class="field-col">
+        <label class="field-label">Buyer Phone</label>
+        <input pInputText formControlName="buyerPhone" placeholder="+966 5x xxx xxxx" class="w-full" />
+      </div>
+    </div>
+
+    <!-- Line Items Table -->
+    <div class="items-section">
+      <div class="items-header">
+        <h3 class="section-title">Invoice Line Items (VAT 15%)</h3>
+        <button type="button" pButton icon="pi pi-plus" label="Add Line" class="p-button-outlined p-button-sm" (click)="addItem()"></button>
+      </div>
+
+      <div formArrayName="items" class="items-table-wrapper">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width: 40%">Item / Service Description *</th>
+              <th style="width: 15%">Qty</th>
+              <th style="width: 15%">Unit Price (SAR)</th>
+              <th style="width: 15%">Discount (SAR)</th>
+              <th style="width: 15%" class="text-right">Line Total (SAR)</th>
+              <th style="width: 5%"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (itemGroup of items.controls; track $index) {
+              <tr [formGroupName]="$index">
+                <td>
+                  <input pInputText formControlName="description" placeholder="Goods or service description" class="w-full" />
+                </td>
+                <td>
+                  <input type="number" min="1" pInputText formControlName="quantity" class="w-full" />
+                </td>
+                <td>
+                  <input type="number" step="any" min="0" pInputText formControlName="unitPrice" class="w-full" />
+                </td>
+                <td>
+                  <input type="number" step="any" min="0" pInputText formControlName="discountAmount" class="w-full" />
+                </td>
+                <td class="text-right font-semibold">
+                  {{ (getItemSubtotal($index) + getItemVat($index)) | number:'1.2-2' }}
+                </td>
+                <td class="text-center">
+                  <button type="button" pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" (click)="removeItem($index)"></button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Payment & Tax Breakdown Bottom Grid -->
+    <div class="bottom-grid">
+      <div class="payment-col">
+        <label class="field-label">Settlement Payment Method</label>
+        <p-select 
+          [options]="paymentMethods" 
+          optionLabel="label" 
+          optionValue="value" 
+          formControlName="paymentMethod" 
+          styleClass="w-full"
+        ></p-select>
+
+        <div class="payment-check mt-3">
+          <input type="checkbox" id="paidFull" formControlName="isPaidInFull" />
+          <label for="paidFull" class="text-sm font-semibold text-slate-700 ml-2">Mark as Paid in Full Immediately</label>
+        </div>
+      </div>
+
+      <div class="summary-col">
+        <div class="summary-row">
+          <span>Taxable Subtotal:</span>
+          <span>SAR {{ subtotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Standard VAT (15%):</span>
+          <span>SAR {{ totalVat | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-row grand-total">
+          <span>Grand Total Payable:</span>
+          <span class="total-value">SAR {{ grandTotal | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dialog Actions -->
+    <div class="dialog-actions">
+      <button type="button" pButton label="Cancel" class="p-button-outlined" (click)="close()"></button>
+      <p-button type="submit" icon="pi pi-check" label="Clear & Issue ZATCA Invoice" [loading]="isSubmitting()"></p-button>
+    </div>
+  </form>
+</p-dialog>

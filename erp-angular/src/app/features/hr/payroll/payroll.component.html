@@ -1,0 +1,388 @@
+<div class="payroll-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-titles">
+      <h1 class="page-title">Payroll & Salary Register</h1>
+      <p class="page-subtitle">Calculate earnings, allowances, deductions, and disburse staff salaries</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary" (click)="openGenerateDialog()">
+        <i class="pi pi-bolt"></i>
+        <span>Run Payroll Cycle</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card emerald">
+      <div class="icon-box">
+        <i class="pi pi-wallet"></i>
+      </div>
+      <div class="content">
+        <span class="val">{{ totalNetSalary() | currency:'SAR ':'symbol':'1.0-0' }}</span>
+        <span class="lbl">Total Net Payable</span>
+      </div>
+    </div>
+
+    <div class="kpi-card blue">
+      <div class="icon-box">
+        <i class="pi pi-id-card"></i>
+      </div>
+      <div class="content">
+        <span class="val">{{ totalBasicSalary() | currency:'SAR ':'symbol':'1.0-0' }}</span>
+        <span class="lbl">Total Basic Salaries</span>
+      </div>
+    </div>
+
+    <div class="kpi-card amber">
+      <div class="icon-box">
+        <i class="pi pi-plus-circle"></i>
+      </div>
+      <div class="content">
+        <span class="val">{{ totalAllowances() | currency:'SAR ':'symbol':'1.0-0' }}</span>
+        <span class="lbl">Total Allowances & Overtime</span>
+      </div>
+    </div>
+
+    <div class="kpi-card red">
+      <div class="icon-box">
+        <i class="pi pi-minus-circle"></i>
+      </div>
+      <div class="content">
+        <span class="val">{{ totalDeductions() | currency:'SAR ':'symbol':'1.0-0' }}</span>
+        <span class="lbl">Total Deductions (GOSI/Loans)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Period Bar -->
+  <div class="filter-card">
+    <div class="period-controls">
+      <div class="control-group">
+        <label>Month:</label>
+        <select [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set(+$event); onPeriodChange()" class="filter-select">
+          @for (m of months; track m.value) {
+            <option [value]="m.value">{{ m.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Year:</label>
+        <select [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set(+$event); onPeriodChange()" class="filter-select">
+          @for (y of years; track y) {
+            <option [value]="y">{{ y }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-controls">
+      <select [ngModel]="departmentFilter()" (ngModelChange)="departmentFilter.set($event)" class="filter-select">
+        <option value="ALL">All Departments</option>
+        @for (dept of departments(); track dept) {
+          <option [value]="dept">{{ dept }}</option>
+        }
+      </select>
+
+      <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" class="filter-select">
+        <option value="ALL">All Statuses</option>
+        <option value="DRAFT">Draft</option>
+        <option value="APPROVED">Approved</option>
+        <option value="PAID">Disbursed / Paid</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Table View -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Loading payroll register records...</span>
+    </div>
+  } @else if (filteredRecords().length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-receipt empty-icon"></i>
+      <h3>No payroll records found for this period</h3>
+      <p>Click "Run Payroll Cycle" to calculate salary records based on active employee contracts.</p>
+      <button class="btn-primary" (click)="openGenerateDialog()">Run Payroll Now</button>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Basic</th>
+            <th>Allowances</th>
+            <th>Deductions</th>
+            <th>Net Salary</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (rec of filteredRecords(); track rec.id) {
+            <tr>
+              <td>
+                <div class="emp-cell">
+                  <span class="name">{{ rec.firstName }} {{ rec.lastName }}</span>
+                  <span class="sub">{{ rec.designationName || 'Staff' }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="dept-text">{{ rec.departmentName || 'General' }}</span>
+              </td>
+              <td>
+                <span class="amount-val">{{ rec.basicSalary | currency:'SAR ':'symbol':'1.0-0' }}</span>
+              </td>
+              <td>
+                <span class="amount-val text-green">
+                  +{{ (+rec.housingAllowance! + +rec.transportAllowance! + +rec.otherAllowance! + +rec.overtimePay!) | currency:'SAR ':'symbol':'1.0-0' }}
+                </span>
+              </td>
+              <td>
+                <span class="amount-val text-red">
+                  -{{ (+rec.gosiDeduction! + +rec.loanDeduction! + +rec.finesPenalties!) | currency:'SAR ':'symbol':'1.0-0' }}
+                </span>
+              </td>
+              <td>
+                <span class="net-val">{{ rec.netSalary | currency:'SAR ':'symbol':'1.0-0' }}</span>
+              </td>
+              <td>
+                <span class="status-pill" [class.paid]="rec.status === 'PAID'" [class.draft]="rec.status === 'DRAFT'" [class.approved]="rec.status === 'APPROVED'">
+                  {{ rec.status }}
+                </span>
+              </td>
+              <td class="text-right">
+                <div class="actions-group">
+                  @if (rec.status !== 'PAID') {
+                    <button class="btn-table-action paid-btn" (click)="markAsPaid(rec)" title="Mark as Paid">
+                      <i class="pi pi-check"></i>
+                      <span>Pay</span>
+                    </button>
+                  }
+                  <button class="icon-btn" (click)="viewPayslip(rec)" title="View / Print Payslip">
+                    <i class="pi pi-print"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Generate Payroll Modal Dialog -->
+  @if (showGenerateDialog()) {
+    <div class="modal-overlay" (click)="showGenerateDialog.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-titles">
+            <h2 class="modal-title">Run Payroll Cycle</h2>
+            <p class="modal-subtitle">Auto-calculate salaries, allowances, and statutory deductions</p>
+          </div>
+          <button class="close-btn" (click)="showGenerateDialog.set(false)">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+
+        <form [formGroup]="generateForm" (ngSubmit)="executeGeneratePayroll()">
+          <div class="modal-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Payroll Month <span class="required">*</span></label>
+                <select formControlName="month">
+                  @for (m of months; track m.value) {
+                    <option [value]="m.value">{{ m.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Payroll Year <span class="required">*</span></label>
+                <select formControlName="year">
+                  @for (y of years; track y) {
+                    <option [value]="y">{{ y }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Scope / Department</label>
+                <select formControlName="departmentName">
+                  <option value="ALL">All Company Staff</option>
+                  @for (dept of departments(); track dept) {
+                    <option [value]="dept">{{ dept }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Cycle Period Start Date</label>
+                <input type="date" formControlName="startDate" />
+              </div>
+
+              <div class="form-group">
+                <label>Cycle Period End Date</label>
+                <input type="date" formControlName="endDate" />
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" (click)="showGenerateDialog.set(false)">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="isGenerating()">
+              @if (isGenerating()) {
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Calculating Cycle...</span>
+              } @else {
+                <i class="pi pi-bolt"></i>
+                <span>Generate Payroll</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Payslip Preview Modal -->
+  @if (showPayslipDialog() && selectedPayslip(); as ps) {
+    <div class="modal-overlay" (click)="closePayslipDialog()">
+      <div class="modal-card payslip-card" (click)="$event.stopPropagation()">
+        <div class="modal-header no-print">
+          <div class="modal-titles">
+            <h2 class="modal-title">Employee Salary Slip</h2>
+            <p class="modal-subtitle">Official payment advice voucher</p>
+          </div>
+          <div class="header-btns">
+            <button class="btn-primary-sm" (click)="printPayslip()">
+              <i class="pi pi-print"></i>
+              <span>Print Slip</span>
+            </button>
+            <button class="close-btn" (click)="closePayslipDialog()">
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="payslip-content">
+          <!-- Company & Header -->
+          <div class="slip-brand">
+            <div class="brand-left">
+              <h2>Intelligent ERP Solutions</h2>
+              <p>Kingdom of Saudi Arabia &bull; Wage Protection System (WPS)</p>
+            </div>
+            <div class="brand-right">
+              <span class="slip-title">PAYSLIP</span>
+              <span class="slip-period">{{ ps.month }}/{{ ps.year }}</span>
+            </div>
+          </div>
+
+          <div class="slip-divider"></div>
+
+          <!-- Employee Info Grid -->
+          <div class="slip-meta-grid">
+            <div class="meta-item">
+              <span class="label">Employee Name:</span>
+              <span class="val">{{ ps.firstName }} {{ ps.lastName }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="label">Designation:</span>
+              <span class="val">{{ ps.designationName || 'Staff Member' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="label">Department:</span>
+              <span class="val">{{ ps.departmentName || 'General' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="label">National / Iqama ID:</span>
+              <span class="val">{{ ps.nationalId || '—' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="label">Payment Status:</span>
+              <span class="val font-bold">{{ ps.status }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="label">Disbursement Date:</span>
+              <span class="val">{{ ps.paymentDate ? (ps.paymentDate | date:'mediumDate') : 'Pending' }}</span>
+            </div>
+          </div>
+
+          <!-- Breakdown Tables -->
+          <div class="breakdown-grid">
+            <!-- Earnings -->
+            <div class="breakdown-column">
+              <div class="col-head green">
+                <span>Earnings & Allowances</span>
+                <span>Amount (SAR)</span>
+              </div>
+              <div class="col-row">
+                <span>Basic Salary</span>
+                <span>{{ ps.basicSalary | currency:'SAR ':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="col-row">
+                <span>Housing Allowance</span>
+                <span>{{ ps.housingAllowance | currency:'SAR ':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="col-row">
+                <span>Transport Allowance</span>
+                <span>{{ ps.transportAllowance | currency:'SAR ':'symbol':'1.0-0' }}</span>
+              </div>
+              @if (+ps.otherAllowance! > 0) {
+                <div class="col-row">
+                  <span>Other Allowances</span>
+                  <span>{{ ps.otherAllowance | currency:'SAR ':'symbol':'1.0-0' }}</span>
+                </div>
+              }
+              @if (+ps.overtimePay! > 0) {
+                <div class="col-row">
+                  <span>Overtime Pay ({{ ps.overtimeHours || 0 }} hrs)</span>
+                  <span>{{ ps.overtimePay | currency:'SAR ':'symbol':'1.0-0' }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Deductions -->
+            <div class="breakdown-column">
+              <div class="col-head red">
+                <span>Deductions</span>
+                <span>Amount (SAR)</span>
+              </div>
+              <div class="col-row">
+                <span>GOSI Social Insurance</span>
+                <span>{{ ps.gosiDeduction | currency:'SAR ':'symbol':'1.0-0' }}</span>
+              </div>
+              @if (+ps.loanDeduction! > 0) {
+                <div class="col-row">
+                  <span>Loan Installment</span>
+                  <span>{{ ps.loanDeduction | currency:'SAR ':'symbol':'1.0-0' }}</span>
+                </div>
+              }
+              @if (+ps.finesPenalties! > 0) {
+                <div class="col-row">
+                  <span>Absence / Late Fines</span>
+                  <span>{{ ps.finesPenalties | currency:'SAR ':'symbol':'1.0-0' }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Net Salary Total Box -->
+          <div class="slip-total-box">
+            <span class="total-label">NET TAKE-HOME PAY:</span>
+            <span class="total-amount">{{ ps.netSalary | currency:'SAR ':'symbol':'1.2-2' }}</span>
+          </div>
+
+          <div class="slip-footer">
+            <p>This is a computer-generated salary advice slip and does not require a physical signature.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

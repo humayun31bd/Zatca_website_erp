@@ -1,0 +1,385 @@
+<div class="pos-dashboard-container">
+  <!-- Top Header Row -->
+  <div class="dashboard-header">
+    <div class="header-titles">
+      <div class="badge-row">
+        <span class="terminal-badge"><i class="pi pi-desktop"></i> POS Operations</span>
+        <span class="zatca-badge"><i class="pi pi-shield"></i> ZATCA Phase-2 Ready</span>
+      </div>
+      <h1 class="page-title">POS Analytics & Intelligence Dashboard</h1>
+      <p class="page-subtitle">Real-time cashier velocity, product sales reports, inventory reorder alerts, and terminal settings</p>
+    </div>
+
+    <div class="header-controls">
+      <!-- Date Filter Preset Buttons -->
+      <div class="filter-pills">
+        <button 
+          type="button" 
+          class="pill-btn" 
+          [class.active]="activeDateFilter() === 'ALL'"
+          (click)="setDateFilter('ALL')"
+        >
+          All Time
+        </button>
+        <button 
+          type="button" 
+          class="pill-btn" 
+          [class.active]="activeDateFilter() === 'TODAY'"
+          (click)="setDateFilter('TODAY')"
+        >
+          Today
+        </button>
+        <button 
+          type="button" 
+          class="pill-btn" 
+          [class.active]="activeDateFilter() === 'WEEK'"
+          (click)="setDateFilter('WEEK')"
+        >
+          Last 7 Days
+        </button>
+        <button 
+          type="button" 
+          class="pill-btn" 
+          [class.active]="activeDateFilter() === 'MONTH'"
+          (click)="setDateFilter('MONTH')"
+        >
+          This Month
+        </button>
+      </div>
+
+      <button 
+        type="button" 
+        class="refresh-btn" 
+        (click)="loadData()" 
+        [disabled]="isLoading()"
+        title="Reload Data"
+      >
+        <i class="pi pi-sync" [class.pi-spin]="isLoading()"></i>
+      </button>
+
+      <a routerLink="/pos/terminal" class="launch-pos-btn">
+        <i class="pi pi-arrow-up-right"></i>
+        <span>Launch Terminal</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Metrics Grid -->
+  <div class="kpi-grid">
+    <div class="kpi-card revenue-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Total POS Revenue</span>
+        <div class="kpi-icon-box"><i class="pi pi-dollar"></i></div>
+      </div>
+      <div class="kpi-value font-mono">SAR {{ dashboardData().totalRevenue | number:'1.2-2' }}</div>
+      <div class="kpi-footer">
+        <span class="kpi-sub">{{ dashboardData().totalOrders }} total transactions completed</span>
+      </div>
+    </div>
+
+    <div class="kpi-card today-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Today's Sales</span>
+        <div class="kpi-icon-box"><i class="pi pi-bolt"></i></div>
+      </div>
+      <div class="kpi-value font-mono">SAR {{ dashboardData().todayRevenue | number:'1.2-2' }}</div>
+      <div class="kpi-footer">
+        <span class="kpi-sub">{{ dashboardData().todayOrders }} orders processed today</span>
+      </div>
+    </div>
+
+    <div class="kpi-card ticket-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Average Basket Size</span>
+        <div class="kpi-icon-box"><i class="pi pi-shopping-bag"></i></div>
+      </div>
+      <div class="kpi-value font-mono">SAR {{ dashboardData().averageTicketSize | number:'1.2-2' }}</div>
+      <div class="kpi-footer">
+        <span class="kpi-sub">Average customer ticket value</span>
+      </div>
+    </div>
+
+    <div class="kpi-card stock-card" [class.alert-active]="dashboardData().lowStock.length > 0">
+      <div class="kpi-top">
+        <span class="kpi-label">Low Stock Alerts</span>
+        <div class="kpi-icon-box"><i class="pi pi-exclamation-triangle"></i></div>
+      </div>
+      <div class="kpi-value font-mono">{{ dashboardData().lowStock.length }}</div>
+      <div class="kpi-footer">
+        <span class="kpi-sub">{{ dashboardData().lowStock.length > 0 ? 'Items below reorder point' : 'All stock levels healthy' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions Grid (Flutter 12-Item Quick Actions Grid) -->
+  <div class="section-container">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title"><i class="pi pi-th-large"></i> Quick Actions & Shortcuts</h2>
+        <p class="section-subtitle">Direct workflows matching POS operational control center</p>
+      </div>
+    </div>
+
+    <div class="actions-grid">
+      @for (item of quickActions; track item.label) {
+        <a [routerLink]="item.route" class="action-tile">
+          <div class="tile-icon-box" [style.color]="item.color" [style.backgroundColor]="item.bg">
+            <i [class]="item.icon"></i>
+          </div>
+          <div class="tile-text">
+            <span class="tile-title">{{ item.label }}</span>
+            <span class="tile-ar" dir="rtl">{{ item.labelAr }}</span>
+          </div>
+          <i class="pi pi-chevron-right tile-arrow"></i>
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Dual Reporting Cards (Flutter Revenue Report & Inventory Report) -->
+  <div class="reporting-grid">
+    <!-- 1. Top Selling Products Report -->
+    <div class="report-card">
+      <div class="card-header">
+        <div class="header-info">
+          <div class="card-icon-tag"><i class="pi pi-chart-pie"></i></div>
+          <div>
+            <h3 class="card-title">Revenue Report</h3>
+            <p class="card-subtitle">Top selling catalog items by gross revenue & units sold</p>
+          </div>
+        </div>
+        <span class="item-count-badge">{{ dashboardData().topProducts.length }} Top Items</span>
+      </div>
+
+      <div class="card-body">
+        @if (dashboardData().topProducts.length === 0) {
+          <div class="empty-state">
+            <i class="pi pi-inbox"></i>
+            <p>No product sales recorded in selected timeframe</p>
+          </div>
+        } @else {
+          <div class="products-list">
+            @for (prod of dashboardData().topProducts; track prod.productId; let idx = $index) {
+              <div class="product-row">
+                <span class="rank-badge" [class.top-three]="idx < 3">#{{ idx + 1 }}</span>
+                <div class="product-details">
+                  <div class="name-row">
+                    <span class="product-name" [title]="prod.name">{{ prod.name }}</span>
+                    <span class="product-revenue font-mono">SAR {{ prod.totalRevenue | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="bar-container">
+                    <div 
+                      class="bar-fill" 
+                      [style.width.%]="(prod.totalRevenue / maxProductRevenue()) * 100"
+                    ></div>
+                  </div>
+                  <div class="stats-row">
+                    <span class="quantity-sold"><i class="pi pi-check"></i> {{ prod.totalQuantitySold }} units sold</span>
+                    <span class="avg-price">Avg ~SAR {{ (prod.totalRevenue / (prod.totalQuantitySold || 1)) | number:'1.2-2' }} / unit</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- 2. Low Stock Alerts & Inventory Report -->
+    <div class="report-card">
+      <div class="card-header">
+        <div class="header-info">
+          <div class="card-icon-tag warning-tag"><i class="pi pi-exclamation-circle"></i></div>
+          <div>
+            <h3 class="card-title">Inventory Alerts</h3>
+            <p class="card-subtitle">Critical low stock requiring purchase reorder replenishment</p>
+          </div>
+        </div>
+        <span class="warning-count-badge">{{ dashboardData().lowStock.length }} Alerts</span>
+      </div>
+
+      <div class="card-body">
+        @if (dashboardData().lowStock.length === 0) {
+          <div class="empty-state success-state">
+            <i class="pi pi-check-circle"></i>
+            <p>Stock levels are optimal. No critical shortages detected.</p>
+          </div>
+        } @else {
+          <div class="stock-list">
+            @for (stock of dashboardData().lowStock; track stock.id) {
+              <div class="stock-row">
+                <div class="stock-info">
+                  <span class="stock-name" [title]="stock.name">{{ stock.name }}</span>
+                  <span class="stock-sku">SKU: {{ stock.sku }}</span>
+                </div>
+
+                <div class="stock-status">
+                  <div class="level-indicator" [class.critical]="stock.stockQuantity <= 0">
+                    <span class="qty-val font-mono">{{ stock.stockQuantity }}</span>
+                    <span class="min-val">/ Min: {{ stock.minStockLevel }}</span>
+                  </div>
+                  <a routerLink="/purchases" class="reorder-btn" title="Create Purchase Order">
+                    <i class="pi pi-plus"></i> Reorder
+                  </a>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuration & Terminal Settings Section (Flutter _buildConfigurationSection) -->
+  <div class="section-container config-section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title"><i class="pi pi-cog"></i> Terminal Configuration & Hardware Settings</h2>
+        <p class="section-subtitle">Operational parameters matching POS cash register hardware preferences</p>
+      </div>
+    </div>
+
+    <div class="config-grid">
+      <!-- Restaurant Mode Toggle -->
+      <div class="config-card">
+        <div class="config-icon"><i class="pi pi-building"></i></div>
+        <div class="config-text">
+          <span class="config-name">Restaurant & Dining Mode</span>
+          <p class="config-desc">Enable Dine-In table numbering, takeaway kitchen display (KDS), and waiter tickets.</p>
+        </div>
+        <div class="config-control">
+          <button 
+            type="button" 
+            class="switch-pill" 
+            [class.on]="restaurantMode()" 
+            (click)="toggleRestaurantMode()"
+          >
+            <span class="switch-handle"></span>
+            <span class="switch-status">{{ restaurantMode() ? 'ACTIVE' : 'OFF' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Currency Configuration -->
+      <div class="config-card">
+        <div class="config-icon"><i class="pi pi-money-bill"></i></div>
+        <div class="config-text">
+          <span class="config-name">Currency Display Format</span>
+          <p class="config-desc">Primary currency symbol for cash drawer ledger and printed thermal slips.</p>
+        </div>
+        <div class="config-control">
+          <select [ngModel]="selectedCurrency()" (ngModelChange)="selectedCurrency.set($event)" class="config-select">
+            <option value="SAR">SAR (Saudi Riyal - ر.س)</option>
+            <option value="USD">USD ($ United States Dollar)</option>
+            <option value="BDT">BDT (৳ Bangladeshi Taka)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Printer Paper Width -->
+      <div class="config-card">
+        <div class="config-icon"><i class="pi pi-print"></i></div>
+        <div class="config-text">
+          <span class="config-name">Thermal Receipt Printer</span>
+          <p class="config-desc">Target format for ZATCA Phase-2 encrypted QR code thermal slips.</p>
+        </div>
+        <div class="config-control">
+          <select [ngModel]="printerSize()" (ngModelChange)="printerSize.set($event)" class="config-select">
+            <option value="80mm">80mm Standard POS Thermal</option>
+            <option value="58mm">58mm Mobile Bluetooth Thermal</option>
+            <option value="A4">A4 Full Sheet Laser Invoice</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Low Stock Threshold -->
+      <div class="config-card">
+        <div class="config-icon"><i class="pi pi-bell"></i></div>
+        <div class="config-text">
+          <span class="config-name">Stock Warning Threshold</span>
+          <p class="config-desc">Trigger yellow and red warnings on cashier terminal when units drop below this count.</p>
+        </div>
+        <div class="config-control">
+          <input 
+            type="number" 
+            min="1" 
+            max="100" 
+            [ngModel]="lowStockThreshold()" 
+            (ngModelChange)="lowStockThreshold.set($event)" 
+            class="config-input font-mono"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent POS Transactions Table -->
+  <div class="section-container table-section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title"><i class="pi pi-list"></i> Recent POS Cashier Invoices</h2>
+        <p class="section-subtitle">Real-time sale records generated through terminal checkout</p>
+      </div>
+      <a routerLink="/invoices" class="view-all-link">
+        View All Invoices <i class="pi pi-arrow-right"></i>
+      </a>
+    </div>
+
+    <div class="table-wrapper">
+      @if (dashboardData().recentTransactions.length === 0) {
+        <div class="empty-state">
+          <i class="pi pi-receipt"></i>
+          <p>No POS transactions found for this period</p>
+        </div>
+      } @else {
+        <table class="recent-table">
+          <thead>
+            <tr>
+              <th>Invoice Number</th>
+              <th>Customer / Type</th>
+              <th>Date & Time</th>
+              <th>Total Amount</th>
+              <th>Payment Status</th>
+              <th>ZATCA Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tx of dashboardData().recentTransactions; track tx.id) {
+              <tr>
+                <td>
+                  <span class="inv-num font-mono">{{ tx.invoiceNumber }}</span>
+                </td>
+                <td>
+                  <div class="buyer-cell">
+                    <span class="buyer-name">{{ tx.buyerName || 'Walk-in Customer' }}</span>
+                    @if (tx.deliveryType) {
+                      <span class="delivery-tag">{{ tx.deliveryType }}</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <span class="date-text">{{ tx.issueDatetime | date:'medium' }}</span>
+                </td>
+                <td>
+                  <span class="amount-text font-mono">SAR {{ tx.totalAmount | number:'1.2-2' }}</span>
+                </td>
+                <td>
+                  <p-tag [value]="tx.paymentStatus" [severity]="getPaymentSeverity(tx.paymentStatus)"></p-tag>
+                </td>
+                <td>
+                  <p-tag [value]="tx.zatcaStatus" [severity]="getZatcaSeverity(tx.zatcaStatus)"></p-tag>
+                </td>
+                <td>
+                  <a routerLink="/invoices" class="table-action-btn" title="View in Tax Invoices">
+                    <i class="pi pi-eye"></i>
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+</div>

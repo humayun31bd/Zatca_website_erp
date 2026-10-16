@@ -26,3 +26,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await verifySession(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    
+    const [newCounter] = await db.insert(counters).values({
+      ...body,
+      tenantId: session.tenantId as string,
+    }).returning();
+
+    return NextResponse.json({ success: true, counter: newCounter });
+  } catch (error: any) {
+    console.error("POST Counter Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

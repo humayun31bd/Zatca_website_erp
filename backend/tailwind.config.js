@@ -2,12 +2,24 @@
 module.exports = {
   darkMode: 'class',
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/lib/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          400: '#60a5fa',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          900: '#1e3a8a',
+        },
+      }
+    },
   },
   plugins: [],
 }

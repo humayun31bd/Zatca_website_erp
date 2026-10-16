@@ -10,9 +10,12 @@ const SupplierUpdateSchema = z.object({
   vatNumber: z.string().optional().nullable(),
   crNumber: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
+  email: z.string().optional().nullable(),
   phoneNumber: z.string().optional().nullable(),
   bankDetails: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+  supplierTier: z.string().optional().nullable(),
+  paymentTerms: z.string().optional().nullable(),
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {

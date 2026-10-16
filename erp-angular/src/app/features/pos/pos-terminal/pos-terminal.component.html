@@ -1,0 +1,2238 @@
+<div class="pos-wrapper" [attr.dir]="currentLang() === 'ar' ? 'rtl' : 'ltr'">
+  <!-- Top Unified Action Bar (Matching Flutter POS AppBar with Action Chips) -->
+  <header class="pos-top-bar">
+    <div class="bar-brand">
+      <i class="pi pi-desktop brand-icon"></i>
+      <div class="brand-text">
+        <span class="brand-title">{{ currentLang() === 'ar' ? 'نقطة البيع الكاشير' : 'POS Cashier Terminal' }}</span>
+        <span class="brand-sub">{{ sessionData().counterName }} • ZATCA Phase-2</span>
+      </div>
+    </div>
+
+    <!-- Center Unified Action Chips -->
+    <div class="action-chips-container">
+      <!-- Language Chip -->
+      <button type="button" class="action-chip chip-lang" (click)="toggleLanguage()" title="Switch Language">
+        <i class="pi pi-globe"></i>
+        <span>{{ currentLang() === 'ar' ? 'English (EN)' : 'العربية (AR)' }}</span>
+      </button>
+
+      <!-- Session / Shift Chip -->
+      <button 
+        type="button" 
+        class="action-chip" 
+        [class.chip-open]="isSessionOpen()" 
+        [class.chip-closed]="!isSessionOpen()"
+        (click)="openSessionModal()" 
+        title="Session / Z-Report (F10)"
+      >
+        <i [class]="isSessionOpen() ? 'pi pi-lock-open' : 'pi pi-lock'"></i>
+        <span>{{ isSessionOpen() ? (currentLang() === 'ar' ? 'وردية مفتوحة (OPEN)' : 'Session: OPEN') : (currentLang() === 'ar' ? 'وردية مغلقة (CLOSED)' : 'Session: CLOSED') }}</span>
+      </button>
+
+      <!-- Returns / Refunds Chip -->
+      <button type="button" class="action-chip chip-returns" (click)="openRefundModal()" title="Returns & Refunds (F8)">
+        <i class="pi pi-replay"></i>
+        <span>{{ currentLang() === 'ar' ? 'المرتجعات' : 'Returns [F8]' }}</span>
+      </button>
+
+      <!-- Cash Drawer Chip -->
+      <button type="button" class="action-chip chip-drawer" (click)="openCashDrawerModal()" title="Cash Drawer (F7)">
+        <i class="pi pi-wallet"></i>
+        <span>{{ currentLang() === 'ar' ? 'الصندوق' : 'Drawer [F7]' }}</span>
+      </button>
+
+      <!-- Receipt Settings Chip -->
+      <button type="button" class="action-chip chip-settings" (click)="openReceiptSettingsModal()" title="Receipt Settings">
+        <i class="pi pi-cog"></i>
+        <span>{{ currentLang() === 'ar' ? 'الإعدادات' : 'Settings' }}</span>
+      </button>
+
+      <!-- Analytics Dashboard Chip -->
+      <a routerLink="/pos/dashboard" class="action-chip chip-analytics" title="POS Analytics & Performance Dashboard">
+        <i class="pi pi-chart-bar"></i>
+        <span>{{ currentLang() === 'ar' ? 'التحليلات' : 'Analytics' }}</span>
+      </a>
+
+      <!-- Kitchen Display & Delivery (KDS) Chip -->
+      <a routerLink="/orders/delivery" class="action-chip chip-kds" title="Kitchen Display System & Delivery Dispatch">
+        <i class="pi pi-box"></i>
+        <span>{{ currentLang() === 'ar' ? 'المطبخ (KDS)' : 'KDS Kitchen' }}</span>
+      </a>
+
+      <!-- Help Chip -->
+      <button type="button" class="action-chip chip-help" (click)="openHelpModal()" title="Help & Shortcuts Manual (F11)">
+        <i class="pi pi-question-circle"></i>
+        <span>{{ currentLang() === 'ar' ? 'مساعدة' : 'Help [F11]' }}</span>
+      </button>
+    </div>
+
+    <!-- Right Side: Offline / Online Live Sync Indicator -->
+    <div class="sync-status-box" (click)="syncOfflineTransactions()" title="Click to sync with ZATCA Cloud">
+      <span class="status-pulse" [class.online]="isOnline()"></span>
+      <span class="status-text">{{ isOnline() ? 'Cloud Synced' : 'Offline (' + pendingOfflineCount() + ')' }}</span>
+      <i class="pi pi-sync sync-icon" [class.spinning]="pendingOfflineCount() > 0"></i>
+    </div>
+  </header>
+
+  <div class="pos-layout">
+    <!-- Left Side: Catalog, Barcode Search & Categories -->
+    <div class="catalog-section">
+      <!-- Top Search & Controls Bar -->
+      <div class="catalog-header">
+        <div class="search-row">
+          <div class="search-box">
+            <i class="pi pi-barcode search-icon"></i>
+            <input 
+              #searchInput
+              type="text" 
+              placeholder="Scan barcode or search product / SKU (Press Enter to add)... [F1]" 
+              [ngModel]="searchQuery()" 
+              (ngModelChange)="searchQuery.set($event)"
+              (keydown)="onSearchKeyDown($event)"
+              class="pos-search-input"
+            />
+            @if (searchQuery()) {
+              <button class="clear-search-btn" (click)="searchQuery.set('')" title="Clear Search">
+                <i class="pi pi-times"></i>
+              </button>
+            }
+            <span class="shortcut-tag">F1</span>
+          </div>
+
+          <!-- Advanced Search Button (Flutter ProductSelectionModal) -->
+          <button 
+            type="button" 
+            class="btn-advanced-search" 
+            (click)="openAdvancedSearchModal()" 
+            title="Advanced Search by Name, Barcode, Brand, or SKU"
+          >
+            <i class="pi pi-search-plus"></i>
+            <span>Advanced Search</span>
+          </button>
+
+
+          <!-- Parked / Held Carts Quick Button -->
+          <button 
+            type="button" 
+            class="held-carts-btn" 
+            [class.has-held]="heldCarts().length > 0"
+            (click)="showHeldModal.set(true)"
+            title="View Parked Orders (F4 to Park)"
+          >
+            <i class="pi pi-pause-circle"></i>
+            <span>Parked</span>
+            @if (heldCarts().length > 0) {
+              <span class="held-badge">{{ heldCarts().length }}</span>
+            }
+          </button>
+        </div>
+
+      <!-- Quick Toast / Scan Feedback -->
+      @if (scanNotice()) {
+        <div class="scan-notification">
+          <i class="pi pi-info-circle"></i>
+          <span>{{ scanNotice() }}</span>
+        </div>
+      }
+
+      <!-- Category Filter Pills -->
+      <div class="category-pills">
+        @for (cat of categories; track cat.value) {
+          <button 
+            type="button" 
+            class="cat-pill" 
+            [class.active]="selectedCategory() === cat.value"
+            (click)="selectedCategory.set(cat.value)"
+          >
+            {{ cat.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Product Grid Catalog -->
+    <div class="product-grid">
+      @if (isLoading()) {
+        <div class="catalog-loading">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Loading catalog...</span>
+        </div>
+      } @else {
+        @for (product of filteredProducts(); track product.id) {
+          <div 
+            class="product-card" 
+            [class.in-cart]="getCartCount(product) > 0"
+            [class.out-of-stock]="(product.stockQuantity ?? product.stockInHand ?? 10) <= 0"
+            (click)="addToCart(product)"
+          >
+            <!-- Top Image Area with Badges (Flutter _ProductGridItem) -->
+            <div class="card-visual-area">
+              @if (product.imageUrl || (product.images && product.images.length > 0 && product.images[0].imageUrl) || (product.imageUrls && product.imageUrls.length > 0 && product.imageUrls[0])) {
+                <img 
+                  [src]="product.imageUrl || (product.images && product.images[0]?.imageUrl) || (product.imageUrls && product.imageUrls[0])" 
+                  [alt]="product.name || product.productName || 'Product'" 
+                  class="product-img" 
+                  (error)="product.imageUrl = ''"
+                  loading="lazy"
+                />
+              } @else {
+                <div class="product-placeholder">
+                  <i class="pi pi-box placeholder-icon"></i>
+                </div>
+              }
+
+              <!-- In-Cart Pill with Quick-Remove 'x' button (Flutter inCartCount badge) -->
+              @if (getCartCount(product) > 0) {
+                <div class="in-cart-pill" (click)="$event.stopPropagation()">
+                  <i class="pi pi-shopping-cart cart-pill-icon"></i>
+                  <span class="cart-pill-qty">{{ getCartCount(product) }} in cart</span>
+                  <button 
+                    type="button" 
+                    class="btn-remove-all-cart" 
+                    (click)="removeFromCartByProduct(product, $event)" 
+                    title="Remove from cart"
+                  >
+                    <i class="pi pi-times"></i>
+                  </button>
+                </div>
+              }
+
+              <!-- Stock Badge on Top-Right (Flutter _buildStockBadge) -->
+              <div class="stock-badge-container">
+                @if ((product.stockQuantity ?? product.stockInHand ?? 10) <= 0) {
+                  <span class="stock-badge out-of-stock">Out of Stock</span>
+                } @else if ((product.stockQuantity ?? product.stockInHand ?? 10) < 5) {
+                  <span class="stock-badge low-stock">Low: {{ product.stockQuantity ?? product.stockInHand ?? 10 }}</span>
+                } @else {
+                  <span class="stock-badge in-stock">{{ product.stockQuantity ?? product.stockInHand ?? 10 }} left</span>
+                }
+              </div>
+            </div>
+
+            <!-- Bottom Card Content Area -->
+            <div class="card-content-area">
+              <h3 class="product-name" [title]="product.name || product.productName || 'Product'">
+                {{ product.name || product.productName || 'Product' }}
+              </h3>
+
+              <div class="product-meta-row">
+                <span class="product-barcode">{{ product.barcode || product.sku || 'N/A' }}</span>
+                @if (product.category) {
+                  <span class="product-cat-tag">{{ product.category }}</span>
+                }
+              </div>
+
+              <div class="product-action-row">
+                <div class="price-box">
+                  <span class="currency">SAR</span>
+                  <span class="amount">{{ (product.price ?? product.baseSellingPrice ?? 0) | number:'1.2-2' }}</span>
+                </div>
+
+                <div class="card-btn-group" (click)="$event.stopPropagation()">
+                  <!-- Quick -1 / Del Button (when already in cart, matching Flutter) -->
+                  @if (getCartCount(product) > 0) {
+                    <button 
+                      type="button" 
+                      class="btn-decrement-card" 
+                      (click)="decrementFromCartByProduct(product, $event)" 
+                      title="Decrease 1"
+                    >
+                      <i class="pi pi-minus"></i>
+                      <span>Del</span>
+                    </button>
+                  }
+
+                  <!-- Dedicated Add / Sold Out Button (Matching Flutter) -->
+                  @if ((product.stockQuantity ?? product.stockInHand ?? 10) <= 0) {
+                    <button type="button" class="btn-add-card disabled" disabled>
+                      <span>Sold Out</span>
+                    </button>
+                  } @else {
+                    <button 
+                      type="button" 
+                      class="btn-add-card" 
+                      (click)="addToCart(product)"
+                      title="Add to Cart"
+                    >
+                      <i class="pi pi-shopping-cart"></i>
+                      <span>Add</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-catalog">
+            <i class="pi pi-search empty-icon"></i>
+            <p class="empty-text">No products matched "{{ searchQuery() }}"</p>
+            <span class="empty-sub">Scan a valid barcode or clear search filters</span>
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- Right Side: Cash Register / Cart -->
+  <div class="cart-section">
+    <!-- Register Header: Order Type & Customer -->
+    <div class="cart-header">
+      <div class="order-type-tabs">
+        <button 
+          type="button" 
+          class="order-tab" 
+          [class.active]="orderType() === 'take_away'" 
+          (click)="orderType.set('take_away')"
+        >
+          <i class="pi pi-shopping-bag"></i> Take Away
+        </button>
+        <button 
+          type="button" 
+          class="order-tab" 
+          [class.active]="orderType() === 'dine_in'" 
+          (click)="orderType.set('dine_in')"
+        >
+          <i class="pi pi-building"></i> Dine In
+        </button>
+        <button 
+          type="button" 
+          class="order-tab" 
+          [class.active]="orderType() === 'delivery'" 
+          (click)="orderType.set('delivery')"
+        >
+          <i class="pi pi-send"></i> Delivery
+        </button>
+      </div>
+
+      <!-- Dine-in / Delivery Extra Inputs -->
+      @if (orderType() === 'dine_in') {
+        <div class="extra-field-row">
+          <i class="pi pi-hashtag text-muted"></i>
+          <input 
+            type="text" 
+            placeholder="Table Number (e.g. Table 4)" 
+            [ngModel]="tableNumber()"
+            (ngModelChange)="tableNumber.set($event)"
+            class="pos-input-sm"
+          />
+        </div>
+      }
+
+      @if (orderType() === 'delivery') {
+        <div class="extra-field-row">
+          <i class="pi pi-map-marker text-muted"></i>
+          <input 
+            type="text" 
+            placeholder="Delivery Address / Apartment..." 
+            [ngModel]="deliveryAddress()"
+            (ngModelChange)="deliveryAddress.set($event)"
+            class="pos-input-sm"
+          />
+        </div>
+      }
+
+      <!-- Flutter-style Customer Selection / Load Customer Bar -->
+      <div class="pos-customer-bar" [class.is-assigned]="!!selectedCustomer()">
+        @if (!selectedCustomer()) {
+          <div class="customer-unassigned" (click)="openCustomerModal()">
+            <div class="avatar-box">
+              <i class="pi pi-user"></i>
+            </div>
+            <div class="customer-info-text">
+              <span class="customer-name">Walk-in Customer (عميل نقدي)</span>
+              <span class="customer-subtext">Click to load or search registered customer [F3]</span>
+            </div>
+            <button type="button" class="btn-load-customer" (click)="$event.stopPropagation(); openCustomerModal()" title="Load Customer [F3]">
+              <i class="pi pi-user-plus"></i>
+              <span>Load Customer</span>
+            </button>
+          </div>
+        } @else {
+          <div class="customer-assigned">
+            <div class="avatar-box active">
+              <i class="pi pi-check"></i>
+            </div>
+            <div class="customer-info-text">
+              <div class="name-line">
+                <span class="customer-name">{{ selectedCustomer()!.name }}</span>
+                @if (selectedCustomer()!.nameAr) {
+                  <span class="customer-name-ar">({{ selectedCustomer()!.nameAr }})</span>
+                }
+              </div>
+              <div class="meta-line">
+                @if (selectedCustomer()!.phoneNumber) {
+                  <span><i class="pi pi-phone"></i> {{ selectedCustomer()!.phoneNumber }}</span>
+                }
+                @if (selectedCustomer()!.vatNumber) {
+                  <span><i class="pi pi-id-card"></i> VAT: {{ selectedCustomer()!.vatNumber }}</span>
+                }
+                @if (selectedCustomer()!.permitCredit && (selectedCustomer()!.creditLimit ?? 0) > 0) {
+                  <span class="credit-pill"><i class="pi pi-credit-card"></i> Limit: SAR {{ selectedCustomer()!.creditLimit | number:'1.0-0' }}</span>
+                }
+                @if ((selectedCustomer()!.dues ?? 0) > 0) {
+                  <span class="dues-pill">Dues: SAR {{ selectedCustomer()!.dues | number:'1.2-2' }}</span>
+                }
+              </div>
+            </div>
+            <div class="customer-bar-actions">
+              <button type="button" class="btn-change-customer" (click)="openCustomerModal()" title="Change Customer [F3]">
+                <i class="pi pi-refresh"></i>
+              </button>
+              <button type="button" class="btn-clear-customer" (click)="clearCustomer()" title="Revert to Walk-in Customer">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Quick Walk-in Guest Override Inputs -->
+      @if (!selectedCustomer()) {
+        <div class="customer-row">
+          <div class="customer-input-box">
+            <i class="pi pi-pencil text-muted"></i>
+            <input 
+              type="text" 
+              placeholder="Guest Name (e.g. Walk-in)" 
+              [ngModel]="buyerName()"
+              (ngModelChange)="buyerName.set($event)"
+              class="pos-input-sm"
+            />
+          </div>
+          <div class="phone-input-box">
+            <i class="pi pi-phone text-muted"></i>
+            <input 
+              type="text" 
+              placeholder="Guest Phone #" 
+              [ngModel]="buyerPhone()"
+              (ngModelChange)="buyerPhone.set($event)"
+              class="pos-input-sm"
+            />
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Flutter-style Cart Toolbar & Quick Action Pills -->
+    <div class="cart-action-toolbar">
+      <div class="cart-count-badge">
+        <i class="pi pi-shopping-bag"></i>
+        <span>{{ cart().length }} items • {{ cartItemsCount() }} pcs</span>
+      </div>
+
+      <div class="cart-pills-row">
+        <!-- Discount Pill -->
+        <button 
+          type="button" 
+          class="cart-pill-btn pill-discount" 
+          [class.has-discount]="discountAmount() > 0"
+          (click)="openDiscountModal()" 
+          title="Apply Discount (F5)"
+        >
+          <i class="pi pi-percentage"></i>
+          <span>{{ discountAmount() > 0 ? '-SAR ' + (discountAmount() | number:'1.2-2') : 'Discount [F5]' }}</span>
+        </button>
+
+        @if (cart().length > 0) {
+          <!-- Hold / Park Pill -->
+          <button 
+            type="button" 
+            class="cart-pill-btn pill-hold" 
+            (click)="holdCurrentCart()" 
+            title="Hold / Park Cart (F4)"
+          >
+            <i class="pi pi-pause"></i>
+            <span>Hold [F4]</span>
+          </button>
+
+          <!-- Clear Cart Pill -->
+          <button 
+            type="button" 
+            class="cart-pill-btn pill-clear" 
+            (click)="clearCart()" 
+            title="Clear Cart (F2)"
+          >
+            <i class="pi pi-trash"></i>
+            <span>Clear [F2]</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Cart Itemized List -->
+    <div class="cart-items-panel">
+      @for (item of cart(); track item.product.id) {
+        <div class="cart-line-item">
+          <div class="line-left">
+            <span class="line-name">{{ item.product.name || item.product.productName }}</span>
+            <span class="line-rate">SAR {{ item.unitPrice | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="line-controls">
+            <div class="stepper">
+              <button class="step-btn" (click)="updateQuantity(item.product.id, -1)" title="Decrease">-</button>
+              <span class="step-val">{{ item.quantity }}</span>
+              <button class="step-btn" (click)="updateQuantity(item.product.id, 1)" title="Increase">+</button>
+            </div>
+
+            <span class="line-total">SAR {{ item.lineTotal | number:'1.2-2' }}</span>
+
+            <button class="delete-btn" (click)="removeFromCart(item.product.id)" title="Remove item">
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-cart-state">
+          <i class="pi pi-shopping-cart empty-cart-icon"></i>
+          <h4>Register Cart is Empty</h4>
+          <p>Scan barcode with hardware scanner or click items from catalog.</p>
+        </div>
+      }
+    </div>
+
+    <!-- Register Billing Summary -->
+    <div class="cart-summary-panel">
+      <div class="bill-line">
+        <span class="label">Subtotal ({{ cartItemsCount() }} items):</span>
+        <span class="val">SAR {{ cartSubtotal() | number:'1.2-2' }}</span>
+      </div>
+
+      <!-- Discount Line with Quick % Chips -->
+      <div class="bill-line discount-line">
+        <div class="discount-label-group">
+          <span class="label">Discount:</span>
+          <div class="discount-chips">
+            <button type="button" class="chip-btn" (click)="applyDiscountPercent(5)">5%</button>
+            <button type="button" class="chip-btn" (click)="applyDiscountPercent(10)">10%</button>
+            <button type="button" class="chip-btn" (click)="applyDiscountPercent(15)">15%</button>
+            @if (discountAmount() > 0) {
+              <button type="button" class="chip-btn clear" (click)="discountAmount.set(0)">0</button>
+            }
+          </div>
+        </div>
+        <div class="discount-input-wrapper">
+          <span class="curr">- SAR</span>
+          <input 
+            type="number" 
+            [ngModel]="discountAmount()" 
+            (ngModelChange)="discountAmount.set($event)" 
+            min="0"
+            class="discount-field"
+          />
+        </div>
+      </div>
+
+      <div class="bill-line">
+        <span class="label">VAT (15%):</span>
+        <span class="val">SAR {{ cartVat() | number:'1.2-2' }}</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Grand Total -->
+      <div class="bill-line total-line">
+        <span class="total-label">Grand Total:</span>
+        <span class="total-amount">SAR {{ cartGrandTotal() | number:'1.2-2' }}</span>
+      </div>
+
+      <!-- Payment Method Selection -->
+      <div class="payment-method-selector">
+        <button 
+          type="button" 
+          class="pay-pill" 
+          [class.active]="paymentMethod() === 'CASH'"
+          (click)="paymentMethod.set('CASH')"
+        >
+          <i class="pi pi-money-bill"></i>
+          <span>Cash</span>
+        </button>
+        <button 
+          type="button" 
+          class="pay-pill" 
+          [class.active]="paymentMethod() === 'CARD'"
+          (click)="paymentMethod.set('CARD')"
+        >
+          <i class="pi pi-credit-card"></i>
+          <span>Mada / Card</span>
+        </button>
+        <button 
+          type="button" 
+          class="pay-pill" 
+          [class.active]="paymentMethod() === 'TRANSFER'"
+          (click)="paymentMethod.set('TRANSFER')"
+        >
+          <i class="pi pi-arrow-right-arrow-left"></i>
+          <span>Transfer</span>
+        </button>
+      </div>
+
+      <!-- Cash Tender & Change Due Calculator -->
+      @if (paymentMethod() === 'CASH' && cart().length > 0) {
+        <div class="cash-tender-panel">
+          <div class="tender-quick-pills">
+            <button type="button" class="tender-btn exact" (click)="setExactTender()">Exact (F9)</button>
+            @for (amt of quickCashPills; track amt) {
+              <button type="button" class="tender-btn" (click)="setQuickTender(amt)">SAR {{ amt }}</button>
+            }
+          </div>
+
+          <div class="tender-calc-row">
+            <div class="tender-input-box">
+              <label>Cash Received:</label>
+              <div class="tender-input-group">
+                <span>SAR</span>
+                <input 
+                  type="number" 
+                  [ngModel]="tenderAmount()" 
+                  (ngModelChange)="tenderAmount.set($event)" 
+                  class="tender-input"
+                />
+              </div>
+            </div>
+
+            <div class="change-box" [class.has-change]="changeDue() > 0" [class.has-short]="amountRemaining() > 0">
+              @if (changeDue() > 0) {
+                <span class="calc-label">Change to Return:</span>
+                <span class="calc-val change">SAR {{ changeDue() | number:'1.2-2' }}</span>
+              } @else if (amountRemaining() > 0) {
+                <span class="calc-label">Balance Remaining:</span>
+                <span class="calc-val short">SAR {{ amountRemaining() | number:'1.2-2' }}</span>
+              } @else {
+                <span class="calc-label">Amount Status:</span>
+                <span class="calc-val exact">Exact Paid</span>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Bottom Action Buttons -->
+      <div class="register-actions">
+        <button 
+          type="button" 
+          class="btn-secondary hold-btn" 
+          [disabled]="cart().length === 0"
+          (click)="holdCurrentCart()"
+          title="Park Order (F4)"
+        >
+          <i class="pi pi-pause"></i>
+          <span>Hold (F4)</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="btn-secondary clear-btn" 
+          [disabled]="cart().length === 0"
+          (click)="clearCart()"
+          title="Clear Register (F2)"
+        >
+          <i class="pi pi-trash"></i>
+          <span>Clear (F2)</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="btn-charge" 
+          [disabled]="cart().length === 0 || isCheckingOut()"
+          (click)="processCheckout()"
+          title="Complete Checkout (F12)"
+        >
+          @if (isCheckingOut()) {
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Processing...</span>
+          } @else {
+            <i class="pi pi-check-circle"></i>
+            <span>Charge SAR {{ cartGrandTotal() | number:'1.2-2' }} (F12)</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Held / Parked Carts Modal -->
+@if (showHeldModal()) {
+  <div class="modal-backdrop" (click)="showHeldModal.set(false)">
+    <div class="modal-card held-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-titles">
+          <h3>Parked Orders</h3>
+          <p>Resume suspended transactions or discard parked carts</p>
+        </div>
+        <button class="close-btn" (click)="showHeldModal.set(false)">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        @if (heldCarts().length === 0) {
+          <div class="empty-held">
+            <i class="pi pi-inbox"></i>
+            <p>No parked sales. Press [F4] or click "Hold" to park active cart.</p>
+          </div>
+        } @else {
+          <div class="held-list">
+            @for (h of heldCarts(); track h.id) {
+              <div class="held-item">
+                <div class="held-info">
+                  <div class="held-title-row">
+                    <span class="held-customer">{{ h.buyerName }}</span>
+                    <span class="held-time">{{ h.heldAt | date:'shortTime' }}</span>
+                  </div>
+                  <div class="held-meta">
+                    <span>{{ h.items.length }} items</span>
+                    <span>&bull;</span>
+                    <span class="held-type">{{ h.orderType }}</span>
+                    <span>&bull;</span>
+                    <strong class="held-total">SAR {{ h.totalAmount | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+
+                <div class="held-actions">
+                  <button type="button" class="btn-resume" (click)="resumeHeldCart(h)">
+                    <i class="pi pi-play"></i> Resume
+                  </button>
+                  <button type="button" class="btn-discard" (click)="discardHeldCart(h.id)" title="Discard">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ZATCA Phase-2 Simplified Tax Receipt Modal -->
+@if (receiptModalOpen()) {
+  <div class="modal-backdrop" (click)="closeReceiptModal()">
+    <div class="modal-card receipt-modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header no-print">
+        <div class="modal-titles">
+          <h3>ZATCA Tax Invoice Receipt</h3>
+          <p>Phase-2 compliant simplified electronic tax invoice</p>
+        </div>
+        <button class="close-btn" (click)="closeReceiptModal()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <!-- Printable 80mm Thermal Receipt Slip -->
+      <div class="thermal-receipt" id="printable-receipt">
+        <div class="slip-header">
+          <h2 class="company-name">ZATCA CLOUD ERP</h2>
+          <p class="invoice-title">فاتورة ضريبية مبسطة</p>
+          <p class="invoice-subtitle">SIMPLIFIED TAX INVOICE</p>
+          <div class="tax-info">
+            <span>VAT Number / الرقم الضريبي:</span>
+            <strong>310123456700003</strong>
+          </div>
+        </div>
+
+        <div class="slip-divider">--------------------------------</div>
+
+        <div class="slip-meta">
+          <div class="meta-row">
+            <span>Invoice No:</span>
+            <strong class="font-mono">{{ completedReceipt()?.invoiceNumber }}</strong>
+          </div>
+          <div class="meta-row">
+            <span>Date & Time:</span>
+            <span>{{ completedReceipt()?.deliveryOrder?.cookingStartedAt || ('' | date:'short') }}</span>
+          </div>
+          <div class="meta-row">
+            <span>Customer:</span>
+            <span>{{ selectedCustomer()?.name || buyerName() || 'Walk-in Customer' }}</span>
+          </div>
+          @if (selectedCustomer()?.vatNumber) {
+            <div class="meta-row">
+              <span>Customer VAT / الرقم الضريبي:</span>
+              <span class="font-mono">{{ selectedCustomer()!.vatNumber }}</span>
+            </div>
+          }
+          @if (selectedCustomer()?.phoneNumber) {
+            <div class="meta-row">
+              <span>Phone:</span>
+              <span>{{ selectedCustomer()!.phoneNumber }}</span>
+            </div>
+          }
+          <div class="meta-row">
+            <span>Order Type:</span>
+            <span>{{ orderType() | uppercase }}</span>
+          </div>
+        </div>
+
+        <div class="slip-divider">--------------------------------</div>
+
+        <!-- Line Items -->
+        <div class="slip-items">
+          <div class="items-head">
+            <span class="col-item">Item</span>
+            <span class="col-qty">Qty</span>
+            <span class="col-price">Price</span>
+            <span class="col-total">Total</span>
+          </div>
+          @for (item of lastSaleItems(); track item.product.id) {
+            <div class="item-row">
+              <span class="col-item">{{ item.product.name || item.product.productName }}</span>
+              <span class="col-qty">{{ item.quantity }}</span>
+              <span class="col-price">{{ item.unitPrice | number:'1.2-2' }}</span>
+              <span class="col-total">{{ item.lineTotal | number:'1.2-2' }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="slip-divider">--------------------------------</div>
+
+        <!-- Totals Breakdown -->
+        <div class="slip-totals">
+          <div class="total-row">
+            <span>Taxable Amount (المبلغ الخاضع للضريبة):</span>
+            <span>SAR {{ (completedReceipt()?.totalAmount ? completedReceipt()!.totalAmount / 1.15 : 0) | number:'1.2-2' }}</span>
+          </div>
+          <div class="total-row">
+            <span>VAT 15% (ضريبة القيمة المضافة):</span>
+            <span>SAR {{ (completedReceipt()?.totalAmount ? completedReceipt()!.totalAmount - (completedReceipt()!.totalAmount / 1.15) : 0) | number:'1.2-2' }}</span>
+          </div>
+          <div class="total-row grand">
+            <span>Total with VAT (الإجمالي شامل الضريبة):</span>
+            <strong>SAR {{ completedReceipt()?.totalAmount | number:'1.2-2' }}</strong>
+          </div>
+          <div class="total-row">
+            <span>Payment Method:</span>
+            <span>{{ paymentMethod() }}</span>
+          </div>
+        </div>
+
+        <!-- ZATCA Phase-2 QR Code -->
+        <div class="slip-qr-box">
+          @if (receiptQrUrl()) {
+            <img [src]="receiptQrUrl()" alt="ZATCA Phase 2 QR Code" class="qr-img" />
+          } @else {
+            <div class="qr-placeholder">
+              <i class="pi pi-qrcode"></i>
+              <span>ZATCA Phase 2 Verified</span>
+            </div>
+          }
+          <p class="qr-sub">Scan via ZATCA E-Invoicing App</p>
+        </div>
+
+        <div class="slip-footer">
+          <p>Thank you for your business!</p>
+          <p>شكراً لزيارتكم</p>
+        </div>
+      </div>
+
+      <div class="receipt-actions no-print">
+        <button type="button" class="btn-print" (click)="printReceipt()">
+          <i class="pi pi-print"></i> Print Receipt (80mm)
+        </button>
+        <button type="button" class="btn-new-sale" (click)="closeReceiptModal()">
+          <i class="pi pi-plus"></i> New Sale
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Flutter-Style Customer Selection Modal -->
+@if (showCustomerModal()) {
+  <div class="modal-backdrop" (click)="showCustomerModal.set(false)">
+    <div class="modal-card customer-modal-card" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="customer-modal-header">
+        <div class="header-left">
+          <div class="header-icon-circle">
+            <i class="pi pi-users"></i>
+          </div>
+          <div>
+            <h3 class="header-title">Select Customer / تحميل بيانات العميل</h3>
+            <p class="header-sub">Search client directory or register a new customer on the fly [F3]</p>
+          </div>
+        </div>
+        <button class="modal-close-icon" (click)="showCustomerModal.set(false)" title="Close [Esc]">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <!-- Search & New Customer Action Toolbar -->
+      <div class="customer-toolbar">
+        <div class="customer-search-input-box">
+          <i class="pi pi-search search-ico"></i>
+          <input
+            type="text"
+            placeholder="Search by Name, Arabic Name, Phone, VAT ID, or CR Number..."
+            [ngModel]="customerSearchQuery()"
+            (ngModelChange)="customerSearchQuery.set($event)"
+            autofocus
+            class="pos-customer-search-input"
+          />
+          @if (customerSearchQuery()) {
+            <button class="clear-query-btn" (click)="customerSearchQuery.set('')">
+              <i class="pi pi-times"></i>
+            </button>
+          }
+        </div>
+        <button type="button" class="btn-create-customer-quick" (click)="openNewCustomerModal()">
+          <i class="pi pi-user-plus"></i>
+          <span>+ New Customer</span>
+        </button>
+      </div>
+
+      <!-- Customer Cards List -->
+      <div class="customer-list-body">
+        @if (isLoadingCustomers()) {
+          <div class="loading-state">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Loading customers directory...</span>
+          </div>
+        } @else {
+          <div class="customer-grid">
+            @for (c of filteredCustomers(); track c.id) {
+              <div 
+                class="customer-card-item" 
+                [class.active-selected]="selectedCustomer()?.id === c.id"
+                (click)="selectCustomer(c)"
+              >
+                <div class="card-avatar">
+                  <span>{{ (c.name || 'C').charAt(0).toUpperCase() }}</span>
+                </div>
+                <div class="card-details">
+                  <div class="card-top-row">
+                    <span class="cust-name">{{ c.name }}</span>
+                    @if (c.customerType) {
+                      <span class="type-badge" [class.business]="c.customerType === 'BUSINESS'">
+                        {{ c.customerType }}
+                      </span>
+                    }
+                  </div>
+
+                  @if (c.nameAr) {
+                    <span class="cust-name-ar">{{ c.nameAr }}</span>
+                  }
+
+                  <div class="cust-meta-grid">
+                    @if (c.phoneNumber) {
+                      <div class="meta-item">
+                        <i class="pi pi-phone"></i>
+                        <span>{{ c.phoneNumber }}</span>
+                      </div>
+                    }
+                    @if (c.vatNumber) {
+                      <div class="meta-item vat-highlight">
+                        <i class="pi pi-id-card"></i>
+                        <span>VAT: {{ c.vatNumber }}</span>
+                      </div>
+                    }
+                    @if (c.crNumber) {
+                      <div class="meta-item">
+                        <i class="pi pi-building"></i>
+                        <span>CR: {{ c.crNumber }}</span>
+                      </div>
+                    }
+                    @if (c.city) {
+                      <div class="meta-item">
+                        <i class="pi pi-map-marker"></i>
+                        <span>{{ c.city }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Financial / Credit Status -->
+                  <div class="cust-financial-bar">
+                    <div class="financial-status">
+                      <span class="label">Credit:</span>
+                      @if (c.permitCredit && (c.creditLimit ?? 0) > 0) {
+                        <span class="credit-enabled">
+                          <i class="pi pi-check-circle"></i> SAR {{ c.creditLimit | number:'1.0-0' }} Limit
+                        </span>
+                      } @else {
+                        <span class="credit-disabled">
+                          <i class="pi pi-times-circle"></i> Disabled
+                        </span>
+                      }
+                    </div>
+
+                    @if ((c.dues ?? 0) > 0) {
+                      <div class="dues-highlight">
+                        <span>Dues: <strong>SAR {{ c.dues | number:'1.2-2' }}</strong></span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="card-action-btn">
+                  <button type="button" class="btn-select-customer">
+                    @if (selectedCustomer()?.id === c.id) {
+                      <i class="pi pi-check"></i> Linked
+                    } @else {
+                      <i class="pi pi-arrow-right"></i> Select
+                    }
+                  </button>
+                </div>
+              </div>
+            } @empty {
+              <div class="empty-customers">
+                <i class="pi pi-user-times"></i>
+                <p>No customers found matching "{{ customerSearchQuery() }}"</p>
+                <button type="button" class="btn-create-customer-quick" (click)="openNewCustomerModal()">
+                  <i class="pi pi-user-plus"></i>
+                  <span>Register "{{ customerSearchQuery() }}" as New Customer</span>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="customer-modal-footer">
+        <span class="count-tag">Showing {{ filteredCustomers().length }} customers</span>
+        <button type="button" class="btn-cancel" (click)="showCustomerModal.set(false)">Close</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Quick New Customer Creation Modal -->
+@if (showNewCustomerModal()) {
+  <div class="modal-backdrop submodal-backdrop" (click)="showNewCustomerModal.set(false)">
+    <div class="modal-card new-customer-card" (click)="$event.stopPropagation()">
+      <div class="customer-modal-header navy-accent">
+        <div class="header-left">
+          <div class="header-icon-circle green-bg">
+            <i class="pi pi-user-plus"></i>
+          </div>
+          <div>
+            <h3 class="header-title">Quick Register Customer</h3>
+            <p class="header-sub">Add client and link immediately to current POS register sale</p>
+          </div>
+        </div>
+        <button class="modal-close-icon" (click)="showNewCustomerModal.set(false)">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="new-customer-form-body">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Customer Full Name (English) *</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Al-Faisaliah Trading Co." 
+              [(ngModel)]="newCustomer.name"
+              class="pos-form-input"
+              autofocus
+            />
+          </div>
+          <div class="form-group flex-1">
+            <label>اسم العميل (عربي)</label>
+            <input 
+              type="text" 
+              placeholder="مثال: شركة الفيصلية التجارية" 
+              [(ngModel)]="newCustomer.nameAr"
+              class="pos-form-input text-right"
+              dir="rtl"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Phone Number (Mobile) *</label>
+            <input 
+              type="tel" 
+              placeholder="+966 5x xxx xxxx" 
+              [(ngModel)]="newCustomer.phoneNumber"
+              class="pos-form-input"
+            />
+          </div>
+          <div class="form-group flex-1">
+            <label>Email Address</label>
+            <input 
+              type="email" 
+              placeholder="client@company.sa" 
+              [(ngModel)]="newCustomer.email"
+              class="pos-form-input"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>VAT Registration Number (15 Digits)</label>
+            <input 
+              type="text" 
+              maxlength="15"
+              placeholder="3xxxxxxxxxxxx03" 
+              [(ngModel)]="newCustomer.vatNumber"
+              class="pos-form-input font-mono"
+            />
+          </div>
+          <div class="form-group flex-1">
+            <label>Commercial Registration (CR)</label>
+            <input 
+              type="text" 
+              placeholder="1010xxxxxx" 
+              [(ngModel)]="newCustomer.crNumber"
+              class="pos-form-input"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Customer Type</label>
+            <select [(ngModel)]="newCustomer.customerType" class="pos-form-input">
+              <option value="BUSINESS">Business (شركة / مؤسسة)</option>
+              <option value="INDIVIDUAL">Individual (فرد)</option>
+              <option value="GOVERNMENT">Government (جهة حكومية)</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label>City</label>
+            <input 
+              type="text" 
+              placeholder="Riyadh, Jeddah, Khobar..." 
+              [(ngModel)]="newCustomer.city"
+              class="pos-form-input"
+            />
+          </div>
+        </div>
+
+        <div class="form-row credit-toggle-row">
+          <label class="credit-checkbox-label">
+            <input type="checkbox" [(ngModel)]="newCustomer.permitCredit" />
+            <span>Permit Credit Sales for this Customer</span>
+          </label>
+          @if (newCustomer.permitCredit) {
+            <div class="credit-limit-input-box">
+              <span class="currency-tag">SAR</span>
+              <input 
+                type="number" 
+                placeholder="Credit Limit (e.g. 50000)" 
+                [(ngModel)]="newCustomer.creditLimit"
+                class="pos-form-input credit-limit-input"
+              />
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-cancel" (click)="showNewCustomerModal.set(false)">Cancel</button>
+        <button 
+          type="button" 
+          class="btn-save-customer" 
+          (click)="saveQuickCustomer()"
+          [disabled]="isSavingCustomer() || !newCustomer.name"
+        >
+          @if (isSavingCustomer()) {
+            <i class="pi pi-spin pi-spinner"></i> Saving...
+          } @else {
+            <i class="pi pi-check"></i> Save & Link Customer
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 2. Returns / Refunds / Exchanges Modal (Flutter RefundReturnExchangeModal) -->
+@if (showRefundModal()) {
+  <div class="modal-backdrop" (click)="showRefundModal.set(false)">
+    <div class="modal-card refund-modal-card" (click)="$event.stopPropagation()">
+      <div class="customer-modal-header orange-accent">
+        <div class="header-left">
+          <div class="header-icon-circle orange-bg">
+            <i class="pi pi-replay"></i>
+          </div>
+          <div>
+            <h3 class="header-title">Returns / Refunds / Exchanges (المرتجعات)</h3>
+            <p class="header-sub">Process customer merchandise returns and issue credit/cash refunds</p>
+          </div>
+        </div>
+        <button class="modal-close-icon" (click)="showRefundModal.set(false)"><i class="pi pi-times"></i></button>
+      </div>
+
+      <div class="modal-content-scrollable">
+        <!-- Action Type Radio Selector -->
+        <div class="action-type-selector">
+          <label class="action-radio" [class.selected]="refundActionType() === 'REFUND'">
+            <input type="radio" name="refundAction" value="REFUND" [ngModel]="refundActionType()" (ngModelChange)="refundActionType.set($event)" />
+            <span>Refund (استرجاع نقدي)</span>
+          </label>
+          <label class="action-radio" [class.selected]="refundActionType() === 'RETURN'">
+            <input type="radio" name="refundAction" value="RETURN" [ngModel]="refundActionType()" (ngModelChange)="refundActionType.set($event)" />
+            <span>Return to Stock (إرجاع للمخزن)</span>
+          </label>
+          <label class="action-radio" [class.selected]="refundActionType() === 'EXCHANGE'">
+            <input type="radio" name="refundAction" value="EXCHANGE" [ngModel]="refundActionType()" (ngModelChange)="refundActionType.set($event)" />
+            <span>Exchange (استبدال)</span>
+          </label>
+        </div>
+
+        <!-- Search Invoice -->
+        <div class="refund-search-row">
+          <div class="refund-input-box">
+            <i class="pi pi-search search-ico"></i>
+            <input 
+              type="text" 
+              placeholder="Enter original Invoice Number (e.g. POS-2026-1042)..."
+              [ngModel]="refundInvoiceQuery()"
+              (ngModelChange)="refundInvoiceQuery.set($event)"
+              (keydown.enter)="searchRefundInvoice()"
+              class="pos-form-input"
+            />
+          </div>
+          <button type="button" class="btn-find-invoice" (click)="searchRefundInvoice()" [disabled]="isSearchingRefund()">
+            @if (isSearchingRefund()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-search"></i>
+            }
+            <span>Find Invoice</span>
+          </button>
+        </div>
+
+        <!-- Found Invoice Item List -->
+        @if (refundFoundInvoice()) {
+          <div class="invoice-found-card">
+            <div class="inv-head">
+              <span>Invoice: <strong>{{ refundFoundInvoice().invoiceNumber }}</strong></span>
+              <span>Customer: {{ refundFoundInvoice().customerName }}</span>
+              <span>Date: {{ refundFoundInvoice().date | date:'short' }}</span>
+            </div>
+
+            <div class="refund-items-table">
+              <div class="table-head">
+                <span class="col-chk">Return?</span>
+                <span class="col-name">Product</span>
+                <span class="col-qty">Sold Qty</span>
+                <span class="col-price">Unit Price</span>
+                <span class="col-sub">Refund Total</span>
+              </div>
+              @for (item of refundItems(); track item.sku) {
+                <div class="table-row" [class.row-selected]="item.selected">
+                  <span class="col-chk">
+                    <input type="checkbox" [(ngModel)]="item.selected" />
+                  </span>
+                  <span class="col-name">{{ item.name }}</span>
+                  <span class="col-qty">{{ item.qty }} pcs</span>
+                  <span class="col-price">SAR {{ item.price | number:'1.2-2' }}</span>
+                  <span class="col-sub">SAR {{ (item.price * item.qty) | number:'1.2-2' }}</span>
+                </div>
+              }
+            </div>
+
+            <div class="refund-tender-row">
+              <div class="tender-opt">
+                <label>Refund Tender:</label>
+                <select [ngModel]="refundPaymentMethod()" (ngModelChange)="refundPaymentMethod.set($event)" class="pos-form-input">
+                  <option value="CASH">Cash Refund</option>
+                  <option value="CARD">Original Card / Mada</option>
+                  <option value="CREDIT">Store Credit / Client Account</option>
+                </select>
+              </div>
+
+              <div class="refund-total-box">
+                <span>Refund Amount:</span>
+                <strong class="refund-val">SAR {{ refundTotalAmount | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-cancel" (click)="showRefundModal.set(false)">Cancel</button>
+        <button type="button" class="btn-orange-action" (click)="submitRefund()" [disabled]="refundTotalAmount <= 0">
+          <i class="pi pi-check"></i> Process {{ refundActionType() }} (SAR {{ refundTotalAmount | number:'1.2-2' }})
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 3. Cash Drawer Operations Modal (Flutter CashDrawerModal) -->
+@if (showCashDrawerModal()) {
+  <div class="modal-backdrop" (click)="showCashDrawerModal.set(false)">
+    <div class="modal-card drawer-modal-card" (click)="$event.stopPropagation()">
+      <div class="customer-modal-header blue-accent">
+        <div class="header-left">
+          <div class="header-icon-circle blue-bg">
+            <i class="pi pi-wallet"></i>
+          </div>
+          <div>
+            <h3 class="header-title">Cash Drawer Operations (الصندوق)</h3>
+            <p class="header-sub">Current Float Balance: SAR {{ cashDrawerBalance() | number:'1.2-2' }}</p>
+          </div>
+        </div>
+        <button class="modal-close-icon" (click)="showCashDrawerModal.set(false)"><i class="pi pi-times"></i></button>
+      </div>
+
+      <div class="modal-content-scrollable">
+        <!-- Pay In / Pay Out Switcher -->
+        <div class="drawer-type-toggle">
+          <button 
+            type="button" 
+            class="toggle-btn" 
+            [class.active-payin]="cashDrawerType() === 'PAY_IN'"
+            (click)="cashDrawerType.set('PAY_IN')"
+          >
+            <i class="pi pi-arrow-down-left"></i> Pay In (إيداع نقدية)
+          </button>
+          <button 
+            type="button" 
+            class="toggle-btn" 
+            [class.active-payout]="cashDrawerType() === 'PAY_OUT'"
+            (click)="cashDrawerType.set('PAY_OUT')"
+          >
+            <i class="pi pi-arrow-up-right"></i> Pay Out (سحب / مصروف)
+          </button>
+        </div>
+
+        <div class="drawer-form-box">
+          <div class="form-group">
+            <label>Amount (SAR) *</label>
+            <div class="input-with-currency">
+              <span class="curr-tag">SAR</span>
+              <input 
+                type="number" 
+                placeholder="0.00" 
+                [ngModel]="cashDrawerAmount()" 
+                (ngModelChange)="cashDrawerAmount.set($event)"
+                class="pos-form-input bold-amt"
+                autofocus
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Reason / Description *</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Petty cash refill, cleaning expense, bank drop..." 
+              [ngModel]="cashDrawerReason()" 
+              (ngModelChange)="cashDrawerReason.set($event)"
+              class="pos-form-input"
+            />
+          </div>
+        </div>
+
+        <!-- Recent Drawer Logs -->
+        <div class="recent-logs-section">
+          <span class="section-title">Today's Drawer Activity</span>
+          <div class="logs-list">
+            @for (log of cashDrawerLogs(); track log.id) {
+              <div class="log-item">
+                <div class="log-info">
+                  <span class="log-type" [class.in]="log.type === 'PAY_IN'" [class.out]="log.type === 'PAY_OUT'">
+                    {{ log.type === 'PAY_IN' ? '+ Pay In' : '- Pay Out' }}
+                  </span>
+                  <span class="log-reason">{{ log.reason }}</span>
+                  <span class="log-time">{{ log.timestamp | date:'shortTime' }}</span>
+                </div>
+                <strong class="log-amount" [class.in]="log.type === 'PAY_IN'" [class.out]="log.type === 'PAY_OUT'">
+                  {{ log.type === 'PAY_IN' ? '+' : '-' }}SAR {{ log.amount | number:'1.2-2' }}
+                </strong>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-cancel" (click)="showCashDrawerModal.set(false)">Cancel</button>
+        <button 
+          type="button" 
+          [class]="cashDrawerType() === 'PAY_IN' ? 'btn-save-customer' : 'btn-danger-action'" 
+          (click)="submitCashDrawerTx()"
+        >
+          <i class="pi pi-check"></i> Record {{ cashDrawerType() === 'PAY_IN' ? 'Pay In' : 'Pay Out' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 4. Receipt Customization & Print Settings Modal (Flutter ReceiptCustomizationModal) -->
+@if (showReceiptSettingsModal()) {
+  <div class="modal-backdrop" (click)="showReceiptSettingsModal.set(false)">
+    <div class="modal-card settings-modal-card" (click)="$event.stopPropagation()">
+      <div class="customer-modal-header navy-accent">
+        <div class="header-left">
+          <div class="header-icon-circle">
+            <i class="pi pi-cog"></i>
+          </div>
+          <div>
+            <h3 class="header-title">Receipt & Printer Customization (إعدادات الفاتورة)</h3>
+            <p class="header-sub">Configure thermal slip format, ZATCA QR rules & printer outputs</p>
+          </div>
+        </div>
+        <button class="modal-close-icon" (click)="showReceiptSettingsModal.set(false)"><i class="pi pi-times"></i></button>
+      </div>
+
+      <div class="modal-content-scrollable">
+        <div class="settings-grid">
+          <div class="form-group">
+            <label>Thermal Paper Size</label>
+            <select [(ngModel)]="receiptSettings.paperWidth" class="pos-form-input">
+              <option value="80mm">Standard 80mm Thermal Receipt (ESC/POS)</option>
+              <option value="58mm">Compact 58mm Thermal Receipt</option>
+              <option value="A4">Standard A4 Tax Invoice (Laser/Inkjet)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Currency Format</label>
+            <select [(ngModel)]="receiptSettings.currency" class="pos-form-input">
+              <option value="SAR">Saudi Riyal (SAR / ر.س)</option>
+              <option value="AED">UAE Dirham (AED)</option>
+              <option value="USD">US Dollar (USD $)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Invoice Language</label>
+            <select [(ngModel)]="receiptSettings.language" class="pos-form-input">
+              <option value="Dual (Arabic & English)">Dual Bilingual (Arabic & English - ZATCA Mandated)</option>
+              <option value="Arabic">Arabic Only (عربي فقط)</option>
+              <option value="English">English Only</option>
+            </select>
+          </div>
+
+          <div class="toggles-box">
+            <label class="toggle-item">
+              <input type="checkbox" [(ngModel)]="receiptSettings.showLogo" />
+              <span>Print Header Business Logo</span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" [(ngModel)]="receiptSettings.showVatNumber" />
+              <span>Print 15-Digit ZATCA Tax ID</span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" [(ngModel)]="receiptSettings.showQrCode" />
+              <span>Print Phase-2 TLV Electronic QR Code</span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" [(ngModel)]="receiptSettings.autoPrintOnSale" />
+              <span>Auto-trigger hardware print on Checkout</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label>Return Policy Footer Note</label>
+            <textarea 
+              rows="3" 
+              [(ngModel)]="receiptSettings.returnPolicyText" 
+              class="pos-form-input text-area-input"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-cancel" (click)="showReceiptSettingsModal.set(false)">Cancel</button>
+        <button type="button" class="btn-save-customer" (click)="saveReceiptSettings()">
+          <i class="pi pi-check"></i> Save Preferences
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 5. POS Cashier Training Manual & Keyboard Shortcuts (Flutter PosHelpModal) -->
+@if (showHelpModal()) {
+  <div class="modal-backdrop" (click)="showHelpModal.set(false)">
+    <div class="modal-card help-modal-card" (click)="$event.stopPropagation()">
+      <div class="customer-modal-header navy-accent">
+        <div class="header-left">
+          <div class="header-icon-circle">
+            <i class="pi pi-question-circle"></i>
+          </div>
+          <div>
+            <h3 class="header-title">POS Cashier Manual & Shortcuts (F1 - F12)</h3>
+            <p class="header-sub">Quick operating reference for hardware scanners, register shifts, and keys</p>
+          </div>
+        </div>
+        <button class="modal-close-icon" (click)="showHelpModal.set(false)"><i class="pi pi-times"></i></button>
+      </div>
+
+      <!-- Help Tabs -->
+      <div class="help-tabs-row">
+        <button class="help-tab-btn" [class.active]="activeHelpTab() === 'shortcuts'" (click)="activeHelpTab.set('shortcuts')">
+          <i class="pi pi-keyboard"></i> Shortcuts (F1-F12)
+        </button>
+        <button class="help-tab-btn" [class.active]="activeHelpTab() === 'buttons'" (click)="activeHelpTab.set('buttons')">
+          <i class="pi pi-th-large"></i> Action Buttons
+        </button>
+        <button class="help-tab-btn" [class.active]="activeHelpTab() === 'workflow'" (click)="activeHelpTab.set('workflow')">
+          <i class="pi pi-list"></i> Cashier Workflow
+        </button>
+        <button class="help-tab-btn" [class.active]="activeHelpTab() === 'returns'" (click)="activeHelpTab.set('returns')">
+          <i class="pi pi-replay"></i> Returns & Drawer
+        </button>
+      </div>
+
+      <div class="modal-content-scrollable">
+        @if (activeHelpTab() === 'shortcuts') {
+          <div class="shortcuts-grid">
+            <div class="shortcut-card"><span class="key-badge">F1</span><div><strong>Barcode Search Focus</strong><p>Focuses and highlights barcode scanner input</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F2</span><div><strong>Clear Cart</strong><p>Instantly resets register cart for new transaction</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F3</span><div><strong>Load Customer</strong><p>Opens client directory to attach customer & tax ID</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F4</span><div><strong>Park / Hold Cart</strong><p>Suspends current cart and recalls parked sales</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F5</span><div><strong>Apply Discount</strong><p>Opens % or fixed SAR discount dialog</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F7</span><div><strong>Cash Drawer</strong><p>Opens drawer operations for Pay-In and Pay-Out</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F8</span><div><strong>Returns & Exchange</strong><p>Look up past invoices for merchandise refund</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F9</span><div><strong>Exact Tender</strong><p>Sets cash tender to exact invoice total</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F10</span><div><strong>Session / Z-Report</strong><p>View current shift summary and print Z-Report</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F11</span><div><strong>Help Manual</strong><p>Opens this operating manual</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">F12</span><div><strong>Complete / Charge</strong><p>Completes checkout and prints 80mm ZATCA slip</p></div></div>
+            <div class="shortcut-card"><span class="key-badge">Esc</span><div><strong>Close Dialogs</strong><p>Closes active modal popups without losing data</p></div></div>
+          </div>
+        } @else if (activeHelpTab() === 'buttons') {
+          <div class="help-info-block">
+            <h4>Terminal Buttons & Toolbars</h4>
+            <p><strong>Language Switcher:</strong> Switch dynamically between English and Arabic UI with full RTL alignment.</p>
+            <p><strong>Session Button:</strong> Shows live shift status. Green indicates open cashier shift; red indicates shift must be opened.</p>
+            <p><strong>Returns / Drawer:</strong> Handles cash float movements and invoice item returns on the fly.</p>
+          </div>
+        } @else if (activeHelpTab() === 'workflow') {
+          <div class="help-info-block">
+            <h4>Fast Cashier Workflow</h4>
+            <p>1. Scan product barcode with scanner or click item from catalog.</p>
+            <p>2. (Optional) Press [F3] to link a customer with VAT ID for B2B tax compliance.</p>
+            <p>3. Select Order Type (Take Away, Dine In, or Delivery).</p>
+            <p>4. Choose payment method (Cash, Mada Card, or Transfer).</p>
+            <p>5. Press [F12] to charge. A compliant Phase-2 ZATCA thermal slip is generated immediately.</p>
+          </div>
+        } @else {
+          <div class="help-info-block">
+            <h4>Returns & Cash Drawer Policies</h4>
+            <p><strong>Returns:</strong> Locate invoice number, check items to return, and select refund tender (Cash, Card, or Credit).</p>
+            <p><strong>Cash Drawer:</strong> Use Pay-In for adding morning floats; use Pay-Out for store petty expenses.</p>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-save-customer" (click)="showHelpModal.set(false)">
+          <i class="pi pi-check"></i> Got It! Continue Register
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 6. Quick Add Product to Catalog Modal (Flutter AddProductDialog) -->
+@if (showQuickAddProductModal()) {
+  <div class="modal-backdrop" (click)="showQuickAddProductModal.set(false)">
+    <div class="modal-card quick-prod-card" (click)="$event.stopPropagation()">
+      <div class="customer-modal-header blue-accent">
+        <div class="header-left">
+          <div class="header-icon-circle blue-bg">
+            <i class="pi pi-plus"></i>
+          </div>
+          <div>
+            <h3 class="header-title">Quick Add Product to Catalog</h3>
+            <p class="header-sub">Add custom item and place immediately in cart</p>
+          </div>
+        </div>
+        <button class="modal-close-icon" (click)="showQuickAddProductModal.set(false)"><i class="pi pi-times"></i></button>
+      </div>
+
+      <div class="modal-content-scrollable">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Product Name *</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Fresh Orange Juice" 
+              [(ngModel)]="quickProduct.name" 
+              class="pos-form-input" 
+              autofocus
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Selling Price (SAR) *</label>
+            <input 
+              type="number" 
+              placeholder="0.00" 
+              [(ngModel)]="quickProduct.price" 
+              class="pos-form-input bold-amt" 
+            />
+          </div>
+          <div class="form-group flex-1">
+            <label>Stock Quantity</label>
+            <input 
+              type="number" 
+              [(ngModel)]="quickProduct.stockQuantity" 
+              class="pos-form-input" 
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Barcode / SKU (Optional)</label>
+            <input 
+              type="text" 
+              placeholder="628xxxxxx" 
+              [(ngModel)]="quickProduct.barcode" 
+              class="pos-form-input" 
+            />
+          </div>
+          <div class="form-group flex-1">
+            <label>Category</label>
+            <select [(ngModel)]="quickProduct.category" class="pos-form-input">
+              <option value="FOOD">Food & Bakery</option>
+              <option value="BEVERAGES">Beverages</option>
+              <option value="ELECTRONICS">Electronics</option>
+              <option value="GENERAL">General</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-cancel" (click)="showQuickAddProductModal.set(false)">Cancel</button>
+        <button type="button" class="btn-save-customer" (click)="saveQuickProduct()" [disabled]="!quickProduct.name || !quickProduct.price">
+          <i class="pi pi-check"></i> Add & Place in Cart
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 7. Cart Discount Dialog (Flutter onDiscountTap) -->
+@if (showDiscountModal()) {
+  <div class="modal-backdrop" (click)="showDiscountModal.set(false)">
+    <div class="modal-card discount-modal-card" (click)="$event.stopPropagation()">
+      <div class="customer-modal-header green-accent">
+        <div class="header-left">
+          <div class="header-icon-circle green-bg">
+            <i class="pi pi-percentage"></i>
+          </div>
+          <div>
+            <h3 class="header-title">Apply Cart Discount (خصم الفاتورة)</h3>
+            <p class="header-sub">Current Cart Subtotal: SAR {{ cartSubtotal() | number:'1.2-2' }}</p>
+          </div>
+        </div>
+        <button class="modal-close-icon" (click)="showDiscountModal.set(false)"><i class="pi pi-times"></i></button>
+      </div>
+
+      <div class="modal-content-scrollable">
+        <div class="drawer-type-toggle">
+          <button 
+            type="button" 
+            class="toggle-btn" 
+            [class.active-payin]="discountType() === 'PERCENT'"
+            (click)="discountType.set('PERCENT')"
+          >
+            Percentage (%)
+          </button>
+          <button 
+            type="button" 
+            class="toggle-btn" 
+            [class.active-payin]="discountType() === 'FIXED'"
+            (click)="discountType.set('FIXED')"
+          >
+            Fixed Amount (SAR)
+          </button>
+        </div>
+
+        <div class="quick-discount-presets">
+          @if (discountType() === 'PERCENT') {
+            <button type="button" class="preset-btn" (click)="discountInputVal.set(5)">5%</button>
+            <button type="button" class="preset-btn" (click)="discountInputVal.set(10)">10%</button>
+            <button type="button" class="preset-btn" (click)="discountInputVal.set(15)">15%</button>
+            <button type="button" class="preset-btn" (click)="discountInputVal.set(20)">20%</button>
+            <button type="button" class="preset-btn" (click)="discountInputVal.set(25)">25%</button>
+          } @else {
+            <button type="button" class="preset-btn" (click)="discountInputVal.set(10)">SAR 10</button>
+            <button type="button" class="preset-btn" (click)="discountInputVal.set(20)">SAR 20</button>
+            <button type="button" class="preset-btn" (click)="discountInputVal.set(50)">SAR 50</button>
+          }
+        </div>
+
+        <div class="form-group">
+          <label>{{ discountType() === 'PERCENT' ? 'Discount Percentage (%)' : 'Discount Amount (SAR)' }}</label>
+          <input 
+            type="number" 
+            [ngModel]="discountInputVal()" 
+            (ngModelChange)="discountInputVal.set($event)"
+            class="pos-form-input bold-amt" 
+            autofocus
+          />
+        </div>
+      </div>
+
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-cancel" (click)="showDiscountModal.set(false)">Cancel</button>
+        <button type="button" class="btn-save-customer" (click)="applyModalDiscount()">
+          <i class="pi pi-check"></i> Apply Discount
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 8. Advanced Product Search / Selection Modal (Flutter ProductSelectionModal) -->
+@if (showAdvancedSearchModal()) {
+  <div class="modal-backdrop" (click)="showAdvancedSearchModal.set(false)">
+    <div class="modal-card advanced-search-card" (click)="$event.stopPropagation()">
+      <div class="customer-modal-header navy-accent">
+        <div class="header-left">
+          <div class="header-icon-circle blue-bg">
+            <i class="pi pi-search-plus"></i>
+          </div>
+          <div>
+            <h3 class="header-title">Select Product (Advanced Catalog Search)</h3>
+            <p class="header-sub">Search and add items by Name, Barcode, SKU, or Category</p>
+          </div>
+        </div>
+        <button class="modal-close-icon" (click)="showAdvancedSearchModal.set(false)"><i class="pi pi-times"></i></button>
+      </div>
+
+      <div class="modal-content-scrollable">
+        <div class="advanced-search-input-box">
+          <i class="pi pi-search search-ico"></i>
+          <input 
+            type="text" 
+            placeholder="Search by Name, Barcode, Brand, or SKU..."
+            [ngModel]="advancedSearchQuery()"
+            (ngModelChange)="advancedSearchQuery.set($event)"
+            class="pos-form-input"
+            autofocus
+          />
+          @if (advancedSearchQuery()) {
+            <button class="clear-query-btn" (click)="advancedSearchQuery.set('')">
+              <i class="pi pi-times"></i>
+            </button>
+          }
+        </div>
+
+        <div class="advanced-products-table">
+          <div class="adv-head">
+            <span class="col-img"></span>
+            <span class="col-name">Product Name</span>
+            <span class="col-barcode">Barcode / SKU</span>
+            <span class="col-price">Selling Price</span>
+            <span class="col-stock">Stock</span>
+            <span class="col-action">Action</span>
+          </div>
+
+          <div class="adv-body">
+            @for (prod of filteredAdvancedProducts(); track prod.id) {
+              <div class="adv-row" (click)="selectFromAdvancedSearch(prod)">
+                <div class="col-img">
+                  @if (prod.imageUrl || (prod.images && prod.images.length > 0)) {
+                    <img [src]="prod.imageUrl || prod.images![0].imageUrl" class="thumb-img" />
+                  } @else {
+                    <div class="thumb-placeholder"><i class="pi pi-box"></i></div>
+                  }
+                </div>
+                <div class="col-name">
+                  <strong>{{ prod.name || prod.productName }}</strong>
+                  @if (prod.category) {
+                    <span class="cat-label">{{ prod.category }}</span>
+                  }
+                </div>
+                <div class="col-barcode">{{ prod.barcode || prod.sku || 'N/A' }}</div>
+                <div class="col-price">SAR {{ (prod.price || prod.baseSellingPrice || 0) | number:'1.2-2' }}</div>
+                <div class="col-stock">
+                  @if ((prod.stockQuantity ?? prod.stockInHand ?? 10) <= 0) {
+                    <span class="stock-pill out">Out of Stock</span>
+                  } @else if ((prod.stockQuantity ?? prod.stockInHand ?? 10) < 5) {
+                    <span class="stock-pill low">Low: {{ prod.stockQuantity ?? prod.stockInHand ?? 10 }}</span>
+                  } @else {
+                    <span class="stock-pill ok">{{ prod.stockQuantity ?? prod.stockInHand ?? 10 }} left</span>
+                  }
+                </div>
+                <div class="col-action">
+                  <button type="button" class="btn-select-adv">
+                    <i class="pi pi-plus"></i> Select
+                  </button>
+                </div>
+              </div>
+            } @empty {
+              <div class="adv-empty">
+                <i class="pi pi-search"></i>
+                <p>No products matching "{{ advancedSearchQuery() }}"</p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-cancel" (click)="showAdvancedSearchModal.set(false)">Close</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 6. Counter Session Terminal Management Dialog (Matching Flutter counter_session_dialogs.dart) -->
+@if (showSessionModal()) {
+  <div class="modal-backdrop" (click)="showSessionModal.set(false)">
+    <div class="modal-card session-modal-card" (click)="$event.stopPropagation()">
+      <!-- Modal Deep Navy Header -->
+      <div class="session-modal-header">
+        <div class="header-left">
+          <div class="header-icon-box">
+            <i class="pi pi-desktop"></i>
+          </div>
+          <div>
+            <h3 class="session-header-title">Terminal Session Management</h3>
+            <span class="session-header-subtitle">ZATCA Phase-2 Registered Shift & Cash Drawer Control</span>
+          </div>
+        </div>
+        <div class="header-right-actions">
+          @if (isSessionOpen()) {
+            <button type="button" class="btn-zreport-shortcut" (click)="openZReportModal()">
+              <i class="pi pi-receipt"></i>
+              <span>Z-Report Summary</span>
+            </button>
+          }
+          <button type="button" class="modal-close-btn" (click)="showSessionModal.set(false)">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Prominent Tenant & Cashier Identity Banner -->
+      <div class="session-identity-banner">
+        <div class="identity-item tenant-box">
+          <div class="item-icon-circle"><i class="pi pi-building"></i></div>
+          <div class="item-details">
+            <span class="item-tag">Active Tenant / المنشأة</span>
+            <strong class="item-name">{{ tenantName() }}</strong>
+            <span class="item-meta">VAT: {{ tenantVat() }}</span>
+          </div>
+        </div>
+        <div class="identity-item user-box">
+          <div class="item-icon-circle"><i class="pi pi-user"></i></div>
+          <div class="item-details">
+            <span class="item-tag">Cashier Operator / المستخدم</span>
+            <strong class="item-name">{{ userName() }}</strong>
+            <span class="item-meta">{{ userEmail() }} • Role: {{ userRole() }}</span>
+          </div>
+        </div>
+        <div class="identity-item counter-box">
+          <div class="item-icon-circle"><i class="pi pi-desktop"></i></div>
+          <div class="item-details">
+            <span class="item-tag">Register / الصندوق</span>
+            <strong class="item-name">{{ sessionData().counterName }}</strong>
+            <span class="item-meta">ID: {{ sessionData().counterId }} • Ref: {{ sessionData().sessionNumber }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="session-modal-body">
+        @if (!isSessionOpen()) {
+          <!-- CLOSED STATE: Open Session Flow -->
+          <div class="session-status-banner banner-closed">
+            <i class="pi pi-lock"></i>
+            <div class="banner-texts">
+              <strong>STATUS: REGISTER SHIFT CLOSED (الوردية مغلقة)</strong>
+              <span>Please count the starting cash float and open the shift to start processing sales.</span>
+            </div>
+          </div>
+
+          <div class="session-section-title-row">
+            <h4>Count Starting Cash Float (الرصيد الافتتاحي):</h4>
+            <div class="quick-float-pills">
+              <span class="quick-pill-label">Presets:</span>
+              <button type="button" class="pill-btn" (click)="setQuickFloat(200)">SAR 200</button>
+              <button type="button" class="pill-btn" (click)="setQuickFloat(500)">SAR 500</button>
+              <button type="button" class="pill-btn" (click)="setQuickFloat(1000)">SAR 1,000</button>
+              <button type="button" class="pill-btn clear" (click)="resetDenominations()">Clear</button>
+            </div>
+          </div>
+
+          <!-- Denomination Grid -->
+          <div class="denomination-inputs-grid">
+            <div class="denom-box">
+              <label>500 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['500']" (input)="updateDenom('500', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>200 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['200']" (input)="updateDenom('200', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>100 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['100']" (input)="updateDenom('100', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>50 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['50']" (input)="updateDenom('50', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>20 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['20']" (input)="updateDenom('20', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>10 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['10']" (input)="updateDenom('10', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>5 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['5']" (input)="updateDenom('5', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>1 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['1']" (input)="updateDenom('1', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>0.50 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['0.5']" (input)="updateDenom('0.5', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>0.25 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['0.25']" (input)="updateDenom('0.25', $any($event.target).value)" />
+            </div>
+          </div>
+
+          <!-- Total Counted Float -->
+          <div class="counted-total-banner">
+            <span class="counted-label">Total Counted Starting Float:</span>
+            <span class="counted-val">SAR {{ countedCashTotal() | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="session-modal-footer">
+            <button type="button" class="btn-cancel" (click)="showSessionModal.set(false)">Cancel</button>
+            <button type="button" class="btn-open-session-cta" (click)="submitOpenSession()">
+              <i class="pi pi-play-circle"></i>
+              <span>OPEN TERMINAL SHIFT</span>
+            </button>
+          </div>
+        } @else {
+          <!-- OPEN STATE: Shift Audit & Closing Flow -->
+          <div class="session-status-banner banner-open">
+            <i class="pi pi-lock-open"></i>
+            <div class="banner-texts">
+              <strong>STATUS: REGISTER SHIFT OPEN & ACTIVE (الوردية مفتوحة)</strong>
+              <span>Shift active since {{ sessionData().openedAt | date:'yyyy-MM-dd HH:mm' }}. All sales recorded to this session.</span>
+            </div>
+          </div>
+
+          <!-- Live Shift Stats Grid -->
+          <div class="shift-live-metrics-grid">
+            <div class="metric-card">
+              <span class="metric-lbl">Opening Balance</span>
+              <strong class="metric-num">SAR {{ sessionData().openingCash | number:'1.2-2' }}</strong>
+            </div>
+            <div class="metric-card highlight-cash">
+              <span class="metric-lbl">+ Cash Sales</span>
+              <strong class="metric-num">SAR {{ sessionData().cashSales | number:'1.2-2' }}</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-lbl">Card / POS Sales</span>
+              <strong class="metric-num">SAR {{ sessionData().cardSales | number:'1.2-2' }}</strong>
+            </div>
+            <div class="metric-card">
+              <span class="metric-lbl">+ Drawer Pay-Ins</span>
+              <strong class="metric-num">SAR {{ sessionData().payInTotal | number:'1.2-2' }}</strong>
+            </div>
+            <div class="metric-card highlight-out">
+              <span class="metric-lbl">- Pay-Outs / Expenses</span>
+              <strong class="metric-num">SAR {{ sessionData().payOutTotal | number:'1.2-2' }}</strong>
+            </div>
+            <div class="metric-card highlight-expected">
+              <span class="metric-lbl">Expected in Drawer</span>
+              <strong class="metric-num">SAR {{ expectedCashInDrawer() | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <!-- Denomination Count for Closing -->
+          <div class="session-section-title-row">
+            <h4>Count Cash in Drawer for Reconciliation (جرد النقدية بالصندوق):</h4>
+            <button type="button" class="pill-btn clear" (click)="resetDenominations()">Reset Count</button>
+          </div>
+
+          <div class="denomination-inputs-grid">
+            <div class="denom-box">
+              <label>500 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['500']" (input)="updateDenom('500', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>200 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['200']" (input)="updateDenom('200', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>100 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['100']" (input)="updateDenom('100', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>50 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['50']" (input)="updateDenom('50', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>20 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['20']" (input)="updateDenom('20', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>10 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['10']" (input)="updateDenom('10', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>5 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['5']" (input)="updateDenom('5', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>1 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['1']" (input)="updateDenom('1', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>0.50 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['0.5']" (input)="updateDenom('0.5', $any($event.target).value)" />
+            </div>
+            <div class="denom-box">
+              <label>0.25 SAR</label>
+              <input type="number" min="0" [ngModel]="denominations()['0.25']" (input)="updateDenom('0.25', $any($event.target).value)" />
+            </div>
+          </div>
+
+          <!-- Live Reconciliation Bar -->
+          <div class="drawer-reconciliation-bar">
+            <div class="recon-col">
+              <span class="recon-label">Actual Cash Counted:</span>
+              <strong class="recon-val">SAR {{ countedCashTotal() | number:'1.2-2' }}</strong>
+            </div>
+            <div class="recon-col">
+              <span class="recon-label">Expected in Drawer:</span>
+              <strong class="recon-val">SAR {{ expectedCashInDrawer() | number:'1.2-2' }}</strong>
+            </div>
+            <div class="recon-col" [class.variance-match]="cashVariance() === 0" [class.variance-over]="cashVariance() > 0" [class.variance-short]="cashVariance() < 0">
+              <span class="recon-label">Cash Variance:</span>
+              <strong class="recon-val">{{ cashVariance() > 0 ? '+' : '' }}{{ cashVariance() | number:'1.2-2' }} SAR</strong>
+              <span class="variance-tag">
+                {{ cashVariance() === 0 ? 'EXACT MATCH' : (cashVariance() > 0 ? 'OVERAGE' : 'SHORTAGE') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Cash Drop / Safe Transfer -->
+          <div class="cash-drop-row">
+            <div class="drop-icon-box"><i class="pi pi-send"></i></div>
+            <div class="drop-input-box">
+              <label>Cash Drop / Safe Transfer Amount (SAR) - ترحيل النقدية للخزينة</label>
+              <input 
+                type="number" 
+                min="0" 
+                step="0.01" 
+                placeholder="0.00" 
+                [ngModel]="cashDropTransferAmount()" 
+                (ngModelChange)="cashDropTransferAmount.set($event)" 
+              />
+            </div>
+          </div>
+
+          <!-- Actions Footer -->
+          <div class="session-modal-footer">
+            <button type="button" class="btn-continue-selling" (click)="showSessionModal.set(false)">
+              <i class="pi pi-shopping-cart"></i>
+              <span>CONTINUE SELLING</span>
+            </button>
+            <button type="button" class="btn-preview-zreport" (click)="openZReportModal()">
+              <i class="pi pi-file-excel"></i>
+              <span>PREVIEW Z-REPORT</span>
+            </button>
+            <button type="button" class="btn-close-shift-cta" (click)="submitCloseSession()">
+              <i class="pi pi-power-off"></i>
+              <span>CLOSE SHIFT & AUDIT</span>
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 7. Terminal Session Closing & Register Audit (Z-Report) Modal (Matching Flutter register_session_report_modal.dart) -->
+@if (showZReportModal()) {
+  <div class="modal-backdrop" (click)="showZReportModal.set(false)">
+    <div class="modal-card zreport-modal-card" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div class="zreport-header">
+        <div class="header-left">
+          <div class="zreport-icon-box">
+            <i class="pi pi-receipt"></i>
+          </div>
+          <div>
+            <h3 class="zreport-title">{{ currentLang() === 'ar' ? 'تقرير إغلاق الوردية والحسابات (Z-Report)' : 'Terminal Session Closing & Register Audit (Z-Report)' }}</h3>
+            <p class="zreport-sub">{{ currentLang() === 'ar' ? 'ملخص الصندوق، المبيعات، والتحصيلات المستحقة' : 'Cash drawer reconciliation, sales summary & customer receivables' }}</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button type="button" class="btn-print-audit" (click)="printZReport()">
+            <i class="pi pi-print"></i>
+            <span>{{ currentLang() === 'ar' ? 'طباعة التقرير' : 'Print Z-Report' }}</span>
+          </button>
+          <button type="button" class="modal-close-btn" (click)="showZReportModal.set(false)">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Report Sheet Body -->
+      <div class="zreport-body-scrollable">
+        <div class="zreport-sheet">
+          <!-- Business & Tenant Header -->
+          <div class="sheet-tenant-header">
+            <h2 class="org-name">{{ tenantName() }}</h2>
+            <p class="org-tax">VAT / Tax ID: {{ tenantVat() }}</p>
+            <p class="org-terminal">ZATCA Phase-2 Terminal Audit Record</p>
+          </div>
+
+          <!-- Metadata Grid -->
+          <div class="sheet-meta-grid">
+            <div class="meta-item">
+              <span class="meta-lbl">{{ currentLang() === 'ar' ? 'المنصة / الصندوق:' : 'Register / Counter:' }}</span>
+              <strong class="meta-val">{{ sessionData().counterName }}</strong>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">{{ currentLang() === 'ar' ? 'أمين الصندوق:' : 'Cashier / Operator:' }}</span>
+              <strong class="meta-val">{{ userName() }} ({{ userRole() }})</strong>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">{{ currentLang() === 'ar' ? 'رقم الوردية:' : 'Session Number:' }}</span>
+              <strong class="meta-val">{{ sessionData().sessionNumber }}</strong>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">{{ currentLang() === 'ar' ? 'وقت الفتح:' : 'Opened At:' }}</span>
+              <strong class="meta-val">{{ sessionData().openedAt | date:'yyyy-MM-dd HH:mm' }}</strong>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">{{ currentLang() === 'ar' ? 'وقت الإغلاق:' : 'Closed At:' }}</span>
+              <strong class="meta-val">{{ sessionData().closedAt ? (sessionData().closedAt | date:'yyyy-MM-dd HH:mm') : (currentDate | date:'yyyy-MM-dd HH:mm') }}</strong>
+            </div>
+          </div>
+
+          <!-- Financial 2-Column Grid -->
+          <div class="sheet-sections-row">
+            <!-- Left: Cash Drawer Summary -->
+            <div class="sheet-card">
+              <div class="card-heading">
+                <i class="pi pi-wallet"></i>
+                <span>{{ currentLang() === 'ar' ? 'ملخص الصندوق النقدي' : 'Cash Drawer Reconciliation' }}</span>
+              </div>
+              <table class="audit-table">
+                <tbody>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? 'الرصيد الافتتاحي (Opening Balance)' : 'Opening Balance' }}</td>
+                    <td class="num font-bold">+ SAR {{ sessionData().openingCash | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? '+ مبيعات نقدية مستلمة (Cash Sales)' : '+ Cash Received (Sales)' }}</td>
+                    <td class="num green">+ SAR {{ sessionData().cashSales | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? '+ تحصيل ديون سابقة (Due Payments)' : '+ Due Payments Received' }}</td>
+                    <td class="num green">+ SAR {{ sessionData().payInTotal | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? '- مرتجعات نقدية (Cash Refunds)' : '- Cash Refunds' }}</td>
+                    <td class="num red">- SAR {{ sessionData().returnsAmount | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? '- مصاريف نقدية (Petty Cash Expenses)' : '- Cash Expenses' }}</td>
+                    <td class="num red">- SAR {{ sessionData().payOutTotal | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? '- ترحيل للخزينة (Cash Drop / Transfer)' : '- Safe Cash Drop / Transfer' }}</td>
+                    <td class="num red">- SAR {{ (cashDropTransferAmount() || 0) | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr class="row-total">
+                    <td>{{ currentLang() === 'ar' ? 'المبلغ المتوقع بالصندوق (Expected Cash)' : 'Expected Cash in Drawer' }}</td>
+                    <td class="num font-bold blue">SAR {{ expectedCashInDrawer() | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr class="row-counted">
+                    <td>{{ currentLang() === 'ar' ? 'المكتشف فعلياً بالصندوق (Counted Cash)' : 'Actual Cash Counted' }}</td>
+                    <td class="num font-bold">SAR {{ countedCashTotal() | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr class="row-variance" [class.match]="cashVariance() === 0" [class.over]="cashVariance() > 0" [class.short]="cashVariance() < 0">
+                    <td>{{ currentLang() === 'ar' ? 'الفارق النقدي (Variance)' : 'Cash Variance (Diff)' }}</td>
+                    <td class="num font-bold">{{ cashVariance() > 0 ? '+' : '' }}{{ cashVariance() | number:'1.2-2' }} SAR</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Right: Sales & Revenue Breakdown -->
+            <div class="sheet-card">
+              <div class="card-heading">
+                <i class="pi pi-chart-line"></i>
+                <span>{{ currentLang() === 'ar' ? 'ملخص المبيعات وطرق الدفع' : 'Sales & Tender Summary' }}</span>
+              </div>
+              <table class="audit-table">
+                <tbody>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? 'مبيعات نقداً (Cash Sales)' : 'Cash Sales' }}</td>
+                    <td class="num">SAR {{ sessionData().cashSales | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? 'مبيعات مدى / بطاقة (Card / Mada)' : 'Card / POS Sales' }}</td>
+                    <td class="num">SAR {{ sessionData().cardSales | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? 'تحويل بنكي (Bank Transfer)' : 'Bank Transfer Sales' }}</td>
+                    <td class="num">SAR {{ sessionData().transferSales | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr class="row-total">
+                    <td>{{ currentLang() === 'ar' ? 'إجمالي المبيعات (Gross Sales)' : 'Total Invoiced (Gross)' }}</td>
+                    <td class="num font-bold">SAR {{ (sessionData().cashSales + sessionData().cardSales + sessionData().transferSales) | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? 'ضريبة القيمة المضافة 15% (VAT)' : 'Total VAT (15%)' }}</td>
+                    <td class="num">SAR {{ ((sessionData().cashSales + sessionData().cardSales + sessionData().transferSales) * 0.15 / 1.15) | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td>{{ currentLang() === 'ar' ? 'إجمالي المرتجعات (Refunds)' : 'Total Refunds' }}</td>
+                    <td class="num red">- SAR {{ sessionData().returnsAmount | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr class="row-total">
+                    <td>{{ currentLang() === 'ar' ? 'صافي المبيعات (Net Sales)' : 'Net Sales (Revenue)' }}</td>
+                    <td class="num font-bold green">SAR {{ ((sessionData().cashSales + sessionData().cardSales + sessionData().transferSales) - sessionData().returnsAmount) | number:'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Bottom Audit Verification Signatures -->
+          <div class="sheet-signatures-row">
+            <div class="signature-box">
+              <span class="sig-title">Cashier Signature (توقيع الكاشير):</span>
+              <div class="sig-line">{{ userName() }}</div>
+            </div>
+            <div class="signature-box">
+              <span class="sig-title">Supervisor / Auditor (توقيع المشرف):</span>
+              <div class="sig-line">__________________________</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="zreport-footer">
+        <button type="button" class="btn-cancel" (click)="showZReportModal.set(false)">{{ currentLang() === 'ar' ? 'إغلاق' : 'Close' }}</button>
+        <button type="button" class="btn-print-audit-cta" (click)="printZReport()">
+          <i class="pi pi-print"></i>
+          <span>{{ currentLang() === 'ar' ? 'طباعة تقرير Z-Report' : 'Print Official Z-Report' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}

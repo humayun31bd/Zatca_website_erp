@@ -1,0 +1,407 @@
+<p-dialog 
+  [(visible)]="visible" 
+  [modal]="true" 
+  [style]="{ width: '880px', maxWidth: '96vw' }" 
+  [header]="client?.name || 'Customer Profile & Ledger'"
+  [draggable]="false"
+  [resizable]="false"
+  (onHide)="close()"
+>
+  @if (client) {
+    <div class="customer-profile-container">
+      <!-- Header Profile Banner -->
+      <div class="profile-header">
+        <div class="profile-identity">
+          <div class="customer-avatar">
+            {{ client.name.charAt(0).toUpperCase() }}
+          </div>
+          <div class="identity-info">
+            <div class="name-badge-row">
+              <h2 class="customer-full-name">{{ client.name }}</h2>
+              @if (client.nameAr) {
+                <span class="customer-name-ar font-arabic">({{ client.nameAr }})</span>
+              }
+              <p-tag [value]="client.customerType || 'BUSINESS'" [severity]="getTypeSeverity(client.customerType)"></p-tag>
+            </div>
+            
+            <div class="identity-meta">
+              @if (client.vatNumber) {
+                <span class="vat-badge">
+                  <i class="pi pi-shield"></i>
+                  <span>VAT: <strong class="font-mono">{{ client.vatNumber }}</strong></span>
+                  <button type="button" class="copy-btn" (click)="copyVat()" title="Copy VAT Number">
+                    <i class="pi pi-copy"></i>
+                  </button>
+                </span>
+              }
+              @if (client.crNumber) {
+                <span class="cr-badge">
+                  <i class="pi pi-building"></i>
+                  <span>CR: <strong class="font-mono">{{ client.crNumber }}</strong></span>
+                </span>
+              }
+              <span><i class="pi pi-map-marker"></i> {{ client.city || 'Riyadh' }}, {{ client.country || 'Saudi Arabia' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Communication & Action Bar -->
+        <div class="quick-actions">
+          @if (client.phoneNumber) {
+            <button 
+              type="button" 
+              class="action-pill whatsapp-pill" 
+              (click)="openWhatsApp()" 
+              pTooltip="Send WhatsApp Statement"
+            >
+              <i class="pi pi-whatsapp"></i>
+              <span>WhatsApp</span>
+            </button>
+            <a [href]="'tel:' + client.phoneNumber" class="action-pill tel-pill" pTooltip="Call Customer">
+              <i class="pi pi-phone"></i>
+            </a>
+          }
+          @if (client.email) {
+            <a [href]="'mailto:' + client.email" class="action-pill email-pill" pTooltip="Send Email">
+              <i class="pi pi-envelope"></i>
+            </a>
+          }
+          <button type="button" class="action-pill print-pill" (click)="printStatement()" pTooltip="Print Statement">
+            <i class="pi pi-print"></i>
+          </button>
+          <button type="button" class="action-pill edit-pill" (click)="onEdit()" pTooltip="Edit Customer">
+            <i class="pi pi-pencil"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="tab-pills">
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'overview'"
+          (click)="activeTab.set('overview')"
+        >
+          <i class="pi pi-chart-pie"></i> Overview & Aging
+        </button>
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'invoices'"
+          (click)="activeTab.set('invoices')"
+        >
+          <i class="pi pi-file"></i> Invoices History ({{ invoices().length }})
+        </button>
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'statement'"
+          (click)="activeTab.set('statement')"
+        >
+          <i class="pi pi-book"></i> Statement of Account
+        </button>
+      </div>
+
+      <!-- TAB 1: OVERVIEW & AGING -->
+      @if (activeTab() === 'overview') {
+        <div class="tab-content">
+          <!-- Financial Metrics KPI Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="metric-label">Outstanding Dues</span>
+              <span class="metric-amount text-danger font-mono">
+                SAR {{ (client.dues || 0) | number:'1.2-2' }}
+              </span>
+              <span class="metric-sub">Unpaid account balance</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">Total Invoiced</span>
+              <span class="metric-amount font-mono">
+                SAR {{ totalInvoiced() | number:'1.2-2' }}
+              </span>
+              <span class="metric-sub">{{ invoices().length }} lifetime invoices</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">Credit Line Limit</span>
+              @if (client.permitCredit) {
+                <span class="metric-amount text-success font-mono">
+                  SAR {{ (client.creditLimit || 0) | number:'1.2-2' }}
+                </span>
+                <span class="metric-sub">Active on-account credit</span>
+              } @else {
+                <span class="metric-amount text-muted">Disabled</span>
+                <span class="metric-sub">Cash / Advance terms only</span>
+              }
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">VAT Paid to Date</span>
+              <span class="metric-amount font-mono">
+                SAR {{ totalVatPaid() | number:'1.2-2' }}
+              </span>
+              <span class="metric-sub">15% ZATCA tax component</span>
+            </div>
+          </div>
+
+          <!-- Credit Utilization Bar (if credit enabled) -->
+          @if (client.permitCredit && (client.creditLimit || 0) > 0) {
+            <div class="credit-utilization-panel">
+              <div class="utilization-header">
+                <span class="util-title">
+                  <i class="pi pi-credit-card"></i> Credit Line Utilization
+                </span>
+                <span class="util-percent font-mono" [class.text-danger]="creditUtilizationPercent() > 90">
+                  {{ creditUtilizationPercent() }}% Used
+                  (SAR {{ (client.dues || 0) | number:'1.2-2' }} / SAR {{ (client.creditLimit || 0) | number:'1.2-2' }})
+                </span>
+              </div>
+              <p-progressbar 
+                [value]="creditUtilizationPercent()" 
+                [showValue]="false"
+                [style]="{ height: '8px' }"
+              ></p-progressbar>
+            </div>
+          }
+
+          <!-- Aging Analysis Section -->
+          <div class="aging-section">
+            <h4 class="section-title">
+              <i class="pi pi-clock"></i> Accounts Receivable Aging Breakdown
+            </h4>
+            <div class="aging-cards-grid">
+              <div class="aging-bucket bucket-current">
+                <span class="bucket-period">0 - 30 Days</span>
+                <span class="bucket-status">Current</span>
+                <span class="bucket-val font-mono">SAR {{ agingBuckets().current | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="aging-bucket bucket-30">
+                <span class="bucket-period">31 - 60 Days</span>
+                <span class="bucket-status">Overdue</span>
+                <span class="bucket-val font-mono">SAR {{ agingBuckets().days31to60 | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="aging-bucket bucket-60">
+                <span class="bucket-period">61 - 90 Days</span>
+                <span class="bucket-status">Attention</span>
+                <span class="bucket-val font-mono">SAR {{ agingBuckets().days61to90 | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="aging-bucket bucket-90">
+                <span class="bucket-period">91 - 120 Days</span>
+                <span class="bucket-status">Delinquent</span>
+                <span class="bucket-val font-mono">SAR {{ agingBuckets().days91to120 | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="aging-bucket bucket-120">
+                <span class="bucket-period">120+ Days</span>
+                <span class="bucket-status">Critical</span>
+                <span class="bucket-val font-mono">SAR {{ agingBuckets().days120plus | number:'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Customer Full Information Card -->
+          <div class="info-card">
+            <h4 class="section-title"><i class="pi pi-info-circle"></i> Complete Customer Profile</h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="label">Customer / Company Name:</span>
+                <span class="val">{{ client.name }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Tax Registration (VAT TIN):</span>
+                <span class="val font-mono">{{ client.vatNumber || 'Not Registered' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Commercial Reg (CR):</span>
+                <span class="val font-mono">{{ client.crNumber || '—' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Customer Classification:</span>
+                <span class="val">{{ client.customerType || 'B2B Corporate' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Phone / WhatsApp:</span>
+                <span class="val">{{ client.phoneNumber || '—' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Billing Email:</span>
+                <span class="val">{{ client.email || '—' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">City / State:</span>
+                <span class="val">{{ client.city || 'Riyadh' }}, {{ client.state || 'Riyadh Province' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">National Address:</span>
+                <span class="val">{{ client.address || 'Saudi Arabia' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- TAB 2: INVOICES HISTORY -->
+      @if (activeTab() === 'invoices') {
+        <div class="tab-content">
+          <p-table 
+            [value]="invoices()" 
+            [paginator]="true" 
+            [rows]="5" 
+            [rowsPerPageOptions]="[5, 10, 20]"
+            [loading]="isLoadingInvoices()"
+            styleClass="p-datatable-sm p-datatable-striped"
+          >
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Invoice #</th>
+                <th>Issue Date</th>
+                <th>Type</th>
+                <th>ZATCA Status</th>
+                <th class="text-right">Tax (SAR)</th>
+                <th class="text-right">Total (SAR)</th>
+                <th style="width: 5rem" class="text-center">Action</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-inv>
+              <tr>
+                <td>
+                  <span class="font-mono inv-link" (click)="viewInvoice(inv)">
+                    {{ inv.invoiceNumber }}
+                  </span>
+                </td>
+                <td>
+                  <span class="date-text">
+                    {{ (inv.issueDatetime || inv.createdAt) | date:'mediumDate' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="text-xs">{{ inv.invoiceType || 'Standard' }}</span>
+                </td>
+                <td>
+                  <p-tag 
+                    [value]="inv.zatcaStatus || inv.status || 'REPORTED'" 
+                    [severity]="getZatcaStatusSeverity(inv.zatcaStatus || inv.status)"
+                  ></p-tag>
+                </td>
+                <td class="text-right font-mono text-secondary">
+                  {{ (inv.totalVatAmount || 0) | number:'1.2-2' }}
+                </td>
+                <td class="text-right font-mono font-semibold">
+                  SAR {{ (inv.totalAmount || 0) | number:'1.2-2' }}
+                </td>
+                <td class="text-center">
+                  <p-button 
+                    icon="pi pi-eye" 
+                    [text]="true" 
+                    [rounded]="true" 
+                    size="small" 
+                    (click)="viewInvoice(inv)"
+                    title="View Invoice"
+                  ></p-button>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="7" class="text-center py-5 text-secondary">
+                  <i class="pi pi-inbox text-2xl mb-2"></i>
+                  <p>No invoices recorded for this customer yet.</p>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      }
+
+      <!-- TAB 3: STATEMENT OF ACCOUNT (SOA) -->
+      @if (activeTab() === 'statement') {
+        <div class="tab-content statement-container" id="printable-soa">
+          <div class="soa-header">
+            <div class="soa-company">
+              <h3>STATEMENT OF ACCOUNT</h3>
+              <p class="soa-sub font-arabic">كشف حساب عميل</p>
+            </div>
+            <div class="soa-actions no-print">
+              <p-button icon="pi pi-print" label="Print Statement" size="small" [outlined]="true" (click)="printStatement()"></p-button>
+            </div>
+          </div>
+
+          <div class="soa-parties">
+            <div class="soa-party-box">
+              <span class="soa-party-title">CUSTOMER DETAILS / بيانات العميل</span>
+              <strong>{{ client.name }}</strong>
+              @if (client.vatNumber) {
+                <span>VAT ID: <strong class="font-mono">{{ client.vatNumber }}</strong></span>
+              }
+              <span>Phone: {{ client.phoneNumber || '—' }}</span>
+              <span>Address: {{ client.address || client.city || 'Saudi Arabia' }}</span>
+            </div>
+
+            <div class="soa-party-box text-right">
+              <span class="soa-party-title">STATEMENT SUMMARY / ملخص الحساب</span>
+              <span>Statement Date: <strong>{{ 'now' | date:'mediumDate' }}</strong></span>
+              <span>Total Invoiced: <strong class="font-mono">SAR {{ totalInvoiced() | number:'1.2-2' }}</strong></span>
+              <span class="text-danger font-semibold">Current Balance: <strong class="font-mono">SAR {{ (client.dues || 0) | number:'1.2-2' }}</strong></span>
+            </div>
+          </div>
+
+          <table class="soa-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Reference #</th>
+                <th>Description</th>
+                <th class="text-right">Debit (SAR)</th>
+                <th class="text-right">Credit (SAR)</th>
+                <th class="text-right">Balance (SAR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (inv of invoices(); track inv.id) {
+                <tr>
+                  <td>{{ (inv.issueDatetime || inv.createdAt) | date:'yyyy-MM-dd' }}</td>
+                  <td class="font-mono">{{ inv.invoiceNumber }}</td>
+                  <td>Tax Invoice ({{ inv.invoiceType || 'Standard' }})</td>
+                  <td class="text-right font-mono">{{ inv.totalAmount | number:'1.2-2' }}</td>
+                  <td class="text-right font-mono">0.00</td>
+                  <td class="text-right font-mono font-semibold">{{ inv.totalAmount | number:'1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="text-right font-bold">TOTAL OUTSTANDING BALANCE:</td>
+                <td colspan="3" class="text-right font-bold text-danger font-mono">
+                  SAR {{ (client.dues || 0) | number:'1.2-2' }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="soa-footer">
+            <p>This is a computer-generated statement of account. For inquiries, please contact our accounts department.</p>
+            <p class="font-arabic">هذا كشف حساب صادر آلياً من النظام المحاسبي المتوافق مع هيئة الزكاة والضريبة والجمارك (ZATCA).</p>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button label="Close" severity="secondary" [outlined]="true" size="small" (click)="close()"></p-button>
+      <p-button icon="pi pi-pencil" label="Edit Customer" size="small" (click)="onEdit()"></p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Nested Invoice View Dialog -->
+<app-invoice-view-dialog
+  [(visible)]="isInvoiceViewOpen"
+  [invoiceId]="selectedInvoiceId()"
+></app-invoice-view-dialog>

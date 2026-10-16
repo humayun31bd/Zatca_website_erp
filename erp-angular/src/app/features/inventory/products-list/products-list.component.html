@@ -1,0 +1,1136 @@
+<div class="catalog-container">
+  <!-- Toast Message -->
+  @if (toastMessage()) {
+    <div class="catalog-toast" [ngClass]="'toast-' + toastMessage()!.type">
+      <span>{{ toastMessage()!.text }}</span>
+    </div>
+  }
+
+  <!-- Header Section -->
+  <header class="catalog-header">
+    <div class="header-left">
+      <div class="catalog-icon-box">
+        <i class="pi pi-box"></i>
+      </div>
+      <div class="catalog-title-group">
+        <div class="title-row">
+          <h1>Products & Master Catalog</h1>
+          <span class="catalog-count-pill">{{ filteredProducts().length }} Items</span>
+        </div>
+        <p class="subtitle-ar">دليل المنتجات والكتالوج الرئيسي وإدارة المخزون والتسعير</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Add New Product Button -->
+      <button type="button" class="btn-new-product" (click)="openNewProductModal()">
+        <i class="pi pi-plus"></i>
+        <span>Add Product</span>
+      </button>
+
+      <!-- Toggle Filter Panel -->
+      <button 
+        type="button" 
+        class="action-btn" 
+        [class.active]="showTopPanel()" 
+        (click)="toggleFilterPanel()"
+        [title]="showTopPanel() ? 'Hide Advanced Filters' : 'Show Advanced Filters'">
+        <i class="pi pi-filter"></i>
+      </button>
+
+      <!-- Column Visibility -->
+      <button 
+        type="button" 
+        class="action-btn" 
+        (click)="showColumnVisibilityModal.set(true)" 
+        title="Customize Columns">
+        <i class="pi pi-table"></i>
+      </button>
+
+      <!-- View Switcher (Table vs Grid) -->
+      <button 
+        type="button" 
+        class="action-btn" 
+        (click)="toggleViewMode()" 
+        [title]="isTableView() ? 'Switch to Card Grid View' : 'Switch to Data Table View'">
+        <i class="pi" [ngClass]="isTableView() ? 'pi-th-large' : 'pi-list'"></i>
+      </button>
+
+      <!-- Print Barcode Labels -->
+      <a routerLink="/inventory/print-labels" class="action-btn" title="Print Barcode & Shelf Labels">
+        <i class="pi pi-qrcode"></i>
+      </a>
+
+      <!-- Import CSV -->
+      <button 
+        type="button" 
+        class="action-btn" 
+        (click)="openImportCsvModal()" 
+        title="Import Products from CSV">
+        <i class="pi pi-upload"></i>
+      </button>
+
+      <!-- Export CSV -->
+      <button 
+        type="button" 
+        class="action-btn" 
+        (click)="exportCsv()" 
+        title="Export Products to CSV">
+        <i class="pi pi-download"></i>
+      </button>
+
+      <!-- Refresh -->
+      <button 
+        type="button" 
+        class="action-btn" 
+        (click)="fetchProducts()" 
+        title="Refresh Catalog">
+        <i class="pi pi-refresh" [class.pi-spin]="isLoading()"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Summary KPI Bar -->
+  <div class="kpi-summary-bar">
+    <div class="kpi-card">
+      <div class="kpi-icon blue"><i class="pi pi-box"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Catalog Products</span>
+        <span class="kpi-val">{{ totalProductsCount() }}</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon green"><i class="pi pi-check-circle"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">Active For Sale</span>
+        <span class="kpi-val">{{ activeProductsCount() }}</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon red"><i class="pi pi-exclamation-triangle"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">Low Stock Alerts</span>
+        <span class="kpi-val text-red">{{ lowStockProductsCount() }}</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon purple"><i class="pi pi-wallet"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Inventory Valuation</span>
+        <span class="kpi-val">{{ totalInventoryValuation() | number:'1.2-2' }} SAR</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Collapsible Filter Panel -->
+  @if (showTopPanel()) {
+    <div class="filter-panel-card">
+      <div class="filters-row">
+        <!-- Product Type -->
+        <div class="filter-group">
+          <label>Product Type</label>
+          <select 
+            [ngModel]="selectedProductType()" 
+            (ngModelChange)="selectedProductType.set($event)">
+            <option value="All">All Product Types</option>
+            <option value="Standard">Standard Retail / Food</option>
+            <option value="Electronics">Electronics & Hardware</option>
+            <option value="Pharmacy">Pharmacy & Healthcare</option>
+            <option value="Apparel">Apparel & Fashion</option>
+          </select>
+        </div>
+
+        <!-- Category -->
+        <div class="filter-group">
+          <label>Category</label>
+          <select 
+            [ngModel]="selectedCategory()" 
+            (ngModelChange)="selectedCategory.set($event)">
+            <option [ngValue]="null">All Categories</option>
+            @for (cat of categories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.name }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Brand -->
+        <div class="filter-group">
+          <label>Brand</label>
+          <select 
+            [ngModel]="selectedBrand()" 
+            (ngModelChange)="selectedBrand.set($event)">
+            <option [ngValue]="null">All Brands</option>
+            @for (brand of availableBrands(); track brand) {
+              <option [value]="brand">{{ brand }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Status -->
+        <div class="filter-group">
+          <label>Status</label>
+          <select 
+            [ngModel]="statusFilter()" 
+            (ngModelChange)="statusFilter.set($event)">
+            <option value="All">All Status</option>
+            <option value="Active">Active Only</option>
+            <option value="Inactive">Inactive Only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-chips-row">
+        <label class="filter-check-pill" [class.selected]="notForSellFilter()">
+          <input 
+            type="checkbox" 
+            [ngModel]="notForSellFilter()" 
+            (ngModelChange)="notForSellFilter.set($event)" />
+          <span>Excluded from POS</span>
+        </label>
+
+        <label class="filter-check-pill" [class.selected]="isWebFilter()">
+          <input 
+            type="checkbox" 
+            [ngModel]="isWebFilter()" 
+            (ngModelChange)="isWebFilter.set($event)" />
+          <span>Web & Online Display Only</span>
+        </label>
+
+        <div class="filter-spacer"></div>
+
+        <button type="button" class="btn-clear-filters" (click)="resetFilters()">
+          <i class="pi pi-times"></i>
+          <span>Clear All Filters</span>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Search Bar -->
+  <div class="catalog-search-bar">
+    <i class="pi pi-search search-icon"></i>
+    <input 
+      type="text" 
+      placeholder="Search products by Name, Barcode, Brand, or SKU code..."
+      [ngModel]="searchQuery()" 
+      (ngModelChange)="searchQuery.set($event)" />
+    @if (searchQuery()) {
+      <button type="button" class="btn-clear-search" (click)="searchQuery.set('')">
+        <i class="pi pi-times"></i>
+      </button>
+    }
+  </div>
+
+  <!-- Loading Indicator -->
+  @if (isLoading() && products().length === 0) {
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner spinner-lg"></i>
+      <p>Loading master catalog products...</p>
+    </div>
+  }
+
+  <!-- Data Display: Data Table View vs Card Grid View -->
+  <div class="catalog-content">
+    @if (filteredProducts().length === 0 && !isLoading()) {
+      <div class="empty-state">
+        <i class="pi pi-inbox empty-icon"></i>
+        <h3>No Products Found</h3>
+        <p>No products match your current filters and search criteria.</p>
+        <button type="button" class="btn-secondary-action" (click)="resetFilters()">Reset Filters</button>
+      </div>
+    } @else if (isTableView()) {
+      <!-- Data Table View -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="catalog-table">
+            <thead>
+              <tr>
+                @if (columnVisibility.image) {
+                  <th style="width: 54px;">Image</th>
+                }
+                @if (columnVisibility.actions) {
+                  <th style="width: 100px;">Actions</th>
+                }
+                @if (columnVisibility.name) {
+                  <th (click)="setSort('name')" class="sortable">
+                    Product Name
+                    <i class="pi" [ngClass]="sortColumn() === 'name' ? (sortAscending() ? 'pi-sort-alpha-down' : 'pi-sort-alpha-up') : 'pi-sort-alt'"></i>
+                  </th>
+                }
+                @if (columnVisibility.sku) {
+                  <th (click)="setSort('sku')" class="sortable">
+                    SKU Code
+                    <i class="pi" [ngClass]="sortColumn() === 'sku' ? (sortAscending() ? 'pi-sort-amount-down' : 'pi-sort-amount-up') : 'pi-sort-alt'"></i>
+                  </th>
+                }
+                @if (columnVisibility.costPrice) {
+                  <th (click)="setSort('costPrice')" class="sortable text-right">
+                    Cost Price
+                    <i class="pi" [ngClass]="sortColumn() === 'costPrice' ? (sortAscending() ? 'pi-sort-numeric-down' : 'pi-sort-numeric-up') : 'pi-sort-alt'"></i>
+                  </th>
+                }
+                @if (columnVisibility.price) {
+                  <th (click)="setSort('price')" class="sortable text-right">
+                    Selling Price
+                    <i class="pi" [ngClass]="sortColumn() === 'price' ? (sortAscending() ? 'pi-sort-numeric-down' : 'pi-sort-numeric-up') : 'pi-sort-alt'"></i>
+                  </th>
+                }
+                @if (columnVisibility.stock) {
+                  <th (click)="setSort('stockQuantity')" class="sortable text-center">
+                    Current Stock
+                    <i class="pi" [ngClass]="sortColumn() === 'stockQuantity' ? (sortAscending() ? 'pi-sort-numeric-down' : 'pi-sort-numeric-up') : 'pi-sort-alt'"></i>
+                  </th>
+                }
+                @if (columnVisibility.type) {
+                  <th>Product Type</th>
+                }
+                @if (columnVisibility.brand) {
+                  <th>Brand</th>
+                }
+                @if (columnVisibility.tax) {
+                  <th>Tax / VAT</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (product of filteredProducts(); track product.id) {
+                <tr class="table-row" (click)="openDetailsModal(product)">
+                  <!-- Image -->
+                  @if (columnVisibility.image) {
+                    <td>
+                      <div class="product-thumb">
+                        <i class="pi pi-box thumb-placeholder"></i>
+                      </div>
+                    </td>
+                  }
+
+                  <!-- Actions -->
+                  @if (columnVisibility.actions) {
+                    <td (click)="$event.stopPropagation()">
+                      <div class="row-actions">
+                        <button 
+                          type="button" 
+                          class="action-icon-btn edit-btn" 
+                          (click)="openEditProductModal(product)"
+                          title="Edit Product">
+                          <i class="pi pi-pencil"></i>
+                        </button>
+                        <button 
+                          type="button" 
+                          class="action-icon-btn delete-btn" 
+                          (click)="openDeleteModal(product)"
+                          title="Delete Product">
+                          <i class="pi pi-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  }
+
+                  <!-- Name -->
+                  @if (columnVisibility.name) {
+                    <td>
+                      <div class="name-cell">
+                        <span class="product-name-title">{{ product.name || product.productName }}</span>
+                        <div class="name-sub-meta">
+                          <span class="category-tag">{{ getCategoryName(product.categoryId) }}</span>
+                          @if (!product.isActive) {
+                            <span class="badge-inactive">Inactive</span>
+                          }
+                        </div>
+                      </div>
+                    </td>
+                  }
+
+                  <!-- SKU -->
+                  @if (columnVisibility.sku) {
+                    <td>
+                      <span class="sku-code">{{ product.sku || 'N/A' }}</span>
+                    </td>
+                  }
+
+                  <!-- Cost Price -->
+                  @if (columnVisibility.costPrice) {
+                    <td class="text-right">
+                      <span class="price-val text-muted">
+                        {{ (product.costPrice || 0) | number:'1.2-2' }} SAR
+                      </span>
+                    </td>
+                  }
+
+                  <!-- Selling Price -->
+                  @if (columnVisibility.price) {
+                    <td class="text-right">
+                      <span class="price-val font-bold text-dark">
+                        {{ product.price | number:'1.2-2' }} SAR
+                      </span>
+                    </td>
+                  }
+
+                  <!-- Stock -->
+                  @if (columnVisibility.stock) {
+                    <td class="text-center">
+                      <span 
+                        class="stock-badge" 
+                        [ngClass]="isLowStock(product) ? 'stock-low' : 'stock-ok'">
+                        {{ product.stockQuantity || 0 }}
+                        @if (isLowStock(product)) {
+                          <i class="pi pi-exclamation-circle alert-icon" title="Low Stock Warning"></i>
+                        }
+                      </span>
+                    </td>
+                  }
+
+                  <!-- Product Type -->
+                  @if (columnVisibility.type) {
+                    <td>
+                      <span class="type-pill" [ngClass]="'type-' + getProductTypeLabel(product).toLowerCase()">
+                        {{ getProductTypeLabel(product) }}
+                      </span>
+                    </td>
+                  }
+
+                  <!-- Brand -->
+                  @if (columnVisibility.brand) {
+                    <td>
+                      <span class="brand-text">{{ product.brandId || 'General' }}</span>
+                    </td>
+                  }
+
+                  <!-- Tax -->
+                  @if (columnVisibility.tax) {
+                    <td>
+                      @if (product.isTaxExempt) {
+                        <span class="tax-badge exempt">0% Exempt</span>
+                      } @else {
+                        <span class="tax-badge standard">15% Standard</span>
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    } @else {
+      <!-- Card Grid View -->
+      <div class="cards-grid">
+        @for (product of filteredProducts(); track product.id) {
+          <div class="product-card" (click)="openDetailsModal(product)">
+            <div class="card-thumb-header">
+              <div class="card-thumb-icon">
+                <i class="pi pi-box"></i>
+              </div>
+              <div class="card-status-badges">
+                <span class="stock-badge" [ngClass]="isLowStock(product) ? 'stock-low' : 'stock-ok'">
+                  {{ product.stockQuantity || 0 }} in stock
+                </span>
+                <span class="type-pill" [ngClass]="'type-' + getProductTypeLabel(product).toLowerCase()">
+                  {{ getProductTypeLabel(product) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <h4 class="card-product-name">{{ product.name || product.productName }}</h4>
+              <div class="card-sku-row">
+                <span>SKU: <strong>{{ product.sku || 'N/A' }}</strong></span>
+                <span>Brand: <strong>{{ product.brandId || 'General' }}</strong></span>
+              </div>
+              <div class="card-cat-row">
+                <span class="category-tag">{{ getCategoryName(product.categoryId) }}</span>
+                @if (!product.isActive) {
+                  <span class="badge-inactive">Inactive</span>
+                }
+              </div>
+
+              <div class="card-pricing-row">
+                <div>
+                  <span class="price-label">Cost</span>
+                  <span class="cost-val">{{ (product.costPrice || 0) | number:'1.2-2' }} SAR</span>
+                </div>
+                <div class="text-right">
+                  <span class="price-label">Selling Price</span>
+                  <span class="selling-val">{{ product.price | number:'1.2-2' }} SAR</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-footer" (click)="$event.stopPropagation()">
+              <button 
+                type="button" 
+                class="card-action-btn edit" 
+                (click)="openEditProductModal(product)">
+                <i class="pi pi-pencil"></i>
+                <span>Edit</span>
+              </button>
+              <button 
+                type="button" 
+                class="card-action-btn delete" 
+                (click)="openDeleteModal(product)">
+                <i class="pi pi-trash"></i>
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL: ADD / EDIT PRODUCT DRAWER (COMPREHENSIVE) -->
+<!-- ======================================================== -->
+@if (showProductFormModal()) {
+  <div class="modal-backdrop" (click)="closeProductFormModal()">
+    <div class="modal-content form-modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge blue">
+            <i class="pi pi-box"></i>
+          </div>
+          <div>
+            <h3>{{ editingProduct() ? 'Edit Catalog Product' : 'Add Product to Master Catalog' }}</h3>
+            <p>{{ editingProduct() ? editingProduct()!.name : 'Enter specifications, prices, stock, and vertical settings' }}</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeProductFormModal()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <!-- Form Navigation Tabs -->
+      <div class="form-tabs-bar">
+        <button 
+          type="button" 
+          class="form-tab-btn" 
+          [class.active]="activeFormTab() === 'general'" 
+          (click)="activeFormTab.set('general')">
+          <i class="pi pi-info-circle"></i>
+          General & Code
+        </button>
+        <button 
+          type="button" 
+          class="form-tab-btn" 
+          [class.active]="activeFormTab() === 'pricing'" 
+          (click)="activeFormTab.set('pricing')">
+          <i class="pi pi-wallet"></i>
+          Pricing & VAT
+        </button>
+        <button 
+          type="button" 
+          class="form-tab-btn" 
+          [class.active]="activeFormTab() === 'stock'" 
+          (click)="activeFormTab.set('stock')">
+          <i class="pi pi-database"></i>
+          Stock & Packaging
+        </button>
+        <button 
+          type="button" 
+          class="form-tab-btn" 
+          [class.active]="activeFormTab() === 'verticals'" 
+          (click)="activeFormTab.set('verticals')">
+          <i class="pi pi-tags"></i>
+          Industry Verticals
+        </button>
+        <button 
+          type="button" 
+          class="form-tab-btn" 
+          [class.active]="activeFormTab() === 'channels'" 
+          (click)="activeFormTab.set('channels')">
+          <i class="pi pi-globe"></i>
+          Channels & Rules
+        </button>
+      </div>
+
+      <div class="modal-body form-body-tabs">
+        <!-- TAB 1: GENERAL & IDENTITY -->
+        @if (activeFormTab() === 'general') {
+          <div class="tab-pane">
+            <div class="form-group">
+              <label>Product Name (English / Arabic) *</label>
+              <input type="text" [(ngModel)]="productForm.name" placeholder="e.g. Almarai Fresh Milk 2L" />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <div class="label-with-action">
+                  <label>SKU / Product Code *</label>
+                  <button type="button" class="btn-text-action" (click)="generateSku()">Auto-Generate</button>
+                </div>
+                <input type="text" [(ngModel)]="productForm.sku" placeholder="e.g. SKU-104928" />
+              </div>
+
+              <div class="form-group">
+                <div class="label-with-action">
+                  <label>Barcode / UPC *</label>
+                  <button type="button" class="btn-text-action" (click)="generateBarcode()">Auto-Generate</button>
+                </div>
+                <input type="text" [(ngModel)]="productForm.barcode" placeholder="e.g. 6281002938475" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Category</label>
+                <select [(ngModel)]="productForm.categoryId">
+                  <option value="">-- Select Category --</option>
+                  @for (cat of categories(); track cat.id) {
+                    <option [value]="cat.id">{{ cat.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Brand / Manufacturer</label>
+                <input type="text" [(ngModel)]="productForm.brandId" placeholder="e.g. Almarai, Apple, Nike" />
+              </div>
+
+              <div class="form-group">
+                <label>Unit of Measure</label>
+                <select [(ngModel)]="productForm.unitId">
+                  <option value="">-- Select Unit --</option>
+                  @for (unit of units(); track unit.id) {
+                    <option [value]="unit.id">{{ unit.name }} ({{ unit.shortName }})</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Product Description</label>
+              <textarea rows="3" [(ngModel)]="productForm.description" placeholder="Enter detailed product description, ingredients, or specifications..."></textarea>
+            </div>
+
+            <div class="checkbox-row">
+              <label class="checkbox-control">
+                <input type="checkbox" [(ngModel)]="productForm.isActive" />
+                <span>Product is <strong>Active</strong> and available for operations</span>
+              </label>
+            </div>
+          </div>
+        }
+
+        <!-- TAB 2: PRICING & VAT -->
+        @if (activeFormTab() === 'pricing') {
+          <div class="tab-pane">
+            <div class="pricing-calc-box">
+              <div class="calc-header">
+                <i class="pi pi-calculator"></i>
+                <span>Automatic Selling & Tiered Price Calculator</span>
+              </div>
+              <p>Entering the Purchase/Cost Price and Target Margin automatically calculates the base selling price and distributor rates.</p>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Purchase / Cost Price (SAR)</label>
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  [(ngModel)]="productForm.costPrice" 
+                  (ngModelChange)="calculatePricesFromCost()" 
+                  placeholder="0.00" />
+              </div>
+
+              <div class="form-group">
+                <label>Target Profit Margin %</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="productForm.marginPercentage" 
+                  (ngModelChange)="calculatePricesFromCost()" 
+                  placeholder="20" />
+              </div>
+
+              <div class="form-group">
+                <label>Selling Price (Base SAR) *</label>
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  [(ngModel)]="productForm.price" 
+                  (ngModelChange)="onSellingPriceManualChange()" 
+                  placeholder="0.00" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Tax / VAT Rate %</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="productForm.taxRate" 
+                  (ngModelChange)="calculatePricesFromCost()" 
+                  placeholder="15" />
+              </div>
+
+              <div class="form-group">
+                <label>Tax Calculation Type</label>
+                <select [(ngModel)]="productForm.taxType" (ngModelChange)="calculatePricesFromCost()">
+                  <option value="Exclusive">Tax Exclusive (Added on checkout)</option>
+                  <option value="Inclusive">Tax Inclusive (Included in price)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>ZATCA VAT Status</label>
+                <div class="checkbox-control" style="margin-top: 10px;">
+                  <input type="checkbox" [(ngModel)]="productForm.isTaxExempt" (ngModelChange)="calculatePricesFromCost()" />
+                  <span>Tax Exempt (0% VAT)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-divider">
+              <span>Wholesale & Multi-Tier Pricing</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Retail Price (SAR)</label>
+                <input type="number" step="0.01" [(ngModel)]="productForm.retailPrice" placeholder="0.00" />
+              </div>
+              <div class="form-group">
+                <label>Distributor Price (SAR)</label>
+                <input type="number" step="0.01" [(ngModel)]="productForm.distributorPrice" placeholder="0.00" />
+              </div>
+              <div class="form-group">
+                <label>Special Price (SAR)</label>
+                <input type="number" step="0.01" [(ngModel)]="productForm.specialPrice" placeholder="0.00" />
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- TAB 3: STOCK & PACKAGING -->
+        @if (activeFormTab() === 'stock') {
+          <div class="tab-pane">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Initial Stock In Hand</label>
+                <input type="number" [(ngModel)]="productForm.stockQuantity" placeholder="0" />
+              </div>
+
+              <div class="form-group">
+                <label>Low Stock Reorder Alert Level</label>
+                <input type="number" [(ngModel)]="productForm.minStockLevel" placeholder="5" />
+              </div>
+
+              <div class="form-group">
+                <label>Minimum Order Quantity (MOQ)</label>
+                <input type="number" [(ngModel)]="productForm.minOrderQty" placeholder="1" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Unit Weight (kg)</label>
+                <input type="number" step="0.01" [(ngModel)]="productForm.weight" placeholder="1.0" />
+              </div>
+
+              <div class="form-group">
+                <label>Pieces per Packet / Box</label>
+                <input type="number" [(ngModel)]="productForm.packetSize" placeholder="1" />
+              </div>
+            </div>
+
+            <div class="checkbox-list">
+              <label class="checkbox-control">
+                <input type="checkbox" [(ngModel)]="productForm.isWeightBased" />
+                <span><strong>Weight-Based Product:</strong> Sold by scale / weight (fruits, meat, bulk)</span>
+              </label>
+
+              <label class="checkbox-control">
+                <input type="checkbox" [(ngModel)]="productForm.isPacketOfPieces" />
+                <span><strong>Packet of Pieces:</strong> Track inventory in packets / cartons</span>
+              </label>
+            </div>
+          </div>
+        }
+
+        <!-- TAB 4: INDUSTRY VERTICALS -->
+        @if (activeFormTab() === 'verticals') {
+          <div class="tab-pane">
+            <div class="form-group">
+              <label>Product Industry Vertical</label>
+              <select [(ngModel)]="productForm.productType">
+                <option value="Standard">Standard Retail / Food & Beverage</option>
+                <option value="Electronics">Electronics, Mobile & Hardware</option>
+                <option value="Pharmacy">Pharmacy, Medicine & Healthcare</option>
+                <option value="Apparel">Apparel, Clothing & Footwear</option>
+              </select>
+            </div>
+
+            <!-- Electronics Vertical Options -->
+            @if (productForm.productType === 'Electronics') {
+              <div class="vertical-subform">
+                <h4><i class="pi pi-desktop"></i> Electronics & Hardware Attributes</h4>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Model Number</label>
+                    <input type="text" [(ngModel)]="productForm.modelNumber" placeholder="e.g. A2849" />
+                  </div>
+                  <div class="form-group">
+                    <label>Storage Capacity</label>
+                    <input type="text" [(ngModel)]="productForm.storageCapacity" placeholder="e.g. 256GB" />
+                  </div>
+                  <div class="form-group">
+                    <label>RAM</label>
+                    <input type="text" [(ngModel)]="productForm.ram" placeholder="e.g. 8GB" />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Warranty Period (Months)</label>
+                    <input type="number" [(ngModel)]="productForm.warrantyMonths" placeholder="24" />
+                  </div>
+                </div>
+
+                <div class="checkbox-list">
+                  <label class="checkbox-control">
+                    <input type="checkbox" [(ngModel)]="productForm.isImeiRequired" />
+                    <span>Requires <strong>IMEI Number Scan</strong> at POS</span>
+                  </label>
+                  <label class="checkbox-control">
+                    <input type="checkbox" [(ngModel)]="productForm.requiresSerialTracking" />
+                    <span>Requires <strong>Serial Number Tracking</strong></span>
+                  </label>
+                </div>
+              </div>
+            }
+
+            <!-- Pharmacy Vertical Options -->
+            @if (productForm.productType === 'Pharmacy') {
+              <div class="vertical-subform">
+                <h4><i class="pi pi-heart"></i> Pharmacy & Healthcare Attributes</h4>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Generic Scientific Name</label>
+                    <input type="text" [(ngModel)]="productForm.genericName" placeholder="e.g. Paracetamol 500mg" />
+                  </div>
+                  <div class="form-group">
+                    <label>Active Ingredient</label>
+                    <input type="text" [(ngModel)]="productForm.activeIngredient" placeholder="e.g. Acetaminophen" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Controlled Substance Schedule</label>
+                  <input type="text" [(ngModel)]="productForm.controlledSubstanceSchedule" placeholder="Schedule II / None" />
+                </div>
+
+                <div class="checkbox-list">
+                  <label class="checkbox-control">
+                    <input type="checkbox" [(ngModel)]="productForm.isPrescriptionRequired" />
+                    <span>Requires <strong>Doctor's Prescription (Rx)</strong> to dispense</span>
+                  </label>
+                  <label class="checkbox-control">
+                    <input type="checkbox" [(ngModel)]="productForm.requiresBatchTracking" />
+                    <span>Requires <strong>Batch & Expiry Date Tracking</strong></span>
+                  </label>
+                </div>
+              </div>
+            }
+
+            <!-- Apparel Vertical Options -->
+            @if (productForm.productType === 'Apparel') {
+              <div class="vertical-subform">
+                <h4><i class="pi pi-tag"></i> Apparel & Fashion Attributes</h4>
+                <div class="form-group">
+                  <label>Fiber Composition / Material</label>
+                  <input type="text" [(ngModel)]="productForm.fiberComposition" placeholder="e.g. 100% Egyptian Cotton" />
+                </div>
+                <div class="checkbox-list">
+                  <label class="checkbox-control">
+                    <input type="checkbox" [(ngModel)]="productForm.isUnderwear" />
+                    <span>Non-returnable hygienic apparel (Underwear / Intimates)</span>
+                  </label>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- TAB 5: CHANNELS & RULES -->
+        @if (activeFormTab() === 'channels') {
+          <div class="tab-pane">
+            <h4>Channel Display Visibility</h4>
+            <div class="checkbox-list">
+              <label class="checkbox-control">
+                <input type="checkbox" [(ngModel)]="productForm.isProductDisplayPosApp" />
+                <span>Display on <strong>POS Cashier Terminal</strong></span>
+              </label>
+
+              <label class="checkbox-control">
+                <input type="checkbox" [(ngModel)]="productForm.isProductDisplayWebsiteApp" />
+                <span>Display on <strong>Online Store / Customer Website</strong></span>
+              </label>
+
+              <label class="checkbox-control">
+                <input type="checkbox" [(ngModel)]="productForm.isProductDisplayRackLabel" />
+                <span>Eligible for <strong>Shelf & Rack Barcode Label Printing</strong></span>
+              </label>
+            </div>
+
+            <div class="section-divider">
+              <span>Return & Exchange Policy</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Customer Return Days Allowed</label>
+                <input type="number" [(ngModel)]="productForm.returnDays" placeholder="7" />
+              </div>
+              <div class="form-group">
+                <label>Customer Exchange Days Allowed</label>
+                <input type="number" [(ngModel)]="productForm.exchangeDays" placeholder="30" />
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeProductFormModal()">Cancel</button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="isSubmitting()"
+          (click)="saveProduct()">
+          <i class="pi pi-check"></i>
+          <span>{{ editingProduct() ? 'Update Product' : 'Save Product' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ======================================================== -->
+<!-- MODAL: PRODUCT DETAILS DRAWER -->
+<!-- ======================================================== -->
+@if (showDetailsModal() && selectedProductForDetails()) {
+  <div class="modal-backdrop" (click)="closeDetailsModal()">
+    <div class="modal-content details-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge green">
+            <i class="pi pi-eye"></i>
+          </div>
+          <div>
+            <h3>{{ selectedProductForDetails()!.name || selectedProductForDetails()!.productName }}</h3>
+            <p>SKU: {{ selectedProductForDetails()!.sku || 'N/A' }} • Barcode: {{ selectedProductForDetails()!.barcode || 'N/A' }}</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeDetailsModal()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body details-body">
+        <div class="details-specs-grid">
+          <div class="spec-item">
+            <span class="spec-label">Selling Price</span>
+            <span class="spec-val highlight">{{ selectedProductForDetails()!.price | number:'1.2-2' }} SAR</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Cost Price</span>
+            <span class="spec-val">{{ (selectedProductForDetails()!.costPrice || 0) | number:'1.2-2' }} SAR</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Current Stock</span>
+            <span class="spec-val" [class.text-red]="isLowStock(selectedProductForDetails()!)">
+              {{ selectedProductForDetails()!.stockQuantity || 0 }}
+            </span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Reorder Level</span>
+            <span class="spec-val">{{ selectedProductForDetails()!.minStockLevel || 5 }}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Category</span>
+            <span class="spec-val">{{ getCategoryName(selectedProductForDetails()!.categoryId) }}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Brand</span>
+            <span class="spec-val">{{ selectedProductForDetails()!.brandId || 'General' }}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Status</span>
+            <span class="spec-val">{{ selectedProductForDetails()!.isActive ? 'Active' : 'Inactive' }}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Vertical</span>
+            <span class="spec-val">{{ getProductTypeLabel(selectedProductForDetails()!) }}</span>
+          </div>
+        </div>
+
+        @if (selectedProductForDetails()!.description) {
+          <div class="details-description">
+            <span class="spec-label">Description</span>
+            <p>{{ selectedProductForDetails()!.description }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button 
+          type="button" 
+          class="btn-primary" 
+          (click)="openEditProductModal(selectedProductForDetails()!); closeDetailsModal()">
+          <i class="pi pi-pencil"></i>
+          <span>Edit Product</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ======================================================== -->
+<!-- MODAL: COLUMN VISIBILITY CUSTOMIZATION -->
+<!-- ======================================================== -->
+@if (showColumnVisibilityModal()) {
+  <div class="modal-backdrop" (click)="showColumnVisibilityModal.set(false)">
+    <div class="modal-content column-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Customize Table Columns</h3>
+        <button type="button" class="btn-close-modal" (click)="showColumnVisibilityModal.set(false)">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="columns-checklist">
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.image" />
+            <span>Image Thumbnail</span>
+          </label>
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.actions" />
+            <span>Actions (Edit, Delete)</span>
+          </label>
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.name" />
+            <span>Product Name</span>
+          </label>
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.sku" />
+            <span>SKU Code</span>
+          </label>
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.costPrice" />
+            <span>Purchase / Cost Price</span>
+          </label>
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.price" />
+            <span>Selling Price</span>
+          </label>
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.stock" />
+            <span>Current Stock</span>
+          </label>
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.type" />
+            <span>Product Type</span>
+          </label>
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.brand" />
+            <span>Brand</span>
+          </label>
+          <label class="col-check-item">
+            <input type="checkbox" [(ngModel)]="columnVisibility.tax" />
+            <span>Tax / VAT</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" (click)="showColumnVisibilityModal.set(false)">Done</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ======================================================== -->
+<!-- MODAL: IMPORT CSV -->
+<!-- ======================================================== -->
+@if (showImportCsvModal()) {
+  <div class="modal-backdrop" (click)="closeImportCsvModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge purple">
+            <i class="pi pi-upload"></i>
+          </div>
+          <div>
+            <h3>Import Products via CSV</h3>
+            <p>Upload or paste CSV with columns: Name, Price, SKU, Barcode, CostPrice, Stock</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeImportCsvModal()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Select CSV File</label>
+          <input type="file" accept=".csv" (change)="handleCsvFileUpload($event)" />
+        </div>
+        <div class="form-group">
+          <label>Or Paste CSV Raw Text</label>
+          <textarea 
+            rows="6" 
+            placeholder="Name, Price, SKU, Barcode, CostPrice, Stock&#10;Almarai Milk 2L, 12.00, SKU-001, 628001, 8.50, 40"
+            [ngModel]="csvImportText()" 
+            (ngModelChange)="csvImportText.set($event)"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeImportCsvModal()">Cancel</button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="isSubmitting() || !csvImportText()"
+          (click)="submitCsvImport()">
+          <i class="pi pi-upload"></i>
+          <span>Import Products</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ======================================================== -->
+<!-- MODAL: DELETE PRODUCT CONFIRMATION -->
+<!-- ======================================================== -->
+@if (showDeleteConfirmModal() && productToDelete()) {
+  <div class="modal-backdrop" (click)="closeDeleteModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge red">
+            <i class="pi pi-trash"></i>
+          </div>
+          <div>
+            <h3>Delete Product</h3>
+            <p>Are you sure you want to delete this product?</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeDeleteModal()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>You are about to permanently delete <strong>{{ productToDelete()!.name || productToDelete()!.productName }}</strong> from the Master Catalog. This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button 
+          type="button" 
+          class="btn-primary btn-danger" 
+          [disabled]="isSubmitting()"
+          (click)="confirmDelete()">
+          Delete Product
+        </button>
+      </div>
+    </div>
+  </div>
+}

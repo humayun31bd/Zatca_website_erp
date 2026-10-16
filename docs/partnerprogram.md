@@ -1,12 +1,12 @@
-﻿?# Numou ERP — Agency White-Label Partner Program
-**Company:** Numou Technologies Limited  
-**Product:** Numou ERP  
+﻿?# Intelligent ERP — Agency White-Label Partner Program
+**Company:** Intelligent Technologies Limited  
+**Product:** Intelligent ERP  
 **Tagline:** Empowering Smart Business Growth.  
 **Target Audience:** Saudi IT Agencies, Custom Software Houses, Accounting Firms, ERP Resellers (Odoo / Zoho / SAP B1 Partners), and POS System Vendors  
-**Program Objective:** Enable local tech partners to resell Numou ERP's ZATCA Phase 2 Cryptographic Clearance & WhatsApp Invoicing under their own brand with 70%+ gross profit margins.  
+**Program Objective:** Enable local tech partners to resell Intelligent ERP's ZATCA Phase 2 Cryptographic Clearance & WhatsApp Invoicing under their own brand with 70%+ gross profit margins.  
 **Market Alignment:** Saudi Vision 2030, ZATCA Fatoora Phase 2 Wave Enforcement, and Saudi Cloud Computing Regulatory Framework (CCRF).  
 **Location:** `Website/partnerprogram.md`  
-**Version:** 2.1 (Numou Brand Architecture Update)  
+**Version:** 2.1 (Intelligent Brand Architecture Update)  
 
 ---
 
@@ -18,12 +18,12 @@ Across Riyadh, Jeddah, and Dammam, software development and IT agencies face an 
 * Building a custom cryptographic engine (canonicalization, SHA-256, ECDSA signing, UBL 2.1 XML, mTLS handshakes, and PIH chaining) costs **SAR 60,000 to SAR 120,000+** in senior engineering overhead per agency.
 * Clients are slow to pay emailed invoices, demanding WhatsApp delivery and Mada/Apple Pay integration.
 
-### 1.2 The Partner Program Solution: Powered by Numou Technologies Limited
-The **Numou ERP Agency White-Label Program** transforms compliance from a costly custom-development burden into a **high-margin, recurring SaaS revenue stream (MRR)**:
+### 1.2 The Partner Program Solution: Powered by Intelligent Technologies Limited
+The **Intelligent ERP Agency White-Label Program** transforms compliance from a costly custom-development burden into a **high-margin, recurring SaaS revenue stream (MRR)**:
 * **100% Brandable:** Deploy a multi-tenant client portal under your own domain (e.g., `billing.youragency.sa`) with your logo, brand colors, and custom WhatsApp sender ID.
-* **Plug-and-Play Infrastructure:** Numou Technologies Limited manages the AWS Riyadh hosting (me-central-1), HSM/KMS cryptographic signing, ZATCA clearance API tunnels, and Meta WhatsApp Cloud API webhooks.
+* **Plug-and-Play Infrastructure:** Intelligent Technologies Limited manages the AWS Riyadh hosting (me-central-1), HSM/KMS cryptographic signing, ZATCA clearance API tunnels, and Meta WhatsApp Cloud API webhooks.
 * **Instant Provisioning:** Spin up a fully compliant tenant environment for any new client in **under 2 minutes**.
-* **Massive Profitability:** Buy wholesale tenant capacity and API packs from Numou ERP; charge your clients standard retail subscription + setup fees and pocket the difference every month.
+* **Massive Profitability:** Buy wholesale tenant capacity and API packs from Intelligent ERP; charge your clients standard retail subscription + setup fees and pocket the difference every month.
 
 ---
 

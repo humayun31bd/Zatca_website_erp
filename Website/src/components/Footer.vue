@@ -4,7 +4,7 @@
       <div class="footer__brand">
         <div class="navbar__logo">
           <div class="navbar__logo-icon">N</div>
-          <span>Numou <span class="text-gradient">ERP</span></span>
+          <span>Intelligent <span class="text-gradient">ERP</span></span>
         </div>
         <p>Empowering Smart Business Growth.</p>
       </div>
@@ -15,7 +15,7 @@
       </div>
     </div>
     <div class="footer__bottom">
-      &copy; {{ new Date().getFullYear() }} Numou Technologies Limited. All rights reserved.
+      &copy; {{ new Date().getFullYear() }} Intelligent Technologies Limited. All rights reserved.
     </div>
   </footer>
 </template>

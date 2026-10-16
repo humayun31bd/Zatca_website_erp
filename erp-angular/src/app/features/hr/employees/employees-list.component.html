@@ -1,0 +1,465 @@
+<div class="employees-container">
+  <!-- Top Bar -->
+  <div class="page-header">
+    <div class="header-titles">
+      <h1 class="page-title">Employees Directory</h1>
+      <p class="page-subtitle">Manage company staff, contracts, departments, and payroll details</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary" (click)="openCreateDialog()">
+        <i class="pi pi-user-plus"></i>
+        <span>Add Employee</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters & Controls Bar -->
+  <div class="filter-card">
+    <div class="search-box">
+      <i class="pi pi-search search-icon"></i>
+      <input 
+        type="text" 
+        placeholder="Search by name, email, phone, ID, department..." 
+        [ngModel]="searchQuery()" 
+        (ngModelChange)="onSearchChange($event)"
+      />
+      @if (searchQuery()) {
+        <button class="clear-search" (click)="onSearchChange('')">
+          <i class="pi pi-times"></i>
+        </button>
+      }
+    </div>
+
+    <div class="filter-controls">
+      <!-- Department Filter -->
+      <select [ngModel]="departmentFilter()" (ngModelChange)="onDepartmentChange($event)" class="filter-select">
+        <option value="ALL">All Departments</option>
+        @for (dept of departments(); track dept) {
+          <option [value]="dept">{{ dept }}</option>
+        }
+      </select>
+
+      <!-- Status Filter -->
+      <select [ngModel]="statusFilter()" (ngModelChange)="onStatusChange($event)" class="filter-select">
+        <option value="ALL">All Statuses</option>
+        <option value="ACTIVE">Active</option>
+        <option value="INACTIVE">Inactive</option>
+        <option value="LEFT">Terminated / Left</option>
+      </select>
+
+      <!-- Payment Method Filter -->
+      <select [ngModel]="paymentFilter()" (ngModelChange)="onPaymentChange($event)" class="filter-select">
+        <option value="ALL">All Payment Types</option>
+        <option value="BANK">Bank Transfer</option>
+        <option value="CASH">Cash in Hand</option>
+      </select>
+
+      <!-- View Toggle -->
+      <div class="view-toggle">
+        <button 
+          class="view-btn" 
+          [class.active]="!isGridView()" 
+          (click)="isGridView.set(false)" 
+          title="Table View"
+        >
+          <i class="pi pi-list"></i>
+        </button>
+        <button 
+          class="view-btn" 
+          [class.active]="isGridView()" 
+          (click)="isGridView.set(true)" 
+          title="Grid View"
+        >
+          <i class="pi pi-th-large"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body Content -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Loading workforce directory...</span>
+    </div>
+  } @else if (filteredEmployees().length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-users empty-icon"></i>
+      <h3>No employees found</h3>
+      <p>Try adjusting your search query or filters.</p>
+      <button class="btn-primary" (click)="openCreateDialog()">Add Employee</button>
+    </div>
+  } @else {
+    <!-- Table View -->
+    @if (!isGridView()) {
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department / Role</th>
+              <th>National / Iqama ID</th>
+              <th>Basic Salary</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (emp of paginatedEmployees(); track emp.id) {
+              <tr>
+                <td>
+                  <div class="emp-cell">
+                    <div class="avatar-badge">
+                      {{ emp.firstName.charAt(0) }}{{ emp.lastName.charAt(0) }}
+                    </div>
+                    <div class="emp-cell-meta">
+                      <span class="emp-cell-name">{{ emp.firstName }} {{ emp.lastName }}</span>
+                      <span class="emp-cell-sub">{{ emp.email || emp.phone || 'No direct contact' }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="role-cell">
+                    <span class="role-title">{{ emp.designationName || 'Staff Member' }}</span>
+                    <span class="dept-badge">{{ emp.departmentName || 'General' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="id-cell">
+                    <span class="id-number">{{ emp.nationalId || '—' }}</span>
+                    @if (emp.iqamaExpiryDate) {
+                      <span class="expiry-sub">Exp: {{ emp.iqamaExpiryDate | date:'mediumDate' }}</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <span class="salary-cell">
+                    {{ emp.basicSalary ? (emp.basicSalary | currency:'SAR ':'symbol':'1.0-0') : '—' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="pay-method-tag" [class.bank]="emp.paymentMethod === 'BANK'" [class.cash]="emp.paymentMethod === 'CASH'">
+                    {{ emp.paymentMethod || 'BANK' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="status-pill" [class.active]="emp.status === 'ACTIVE'" [class.inactive]="emp.status !== 'ACTIVE'">
+                    {{ emp.status }}
+                  </span>
+                </td>
+                <td class="text-right">
+                  <div class="actions-group">
+                    <button class="icon-btn edit-btn" (click)="openEditDialog(emp)" title="Edit Employee">
+                      <i class="pi pi-pencil"></i>
+                    </button>
+                    <button class="icon-btn delete-btn" (click)="deleteEmployee(emp)" title="Delete Employee">
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <!-- Grid Card View -->
+      <div class="cards-grid">
+        @for (emp of paginatedEmployees(); track emp.id) {
+          <div class="emp-card">
+            <div class="card-top">
+              <div class="card-avatar">
+                {{ emp.firstName.charAt(0) }}{{ emp.lastName.charAt(0) }}
+              </div>
+              <span class="status-pill" [class.active]="emp.status === 'ACTIVE'" [class.inactive]="emp.status !== 'ACTIVE'">
+                {{ emp.status }}
+              </span>
+            </div>
+
+            <div class="card-info">
+              <h3 class="card-name">{{ emp.firstName }} {{ emp.lastName }}</h3>
+              <p class="card-role">{{ emp.designationName || 'Staff' }} &bull; {{ emp.departmentName || 'General' }}</p>
+
+              <div class="card-meta-list">
+                @if (emp.email) {
+                  <div class="meta-row">
+                    <i class="pi pi-envelope"></i>
+                    <span>{{ emp.email }}</span>
+                  </div>
+                }
+                @if (emp.phone) {
+                  <div class="meta-row">
+                    <i class="pi pi-phone"></i>
+                    <span>{{ emp.phone }}</span>
+                  </div>
+                }
+                @if (emp.nationalId) {
+                  <div class="meta-row">
+                    <i class="pi pi-id-card"></i>
+                    <span>ID: {{ emp.nationalId }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="card-bottom">
+              <div class="salary-box">
+                <span class="label">Basic</span>
+                <span class="val">{{ emp.basicSalary ? (emp.basicSalary | currency:'SAR ':'symbol':'1.0-0') : '—' }}</span>
+              </div>
+              <div class="card-actions">
+                <button class="icon-btn" (click)="openEditDialog(emp)" title="Edit">
+                  <i class="pi pi-pencil"></i>
+                </button>
+                <button class="icon-btn text-danger" (click)="deleteEmployee(emp)" title="Delete">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Pagination Controls Bar -->
+    <div class="pagination-bar">
+      <div class="pagination-info">
+        <span class="showing-text">
+          Showing <strong>{{ showingStart() }}</strong> to <strong>{{ showingEnd() }}</strong> of <strong>{{ totalItems() }}</strong> employees
+        </span>
+        <div class="page-size-selector">
+          <span class="selector-label">Per page:</span>
+          <select 
+            [ngModel]="pageSize()" 
+            (ngModelChange)="onPageSizeChange($event)"
+            class="page-size-select"
+          >
+            @for (size of pageSizeOptions; track size) {
+              <option [value]="size">{{ size }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="pagination-nav">
+        <button 
+          type="button"
+          class="page-nav-btn" 
+          [disabled]="currentPage() === 1" 
+          (click)="firstPage()"
+          title="First Page"
+        >
+          <i class="pi pi-angle-double-left"></i>
+        </button>
+        <button 
+          type="button"
+          class="page-nav-btn" 
+          [disabled]="currentPage() === 1" 
+          (click)="prevPage()"
+          title="Previous Page"
+        >
+          <i class="pi pi-angle-left"></i>
+        </button>
+
+        <div class="page-pills">
+          @for (p of pageNumbers(); track $index) {
+            @if (p === '...') {
+              <span class="ellipsis-pill">&hellip;</span>
+            } @else {
+              <button 
+                type="button"
+                class="page-number-btn" 
+                [class.active]="currentPage() === p"
+                (click)="goToPage(p)"
+              >
+                {{ p }}
+              </button>
+            }
+          }
+        </div>
+
+        <button 
+          type="button"
+          class="page-nav-btn" 
+          [disabled]="currentPage() === totalPages()" 
+          (click)="nextPage()"
+          title="Next Page"
+        >
+          <i class="pi pi-angle-right"></i>
+        </button>
+        <button 
+          type="button"
+          class="page-nav-btn" 
+          [disabled]="currentPage() === totalPages()" 
+          (click)="lastPage()"
+          title="Last Page"
+        >
+          <i class="pi pi-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Add/Edit Modal Dialog -->
+  @if (showDialog()) {
+    <div class="modal-overlay" (click)="closeDialog()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-titles">
+            <h2 class="modal-title">{{ isEditMode() ? 'Edit Employee Profile' : 'New Employee Onboarding' }}</h2>
+            <p class="modal-subtitle">Fill in employment details for payroll and regulatory compliance</p>
+          </div>
+          <button class="close-btn" (click)="closeDialog()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+
+        <!-- Form Navigation Tabs -->
+        <div class="modal-tabs">
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="activeTab() === 'personal'" 
+            (click)="activeTab.set('personal')"
+          >
+            <i class="pi pi-user"></i>
+            <span>Personal & ID</span>
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="activeTab() === 'job'" 
+            (click)="activeTab.set('job')"
+          >
+            <i class="pi pi-briefcase"></i>
+            <span>Department & Job</span>
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="activeTab() === 'financial'" 
+            (click)="activeTab.set('financial')"
+          >
+            <i class="pi pi-dollar"></i>
+            <span>Salary & Bank</span>
+          </button>
+        </div>
+
+        <form [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
+          <div class="modal-body">
+            <!-- TAB 1: Personal & ID -->
+            @if (activeTab() === 'personal') {
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>First Name <span class="required">*</span></label>
+                  <input type="text" formControlName="firstName" placeholder="e.g. Tariq" />
+                </div>
+                <div class="form-group">
+                  <label>Last Name <span class="required">*</span></label>
+                  <input type="text" formControlName="lastName" placeholder="e.g. Al-Mansoor" />
+                </div>
+                <div class="form-group">
+                  <label>Email Address</label>
+                  <input type="email" formControlName="email" placeholder="e.g. tariq@company.com" />
+                </div>
+                <div class="form-group">
+                  <label>Phone Number</label>
+                  <input type="text" formControlName="phone" placeholder="e.g. +966 50 123 4567" />
+                </div>
+                <div class="form-group full-width">
+                  <label>Residential Address</label>
+                  <input type="text" formControlName="address" placeholder="Street, City, Postal Code" />
+                </div>
+                <div class="form-group">
+                  <label>National ID / Iqama Number</label>
+                  <input type="text" formControlName="nationalId" placeholder="10-digit Saudi/Iqama ID" />
+                </div>
+                <div class="form-group">
+                  <label>Iqama Expiry Date</label>
+                  <input type="date" formControlName="iqamaExpiryDate" />
+                </div>
+                <div class="form-group">
+                  <label>Passport Number</label>
+                  <input type="text" formControlName="passportNumber" placeholder="e.g. A12345678" />
+                </div>
+                <div class="form-group">
+                  <label>Passport Expiry Date</label>
+                  <input type="date" formControlName="passportExpiryDate" />
+                </div>
+              </div>
+            }
+
+            <!-- TAB 2: Department & Job -->
+            @if (activeTab() === 'job') {
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Department Name</label>
+                  <input type="text" formControlName="departmentName" placeholder="e.g. Finance, Sales, IT" />
+                </div>
+                <div class="form-group">
+                  <label>Designation / Job Title</label>
+                  <input type="text" formControlName="designationName" placeholder="e.g. Senior Accountant" />
+                </div>
+                <div class="form-group">
+                  <label>Joining Date</label>
+                  <input type="date" formControlName="joiningDate" />
+                </div>
+                <div class="form-group">
+                  <label>Employment Status</label>
+                  <select formControlName="status">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="LEFT">Terminated / Left</option>
+                  </select>
+                </div>
+              </div>
+            }
+
+            <!-- TAB 3: Salary & Compensation -->
+            @if (activeTab() === 'financial') {
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Basic Salary (SAR)</label>
+                  <input type="number" formControlName="basicSalary" min="0" step="100" />
+                </div>
+                <div class="form-group">
+                  <label>Housing Allowance (SAR)</label>
+                  <input type="number" formControlName="housingAllowance" min="0" step="50" />
+                </div>
+                <div class="form-group">
+                  <label>Transport Allowance (SAR)</label>
+                  <input type="number" formControlName="transportAllowance" min="0" step="50" />
+                </div>
+                <div class="form-group">
+                  <label>Other Allowances (SAR)</label>
+                  <input type="number" formControlName="otherAllowance" min="0" step="50" />
+                </div>
+                <div class="form-group">
+                  <label>Disbursement Method</label>
+                  <select formControlName="paymentMethod">
+                    <option value="BANK">Bank Transfer (WPS)</option>
+                    <option value="CASH">Cash Disbursement</option>
+                  </select>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" (click)="closeDialog()">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="isSaving()">
+              @if (isSaving()) {
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Saving...</span>
+              } @else {
+                <i class="pi pi-check"></i>
+                <span>{{ isEditMode() ? 'Save Changes' : 'Confirm Employee' }}</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

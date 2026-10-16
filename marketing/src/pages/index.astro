@@ -4,13 +4,17 @@ import Header from '../components/Header.vue';
 import Hero from '../components/Hero.vue';
 import Features from '../components/Features.vue';
 import Pricing from '../components/Pricing.vue';
+import PlanPersonas from '../components/PlanPersonas.vue';
+import Roadmap from '../components/Roadmap.vue';
 ---
 
-<MainLayout title="Numou ERP - ZATCA Compliance Made Effortless" description="Accounting and ERP software for Riyadh retail shops and service businesses. 1-click ZATCA setup, zero-configuration local compliance.">
+<MainLayout title="Intelligent ERP - ZATCA Compliance Made Effortless" description="Accounting and ERP software for Riyadh retail shops and service businesses. 1-click ZATCA setup, zero-configuration local compliance.">
   <Header client:load />
   <main>
     <Hero client:load />
     <Features client:load />
+    <PlanPersonas client:load />
     <Pricing client:load />
+    <Roadmap client:load />
   </main>
 </MainLayout>

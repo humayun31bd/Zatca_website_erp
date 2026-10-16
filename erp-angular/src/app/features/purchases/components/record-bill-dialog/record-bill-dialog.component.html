@@ -1,0 +1,125 @@
+<p-dialog 
+  [(visible)]="visible" 
+  (onHide)="close()" 
+  [modal]="true" 
+  [style]="{ width: '70vw', maxWidth: '1000px' }" 
+  header="Record Received Supplier Bill"
+  [draggable]="false"
+  [resizable]="false"
+>
+  <form [formGroup]="billForm" (ngSubmit)="onSubmit()" class="bill-form">
+    <!-- Header Form Fields -->
+    <div class="form-grid">
+      <div class="field-col">
+        <label for="supplier" class="field-label">Supplier *</label>
+        <p-select 
+          id="supplier" 
+          [options]="suppliers()" 
+          optionLabel="name" 
+          optionValue="id" 
+          formControlName="supplierId" 
+          placeholder="Select a supplier" 
+          [filter]="true" 
+          filterBy="name"
+          styleClass="w-full"
+        ></p-select>
+      </div>
+
+      <div class="field-col">
+        <label for="billNumber" class="field-label">Bill / Reference Number *</label>
+        <input pInputText id="billNumber" formControlName="billNumber" class="w-full" />
+      </div>
+
+      <div class="field-col">
+        <label for="issueDate" class="field-label">Bill Issue Date *</label>
+        <input type="date" pInputText id="issueDate" formControlName="issueDate" class="w-full" />
+      </div>
+
+      <div class="field-col">
+        <label for="dueDate" class="field-label">Due Date *</label>
+        <input type="date" pInputText id="dueDate" formControlName="dueDate" class="w-full" />
+      </div>
+    </div>
+
+    <!-- Line Items Section -->
+    <div class="items-section">
+      <div class="items-header">
+        <h3 class="section-title">Bill Line Items</h3>
+        <button type="button" pButton icon="pi pi-plus" label="Add Item" class="p-button-outlined p-button-sm" (click)="addItem()"></button>
+      </div>
+
+      <div formArrayName="items" class="items-table-wrapper">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width: 40%">Description *</th>
+              <th style="width: 15%">Quantity</th>
+              <th style="width: 15%">Unit Price (SAR)</th>
+              <th style="width: 10%">VAT %</th>
+              <th style="width: 15%" class="text-right">Total (SAR)</th>
+              <th style="width: 5%"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (itemGroup of items.controls; track $index) {
+              <tr [formGroupName]="$index">
+                <td>
+                  <input pInputText formControlName="description" placeholder="Item description" class="w-full" />
+                </td>
+                <td>
+                  <input type="number" step="any" pInputText formControlName="quantity" class="w-full" />
+                </td>
+                <td>
+                  <input type="number" step="any" pInputText formControlName="unitPrice" class="w-full" />
+                </td>
+                <td>
+                  <input type="number" pInputText formControlName="vatRate" class="w-full" />
+                </td>
+                <td class="text-right font-semibold">
+                  {{ getItemTotal($index) * (1 + (itemGroup.value.vatRate || 0) / 100) | number:'1.2-2' }}
+                </td>
+                <td class="text-center">
+                  <button type="button" pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" (click)="removeItem($index)"></button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Summary & Notes -->
+    <div class="bottom-grid">
+      <div class="notes-col">
+        <label for="remarks" class="field-label">Remarks / Notes</label>
+        <textarea pTextarea id="remarks" formControlName="remarks" rows="4" class="w-full" placeholder="Optional internal notes..."></textarea>
+      </div>
+
+      <div class="summary-col">
+        <div class="summary-row">
+          <span>Subtotal:</span>
+          <span>SAR {{ subtotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row">
+          <span>VAT (15%):</span>
+          <span>SAR {{ totalVat | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-row discount-row">
+          <span>Discount (SAR):</span>
+          <input type="number" pInputText formControlName="discountAmount" style="width: 110px; text-align: right;" />
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-row grand-total">
+          <span>Grand Total:</span>
+          <span class="total-value">SAR {{ grandTotal | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions Footer -->
+    <div class="dialog-actions">
+      <button type="button" pButton label="Cancel" class="p-button-outlined" (click)="close()"></button>
+      <button type="submit" pButton icon="pi pi-check" label="Save & Record Bill" [loading]="isSubmitting()"></button>
+    </div>
+  </form>
+</p-dialog>

@@ -1,0 +1,1 @@
+import { config } from "dotenv"; config({ path: ".env" }); import { db } from "../src/lib/db/index"; import { unifiedProducts } from "../src/lib/db/product_schema"; async function main() { try { const data = await db.select().from(unifiedProducts); console.log("Success:", data.length); } catch (error) { console.error("Database Error:", error); } process.exit(0); } main();

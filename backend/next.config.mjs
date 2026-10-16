@@ -1,19 +1,70 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    async headers() {
-        return [
-            {
-                // matching all API routes
-                source: "/api/:path*",
-                headers: [
-                    { key: "Access-Control-Allow-Credentials", value: "true" },
-                    { key: "Access-Control-Allow-Origin", value: "http://localhost:8080" }, // Replace this with your actual origin in production
-                    { key: "Access-Control-Allow-Methods", value: "GET,DELETE,PATCH,POST,PUT,OPTIONS" },
-                    { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" },
-                ]
-            }
-        ]
-    }
+  // CORS headers are handled dynamically in middleware.ts
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/api/v1/:path*',
+        destination: '/api/v1/:path*',
+      },
+      {
+        source: '/quotation',
+        destination: '/api/v1/procurement/quotations',
+      },
+      {
+        source: '/quotations',
+        destination: '/api/v1/procurement/quotations',
+      },
+      {
+        source: '/quotations/:path*',
+        destination: '/api/v1/procurement/quotations/:path*',
+      },
+      {
+        source: '/purchases/quotations',
+        destination: '/api/v1/procurement/quotations',
+      },
+      {
+        source: '/purchases/quotations/:path*',
+        destination: '/api/v1/procurement/quotations/:path*',
+      },
+      {
+        source: '/api/quotations',
+        destination: '/api/v1/procurement/quotations',
+      },
+      {
+        source: '/api/quotations/:path*',
+        destination: '/api/v1/procurement/quotations/:path*',
+      },
+      {
+        source: '/api/v1/quotations',
+        destination: '/api/v1/procurement/quotations',
+      },
+      {
+        source: '/api/v1/quotations/:path*',
+        destination: '/api/v1/procurement/quotations/:path*',
+      },
+      {
+        source: '/api/procurement/:path*',
+        destination: '/api/v1/procurement/:path*',
+      },
+      {
+        source: '/procurement/:path*',
+        destination: '/api/v1/procurement/:path*',
+      },
+      {
+        source: '/api/purchases/:path*',
+        destination: '/api/v1/purchases/:path*',
+      },
+      {
+        source: '/api/purchases',
+        destination: '/api/v1/purchases',
+      },
+      {
+        source: '/purchases/:path*',
+        destination: '/api/v1/purchases/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

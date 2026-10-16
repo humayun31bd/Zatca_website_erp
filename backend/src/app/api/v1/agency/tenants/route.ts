@@ -34,7 +34,27 @@ export async function GET(req: NextRequest) {
       .where(eq(tenants.parentTenantId, session.tenantId as string))
       .orderBy(desc(tenants.createdAt));
 
-    return NextResponse.json(agencyTenants);
+    // Mock appending branches and marketing plans since they are not in the core tenants table yet
+    const enrichedTenants = agencyTenants.map((t, index) => {
+      let branches = ['Main Branch'];
+      let plan = 'Starter';
+      
+      if (index % 3 === 0) {
+        branches = ['Main Branch', 'North Branch', 'East Branch'];
+        plan = 'Pro';
+      } else if (index % 2 === 0) {
+        branches = ['Main Branch', 'South Branch'];
+        plan = 'Standard';
+      }
+
+      return {
+        ...t,
+        branches,
+        marketingPlan: plan,
+      };
+    });
+
+    return NextResponse.json(enrichedTenants);
   } catch (error: any) {
     console.error("GET Agency Tenants error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -11,6 +11,14 @@ const ClientSchema = z.object({
   address: z.string().optional().nullable(),
   email: z.string().email().optional().nullable(),
   phoneNumber: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  customerType: z.string().optional().nullable(),
+  funds: z.number().optional().nullable(),
+  dues: z.number().optional().nullable(),
+  permitCredit: z.boolean().optional().default(false),
+  creditLimit: z.number().optional().default(0),
 });
 
 export async function GET(req: NextRequest) {

@@ -1,0 +1,3 @@
+-- Custom migration: Database is already in sync.
+-- This file is intentionally left blank so that \`drizzle-kit migrate\` 
+-- will mark this baseline migration as applied without trying to recreate existing tables.

@@ -1,0 +1,151 @@
+<p-dialog 
+  [(visible)]="visible" 
+  (onHide)="close()" 
+  [modal]="true" 
+  [style]="{ width: '850px', maxWidth: '95vw' }" 
+  header="Tax Invoice / فاتورة ضريبية"
+  [draggable]="false"
+  [resizable]="false"
+>
+  @if (isLoading()) {
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner text-2xl text-primary"></i>
+      <p>Loading invoice details...</p>
+    </div>
+  } @else if (invoice(); as inv) {
+    <div class="invoice-document" id="printable-tax-invoice">
+      <!-- Invoice Header: Bilingual -->
+      <div class="doc-header">
+        <div class="company-block">
+          <h2 class="seller-name">{{ inv.sellerName }}</h2>
+          <span class="vat-id">VAT Registration: <strong>{{ inv.sellerVat }}</strong></span>
+          <span class="doc-address">{{ inv.sellerAddress || 'Riyadh, Kingdom of Saudi Arabia' }}</span>
+        </div>
+
+        <div class="doc-meta-block">
+          <div class="invoice-badge-type">
+            <span class="en-type">{{ inv.invoiceType === 'SIMPLIFIED' ? 'Simplified Tax Invoice' : 'Tax Invoice (B2B)' }}</span>
+            <span class="ar-type">{{ inv.invoiceType === 'SIMPLIFIED' ? 'فاتورة ضريبية مبسطة' : 'فاتورة ضريبية' }}</span>
+          </div>
+          <span class="inv-number">{{ inv.invoiceNumber }}</span>
+          <span class="inv-date">Issue Date: {{ inv.issueDatetime | date:'medium' }}</span>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- Parties Block -->
+      <div class="parties-grid">
+        <div class="party-card buyer">
+          <span class="party-label">BILLED TO / العميل</span>
+          <h4 class="party-name">{{ inv.buyerName }}</h4>
+          @if (inv.buyerVat) {
+            <span class="party-vat">VAT Number: <strong>{{ inv.buyerVat }}</strong></span>
+          }
+          @if (inv.buyerAddress) {
+            <span class="party-address">{{ inv.buyerAddress }}</span>
+          }
+          @if (inv.buyerPhone) {
+            <span class="party-phone">Phone: {{ inv.buyerPhone }}</span>
+          }
+        </div>
+
+        <div class="party-card status-box">
+          <span class="party-label">CLEARANCE & STATUS</span>
+          <div class="status-stack">
+            <div class="status-row">
+              <span>ZATCA Clearance:</span>
+              <p-tag [value]="inv.zatcaStatus" severity="success"></p-tag>
+            </div>
+            <div class="status-row">
+              <span>Payment:</span>
+              <p-tag [value]="inv.paymentStatus" [severity]="inv.paymentStatus === 'PAID' ? 'success' : 'warn'"></p-tag>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items Table -->
+      <div class="doc-table-wrapper">
+        <table class="doc-table">
+          <thead>
+            <tr>
+              <th style="width: 5%">#</th>
+              <th style="width: 45%">Description / البيان</th>
+              <th style="width: 12%" class="text-right">Unit Price</th>
+              <th style="width: 8%" class="text-center">Qty</th>
+              <th style="width: 15%" class="text-right">VAT (15%)</th>
+              <th style="width: 15%" class="text-right">Total (SAR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of inv.lineItems; track item.lineNumber) {
+              <tr>
+                <td>{{ item.lineNumber }}</td>
+                <td class="font-medium">{{ item.description }}</td>
+                <td class="text-right">{{ item.unitPrice | number:'1.2-2' }}</td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-right">{{ item.taxAmount | number:'1.2-2' }}</td>
+                <td class="text-right font-semibold">{{ item.lineTotal | number:'1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td>1</td>
+                <td class="font-medium">General Commercial Sales Order</td>
+                <td class="text-right">{{ inv.subtotalAmount | number:'1.2-2' }}</td>
+                <td class="text-center">1</td>
+                <td class="text-right">{{ inv.totalVatAmount | number:'1.2-2' }}</td>
+                <td class="text-right font-semibold">{{ inv.totalAmount | number:'1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Bottom Block: QR & Financial Summary -->
+      <div class="doc-footer-grid">
+        <!-- ZATCA Phase 2 QR Code -->
+        <div class="qr-col">
+          @if (qrCodeUrl()) {
+            <img [src]="qrCodeUrl()" alt="ZATCA Phase 2 QR" class="qr-img" />
+            <span class="qr-sub">Scan via ZATCA App (Phase 2 Verified)</span>
+          } @else {
+            <div class="qr-placeholder">
+              <i class="pi pi-qrcode text-3xl text-slate-400"></i>
+              <span class="text-xs text-slate-500">ZATCA Cryptographic Stamped</span>
+            </div>
+          }
+        </div>
+
+        <!-- Totals Summary -->
+        <div class="totals-col">
+          <div class="total-line">
+            <span>Taxable Amount (Excl. VAT):</span>
+            <span>SAR {{ inv.subtotalAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="total-line">
+            <span>Total VAT Amount (15%):</span>
+            <span>SAR {{ inv.totalVatAmount | number:'1.2-2' }}</span>
+          </div>
+          @if (inv.discountAmount > 0) {
+            <div class="total-line discount">
+              <span>Total Discount:</span>
+              <span>- SAR {{ inv.discountAmount | number:'1.2-2' }}</span>
+            </div>
+          }
+          <div class="total-divider"></div>
+          <div class="total-line grand">
+            <span>Total Payable Amount (Inc. VAT):</span>
+            <span class="grand-value">SAR {{ inv.totalAmount | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Print Action Bar -->
+    <div class="dialog-actions no-print">
+      <p-button label="Close" severity="secondary" [outlined]="true" (click)="close()"></p-button>
+      <p-button icon="pi pi-print" label="Print / Export Tax Invoice" (click)="printInvoice()"></p-button>
+    </div>
+  }
+</p-dialog>

@@ -1,0 +1,137 @@
+<div class="erp-wrapper" [class.sidebar-collapsed]="isCollapsed()">
+  <!-- Dark Enterprise ERP Sidebar (Matching Flutter erp_sidebar.dart) -->
+  <aside class="erp-sidebar">
+    <!-- 64px Header -->
+    <div class="sidebar-header">
+      <div class="brand-box">
+        <div class="brand-logo-gradient">
+          <i class="pi pi-box"></i>
+        </div>
+        @if (!isCollapsed()) {
+          <span class="brand-title">Intelligent ERP</span>
+        }
+      </div>
+
+      <button 
+        class="collapse-btn" 
+        (click)="toggleSidebar()" 
+        [title]="isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      >
+        <i class="pi" [class.pi-chevron-right]="isCollapsed()" [class.pi-chevron-left]="!isCollapsed()"></i>
+      </button>
+    </div>
+
+    <!-- Search Bar (Visible when expanded) -->
+    @if (!isCollapsed()) {
+      <div class="sidebar-search-container">
+        <div class="search-input-wrapper">
+          <i class="pi pi-search search-icon"></i>
+          <input 
+            type="text" 
+            placeholder="Search menu…" 
+            [ngModel]="searchQuery()" 
+            (ngModelChange)="searchQuery.set($event)"
+          />
+          @if (searchQuery()) {
+            <button class="clear-search-btn" (click)="searchQuery.set('')">
+              <i class="pi pi-times"></i>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Scrollable Navigation Tree -->
+    <nav class="sidebar-nav-tree">
+      @for (group of filteredGroups(); track group.label) {
+        <div class="nav-group">
+          <!-- Group Header (Accordion Toggle) -->
+          @if (!isCollapsed()) {
+            <div class="group-header" (click)="toggleGroup(group.label)">
+              <div class="group-title-row">
+                <i [class]="group.icon + ' group-icon'"></i>
+                <span class="group-label">{{ isArabic() ? group.labelAr : group.label }}</span>
+              </div>
+              <i 
+                class="pi pi-chevron-right group-chevron" 
+                [class.expanded]="isGroupExpanded(group.label)"
+              ></i>
+            </div>
+          } @else {
+            <div class="group-separator"></div>
+          }
+
+          <!-- Group Nav Items -->
+          @if (isCollapsed() || isGroupExpanded(group.label)) {
+            <div class="group-items">
+              @for (item of group.children; track item.route) {
+                <a 
+                  [routerLink]="item.route" 
+                  routerLinkActive="active" 
+                  class="nav-item"
+                  [title]="isCollapsed() ? (isArabic() ? item.labelAr : item.label) : ''"
+                >
+                  <i [class]="item.icon + ' nav-icon'"></i>
+                  @if (!isCollapsed()) {
+                    <span class="nav-label">{{ isArabic() ? item.labelAr : item.label }}</span>
+                  }
+                  @if (item.badgeCount && item.badgeCount > 0 && !isCollapsed()) {
+                    <span class="nav-badge">{{ item.badgeCount }}</span>
+                  }
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <div class="footer-divider"></div>
+
+      <div class="user-strip">
+        <div class="user-avatar-circle">
+          {{ (authService.currentUser()?.email || 'U').charAt(0).toUpperCase() }}
+        </div>
+
+        @if (!isCollapsed()) {
+          <div class="user-details-col">
+            <span class="user-email-line">{{ authService.currentUser()?.email || 'User Account' }}</span>
+            <span class="user-role-line">{{ authService.currentUser()?.role || 'TENANT_USER' }}</span>
+          </div>
+
+          <!-- Language Switcher Pill -->
+          <button class="lang-toggle-btn" (click)="toggleLanguage()" [title]="isArabic() ? 'Switch to English' : 'التحويل للعربية'">
+            {{ isArabic() ? 'EN' : 'عربي' }}
+          </button>
+        }
+
+        <!-- Logout Action Button -->
+        <button class="logout-icon-btn" (click)="logout()" title="Logout">
+          <i class="pi pi-sign-out"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Viewport Area -->
+  <div class="erp-main">
+    <!-- Top Bar -->
+    <header class="erp-topbar">
+      <div class="topbar-left">
+        <div class="tenant-chip">
+          <i class="pi pi-building"></i>
+          <span>Tenant: {{ authService.tenantId().substring(0, 8) }}...</span>
+        </div>
+      </div>
+
+      <div class="topbar-right"></div>
+    </header>
+
+    <!-- Page Content Viewport -->
+    <main class="page-viewport">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

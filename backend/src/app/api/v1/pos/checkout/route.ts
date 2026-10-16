@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { invoices, invoiceLineItems, tenants, products } from "@/lib/db/schema";
-import { eq, inArray, sql } from "drizzle-orm";
+import { invoices, invoiceLineItems, tenants, products, clients } from "@/lib/db/schema";
+import { deliveryOrders, orderStatusLogs } from "@/lib/db/delivery_orders_schema";
+import { eq, inArray, sql, and } from "drizzle-orm";
 import { verifySession } from "@/lib/auth/session";
 import { z } from "zod";
 import { serviceLocator } from "@/lib/services/serviceLocator";
+import { accounts, journalEntries, journalEntryLines } from "@/lib/db/accounting_schema";
 
 const CheckoutItemSchema = z.object({
   productId: z.string().uuid(),
@@ -13,8 +15,20 @@ const CheckoutItemSchema = z.object({
 
 const CheckoutPayloadSchema = z.object({
   items: z.array(CheckoutItemSchema).min(1),
-  buyerName: z.string().optional(),
+  buyerName: z.string().regex(/^[^<>]*$/, "HTML tags are not allowed").optional(),
   buyerPhone: z.string().optional(),
+  clientId: z.string().uuid().optional().nullable(),
+  paymentMethod: z.string().optional(),
+  totalDiscount: z.number().min(0).optional(),
+  deliveryType: z.enum(['take_away', 'delivery', 'dine_in']).optional().default('take_away'),
+  deliveryDetails: z.object({
+    tableNumber: z.string().optional().nullable(),
+    deliveryAddress: z.string().optional().nullable(),
+    deliveryFee: z.number().min(0).optional().default(0),
+    aggregator: z.string().optional().nullable(),
+    aggregatorReference: z.string().optional().nullable(),
+    note: z.string().optional().nullable(),
+  }).optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
@@ -36,7 +50,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Bad Request', details: parseResult.error.format() }, { status: 400 });
     }
 
-    const { items, buyerName, buyerPhone } = parseResult.data;
+    const { items, buyerName, buyerPhone, clientId, paymentMethod, totalDiscount = 0 } = parseResult.data;
     const productIds = items.map(i => i.productId);
 
     // Fetch products to get prices and calculate totals
@@ -51,61 +65,131 @@ export async function POST(req: NextRequest) {
 
     const productMap = new Map(dbProducts.map(p => [p.id, p]));
     
+    // 1. Calculate Gross Subtotal (Sum of line subtotals without discount)
     let subtotalAmount = 0;
+    
+    // 2. We will distribute the totalDiscount across line items proportionally
+    const lineItemsData = items.map((item, i) => {
+      const product = productMap.get(item.productId)!;
+      const unitPrice = parseFloat(product.price.toString());
+      const lineSubtotal = unitPrice * item.quantity;
+      subtotalAmount += lineSubtotal;
+      return {
+        item,
+        product,
+        unitPrice,
+        lineSubtotal,
+        lineNumber: i + 1,
+      };
+    });
+
+    const safeDiscount = Math.min(totalDiscount, subtotalAmount);
+    const discountRatio = subtotalAmount > 0 ? safeDiscount / subtotalAmount : 0;
+
     let totalVatAmount = 0;
     const lineItemsToInsert: any[] = [];
     const zatcaLineItems: any[] = [];
 
-    // Calculate totals and build line items
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const product = productMap.get(item.productId)!;
-      const unitPrice = parseFloat(product.price.toString());
-      
-      const lineSubtotal = unitPrice * item.quantity;
-      const taxPercent = 15.0; // Standard VAT
-      const lineTax = lineSubtotal * (taxPercent / 100);
-      const lineTotal = lineSubtotal + lineTax;
+    let sumDiscountDistributed = 0;
 
-      subtotalAmount += lineSubtotal;
+    for (let i = 0; i < lineItemsData.length; i++) {
+      const lineData = lineItemsData[i];
+      const taxPercent = 15.0; // Standard VAT
+
+      // Calculate discount for this line
+      let lineDiscount = 0;
+      if (i === lineItemsData.length - 1) {
+        // Last item takes the remainder to avoid rounding errors
+        lineDiscount = safeDiscount - sumDiscountDistributed;
+      } else {
+        lineDiscount = Number((lineData.lineSubtotal * discountRatio).toFixed(2));
+        sumDiscountDistributed += lineDiscount;
+      }
+
+      const netLineAmount = lineData.lineSubtotal - lineDiscount;
+      const lineTax = netLineAmount * (taxPercent / 100);
+      const lineTotal = netLineAmount + lineTax;
+
       totalVatAmount += lineTax;
 
       lineItemsToInsert.push({
-        lineNumber: i + 1,
-        description: product.name,
-        quantity: item.quantity.toString(),
-        unitPrice: unitPrice.toFixed(2),
-        taxPercent: taxPercent.toFixed(2),
-        taxAmount: lineTax.toFixed(2),
-        lineTotal: lineTotal.toFixed(2),
+        lineNumber: lineData.lineNumber,
+        description: lineData.product.name,
+        quantity: Number(lineData.item.quantity),
+        unitPrice: Number(lineData.unitPrice.toFixed(2)),
+        discountAmount: Number(lineDiscount.toFixed(2)),
+        taxPercent: Number(taxPercent.toFixed(2)),
+        taxAmount: Number(lineTax.toFixed(2)),
+        lineTotal: Number(lineTotal.toFixed(2)),
       });
 
       zatcaLineItems.push({
-        lineNumber: i + 1,
-        description: product.name,
-        quantity: item.quantity,
-        unitPrice: unitPrice,
+        lineNumber: lineData.lineNumber,
+        description: lineData.product.name,
+        quantity: lineData.item.quantity,
+        unitPrice: lineData.unitPrice,
+        discountAmount: lineDiscount,
         taxPercent: taxPercent,
         taxAmount: lineTax,
         lineTotal: lineTotal,
       });
     }
 
-    const totalAmount = subtotalAmount + totalVatAmount;
-    const invoiceNumber = `POS-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+    const netSubtotalAmount = subtotalAmount - safeDiscount;
+    const totalAmount = netSubtotalAmount + totalVatAmount;
+    // Generate a unique invoice number using crypto.randomUUID() to avoid UNIQUE constraint collisions
+    const uniqueSuffix = crypto.randomUUID().split('-')[0].toUpperCase();
+    const invoiceNumber = `POS-${new Date().getFullYear()}-${uniqueSuffix}`;
 
-    // Transaction to deduct inventory and create invoice
-    const invoiceResult = await db.transaction(async (tx) => {
+    // Transaction Helper: Use real transaction for Postgres, fallback to sequential for SQLite (better-sqlite3)
+    const executeTransaction = async (callback: (tx: any) => Promise<any>) => {
+      // If we are using SQLite, skip the transaction wrapper to avoid the "cannot return a promise" error
+      // and prevent executing the callback twice (which causes double inserts and unique constraint errors).
+      const isSQLite = (db as any).dialect?.constructor?.name === 'SQLiteSyncDialect' || 
+                       (db as any).dialect?.constructor?.name?.includes('SQLite');
+                       
+      if (isSQLite) {
+        return await callback(db);
+      }
+      
+      try {
+        return await db.transaction(callback);
+      } catch (e: any) {
+        if (e.message && e.message.includes("Transaction function cannot return a promise")) {
+          // If we somehow missed the dialect check, don't retry, because the first promise is already running!
+          // We must just throw to avoid double-execution.
+          throw new Error("Cannot use async transactions with better-sqlite3. Please configure SQLite fallback properly.");
+        }
+        throw e;
+      }
+    };
+
+    const invoiceResult = await executeTransaction(async (tx) => {
       // 1. Deduct inventory
       for (const item of items) {
+        // Use MAX(0, stock - qty) to avoid violating the stock_check constraint (>= 0)
         await tx.update(products)
-          .set({ stockQuantity: sql`${products.stockQuantity} - ${item.quantity}` })
+          .set({ stockQuantity: sql`MAX(0, ${products.stockQuantity} - ${item.quantity})` })
           .where(eq(products.id, item.productId));
+      }
+
+      // Resolve effective clientId (passed directly or matched by buyerName)
+      let effectiveClientId = clientId || null;
+      if (!effectiveClientId && buyerName && buyerName.trim() !== "Walk-in Customer") {
+        const [matchedClient] = await tx
+          .select({ id: clients.id })
+          .from(clients)
+          .where(and(eq(clients.tenantId, session.tenantId as string), eq(clients.name, buyerName.trim())))
+          .limit(1);
+        if (matchedClient) {
+          effectiveClientId = matchedClient.id;
+        }
       }
 
       // 2. Create invoice (DRAFT initially)
       const [createdInvoice] = await tx.insert(invoices).values({
         tenantId: session.tenantId as string,
+        clientId: effectiveClientId,
         invoiceNumber: invoiceNumber,
         invoiceType: 'SIMPLIFIED', // POS always generates Simplified B2C
         invoiceTypeCode: '388', // Tax Invoice
@@ -113,12 +197,14 @@ export async function POST(req: NextRequest) {
         sellerVat: tenant.vatNumber,
         sellerAddress: "Riyadh, KSA",
         buyerName: buyerName || "Walk-in Customer",
-        subtotalAmount: subtotalAmount.toFixed(2),
-        totalVatAmount: totalVatAmount.toFixed(2),
-        totalAmount: totalAmount.toFixed(2),
+        subtotalAmount: Number(subtotalAmount.toFixed(2)),
+        discountAmount: Number(safeDiscount.toFixed(2)),
+        totalVatAmount: Number(totalVatAmount.toFixed(2)),
+        totalAmount: Number(totalAmount.toFixed(2)),
         issueDatetime: new Date(),
-        zatcaStatus: 'DRAFT',
+        zatcaStatus: 'PENDING',
         paymentStatus: 'PAID', // Assuming paid at POS
+        deliveryType: parseResult.data.deliveryType || 'take_away',
       }).returning();
 
       // 3. Insert line items
@@ -128,7 +214,113 @@ export async function POST(req: NextRequest) {
       }));
       await tx.insert(invoiceLineItems).values(mappedLineItems);
 
-      return createdInvoice;
+      // 3b. Automatically create corresponding delivery_orders entry for kitchen & dispatch
+      const deliveryOrderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${uniqueSuffix}`;
+      const deliveryDetails = parseResult.data.deliveryDetails;
+      const deliveryType = parseResult.data.deliveryType || 'take_away';
+      const initialStatus = 'OUP'; // In kitchen prep
+
+      const [createdDeliveryOrder] = await tx.insert(deliveryOrders).values({
+        tenantId: session.tenantId as string,
+        orderNumber: deliveryOrderNumber,
+        invoiceId: createdInvoice.id,
+        orderType: deliveryType,
+        channel: deliveryDetails?.aggregator ? 'third_party' : 'pos',
+        status: initialStatus,
+        aggregator: deliveryDetails?.aggregator || null,
+        aggregatorReference: deliveryDetails?.aggregatorReference || null,
+        customerName: buyerName || "Walk-in Customer",
+        customerPhone: buyerPhone || null,
+        deliveryAddress: deliveryDetails?.deliveryAddress || null,
+        tableNumber: deliveryDetails?.tableNumber || null,
+        deliveryFee: deliveryDetails?.deliveryFee || 0,
+        subtotal: Number(netSubtotalAmount.toFixed(2)),
+        taxAmount: Number(totalVatAmount.toFixed(2)),
+        discountAmount: Number(safeDiscount.toFixed(2)),
+        totalAmount: Number(totalAmount.toFixed(2)),
+        items: dbProducts.map(p => {
+          const cartItem = items.find(i => i.productId === p.id);
+          return {
+            productId: p.id,
+            productName: p.name,
+            quantity: cartItem?.quantity || 1,
+            price: Number(p.price),
+            sku: p.sku,
+          };
+        }),
+        note: deliveryDetails?.note || null,
+        cookingStartedAt: new Date(),
+        confirmedAt: new Date(),
+      }).returning();
+
+      // Log initial status
+      await tx.insert(orderStatusLogs).values({
+        id: crypto.randomUUID(),
+        tenantId: session.tenantId as string,
+        orderId: createdDeliveryOrder.id,
+        fromStatus: 'WFC',
+        toStatus: initialStatus,
+        changedBy: (session.email as string) || 'cashier',
+        actorRole: 'cashier',
+        note: `POS Checkout completed (${deliveryType})`,
+      });
+
+      // 4. Generate Auto-Journal Entry
+      const accList = await tx.select().from(accounts).where(eq(accounts.tenantId, session.tenantId as string));
+      const salesAcc = accList.find((a: any) => a.code === '4.10.01.001.001'); // General Sales (Revenue)
+      const cashAcc = accList.find((a: any) => a.code === '1.10.01.001.001'); // Petty Cash (Asset)
+      const vatAcc = accList.find((a: any) => a.code === '2.10.04.001.001'); // VAT Payable (Liability)
+
+      if (salesAcc && cashAcc && vatAcc) {
+        const jeNumber = `POS-JE-${new Date().getFullYear()}-${uniqueSuffix}`;
+        
+        const [newJe] = await tx.insert(journalEntries).values({
+          tenantId: session.tenantId as string,
+          entryNumber: jeNumber,
+          referenceType: 'INVOICE',
+          referenceId: createdInvoice.id,
+          entryDate: new Date(),
+          description: `POS Cash Sale - Invoice ${invoiceNumber}`,
+          status: 'POSTED',
+        }).returning();
+
+        const linesToInsert = [
+          // Debit Cash (Total Amount)
+          {
+            journalEntryId: newJe.id,
+            accountId: cashAcc.id,
+            debit: Number(totalAmount.toFixed(2)),
+            credit: 0,
+            description: `Cash received for POS Sale ${invoiceNumber}`,
+          },
+          // Credit Revenue (Subtotal Amount)
+          {
+            journalEntryId: newJe.id,
+            accountId: salesAcc.id,
+            debit: 0,
+            credit: Number(netSubtotalAmount.toFixed(2)),
+            description: `Revenue for POS Sale ${invoiceNumber}`,
+          }
+        ];
+
+        // Credit VAT Payable if applicable
+        if (totalVatAmount > 0) {
+          linesToInsert.push({
+            journalEntryId: newJe.id,
+            accountId: vatAcc.id,
+            debit: 0,
+            credit: Number(totalVatAmount.toFixed(2)),
+            description: `Output VAT for POS Sale ${invoiceNumber}`,
+          });
+        }
+
+        await tx.insert(journalEntryLines).values(linesToInsert);
+      }
+
+      return {
+        ...createdInvoice,
+        deliveryOrder: createdDeliveryOrder,
+      };
     });
 
     // Generate ZATCA XML & QR Code (async/background process typically, but doing inline for MVP)
@@ -148,6 +340,7 @@ export async function POST(req: NextRequest) {
       },
       lineItems: zatcaLineItems,
       subtotalAmount,
+      discountAmount: safeDiscount,
       totalVatAmount,
       totalAmount,
       currencyCode: 'SAR',
@@ -168,8 +361,9 @@ export async function POST(req: NextRequest) {
       success: true,
       invoiceId: invoiceResult.id,
       invoiceNumber: invoiceResult.invoiceNumber,
+      deliveryOrder: invoiceResult.deliveryOrder,
       qrCodeBase64: zatcaResponse.qrCodeBase64,
-      totalAmount: totalAmount.toFixed(2),
+      totalAmount: Number(totalAmount.toFixed(2)),
     }, { status: 201 });
 
   } catch (error: any) {

@@ -1,0 +1,556 @@
+<div class="print-labels-container">
+  <!-- Toast Message -->
+  @if (toastMessage()) {
+    <div class="labels-toast" [ngClass]="'toast-' + toastMessage()!.type">
+      <span>{{ toastMessage()!.text }}</span>
+    </div>
+  }
+
+  <!-- Header Action Bar (No Print) -->
+  <header class="labels-header no-print">
+    <div class="header-left">
+      <div class="labels-icon-badge">
+        <i class="pi pi-qrcode"></i>
+      </div>
+      <div class="header-titles">
+        <div class="title-row">
+          <h1>Print Product Labels & Barcodes</h1>
+          <span class="preset-pill">{{ selectedPreset().name }}</span>
+        </div>
+        <p class="subtitle-ar">طباعة ملصقات الباركود والمنتجات على أوراق مقصوصة أو رولات حرارية</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Quick Stats Chip -->
+      <div class="stats-chip">
+        <i class="pi pi-tags"></i>
+        <span class="count-num">{{ totalCount() }}</span>
+        <span class="count-label">Labels Queued</span>
+      </div>
+
+      <!-- Direct Print Button -->
+      <button 
+        type="button" 
+        class="btn-direct-print" 
+        [disabled]="isPrinting() || queue().length === 0"
+        (click)="triggerPrint()">
+        <i class="pi pi-print" [class.pi-spin]="isPrinting()"></i>
+        <span>Print Labels ({{ totalCount() }})</span>
+      </button>
+
+      <!-- Back to Catalog -->
+      <button type="button" class="btn-back-catalog" (click)="backToCatalog()">
+        <i class="pi pi-arrow-left"></i>
+        <span>Back to Catalog</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Two-Column Workspace (No Print) -->
+  <div class="workspace-layout no-print">
+    <!-- LEFT COLUMN: QUEUE & SETTINGS WORKSPACE -->
+    <div class="workspace-left">
+      <div class="workspace-tabs-card">
+        <!-- Inner Tabs Header -->
+        <div class="tabs-nav">
+          <button 
+            type="button" 
+            class="tab-nav-btn" 
+            [class.active]="activeTab() === 'queue'" 
+            (click)="activeTab.set('queue')">
+            <i class="pi pi-list"></i>
+            <span>Products Queue ({{ queue().length }})</span>
+          </button>
+          <button 
+            type="button" 
+            class="tab-nav-btn" 
+            [class.active]="activeTab() === 'settings'" 
+            (click)="activeTab.set('settings')">
+            <i class="pi pi-sliders-h"></i>
+            <span>Label & Paper Settings</span>
+          </button>
+        </div>
+
+        <div class="tab-content-area">
+          <!-- TAB 1: PRODUCTS QUEUE -->
+          @if (activeTab() === 'queue') {
+            <div class="queue-pane">
+              <div class="queue-toolbar">
+                <div class="queue-title-group">
+                  <span class="queue-title">Products to Generate Labels</span>
+                  <span class="queue-badge">{{ totalCount() }} labels total</span>
+                </div>
+                <div class="queue-actions">
+                  @if (queue().length > 0) {
+                    <button type="button" class="btn-clear-queue" (click)="clearQueue()">
+                      <i class="pi pi-trash"></i>
+                      <span>Clear All</span>
+                    </button>
+                  }
+                  <button type="button" class="btn-add-products" (click)="openProductPicker()">
+                    <i class="pi pi-plus"></i>
+                    <span>Add Products</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Queue Items List -->
+              @if (queue().length === 0) {
+                <div class="empty-queue-box">
+                  <i class="pi pi-qrcode empty-icon"></i>
+                  <h4>No Products in Print Queue</h4>
+                  <p>Click "+ Add Products" to select items from your inventory catalog.</p>
+                  <button type="button" class="btn-select-now" (click)="openProductPicker()">
+                    <i class="pi pi-plus"></i>
+                    <span>Select Products Now</span>
+                  </button>
+                </div>
+              } @else {
+                <div class="queue-items-list">
+                  @for (item of queue(); track item.productId; let idx = $index) {
+                    <div class="queue-item-card">
+                      <div class="item-main-info">
+                        <div class="item-name-row">
+                          <span class="item-name">{{ item.productName }}</span>
+                          @if (item.variantAttrs) {
+                            <span class="item-variant">{{ item.variantAttrs }}</span>
+                          }
+                        </div>
+                        <div class="item-meta-row">
+                          <span class="meta-tag">Barcode: <strong>{{ item.barcode }}</strong></span>
+                          <span class="meta-tag">Price: <strong>{{ item.retailPrice | number:'1.2-2' }} SAR</strong></span>
+                        </div>
+
+                        <!-- Optional Batch & Expiry Inputs -->
+                        @if (settings.requireBatchNumber || settings.requireExpiryDate) {
+                          <div class="tracking-inputs-row">
+                            @if (settings.requireBatchNumber) {
+                              <input 
+                                type="text" 
+                                placeholder="Batch #" 
+                                [(ngModel)]="item.batchNumber" 
+                                class="track-input" />
+                            }
+                            @if (settings.requireExpiryDate) {
+                              <input 
+                                type="date" 
+                                [(ngModel)]="item.expiryDate" 
+                                class="track-input" />
+                            }
+                          </div>
+                        }
+                      </div>
+
+                      <div class="item-controls">
+                        <!-- Copies Counter -->
+                        <div class="copies-stepper">
+                          <button type="button" class="step-btn" (click)="updateCopies(idx, -1)">-</button>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            [ngModel]="item.copiesCount" 
+                            (ngModelChange)="setCopiesManual(idx, $event)" 
+                            class="copies-input" />
+                          <button type="button" class="step-btn" (click)="updateCopies(idx, 1)">+</button>
+                        </div>
+
+                        <!-- Remove Button -->
+                        <button type="button" class="btn-remove-item" (click)="removeQueueItem(idx)" title="Remove product">
+                          <i class="pi pi-times"></i>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <!-- TAB 2: LABEL & PAPER SETTINGS -->
+          @if (activeTab() === 'settings') {
+            <div class="settings-pane">
+              <!-- Preset Selector -->
+              <div class="settings-card">
+                <div class="card-header-row">
+                  <i class="pi pi-print text-blue"></i>
+                  <h4>Paper & Barcode Setting Presets</h4>
+                </div>
+
+                <div class="form-group">
+                  <label>Select Standard Sheet or Thermal Roll Preset</label>
+                  <select 
+                    [ngModel]="selectedPresetKey()" 
+                    (ngModelChange)="selectedPresetKey.set($event)">
+                    @for (preset of presets; track preset.key) {
+                      <option [value]="preset.key">{{ preset.name }} ({{ preset.description }})</option>
+                    }
+                  </select>
+                </div>
+
+                <!-- Specs Box -->
+                <div class="preset-specs-box">
+                  <div class="spec-row">
+                    <span>Type:</span>
+                    <strong>{{ selectedPreset().isRoll ? 'Continuous Roll (Thermal)' : 'Standard Sheet (Laser/Inkjet)' }}</strong>
+                  </div>
+                  <div class="spec-row">
+                    <span>Label Dimensions:</span>
+                    <strong>{{ selectedPreset().labelWidthMm }} mm x {{ selectedPreset().labelHeightMm }} mm</strong>
+                  </div>
+                  <div class="spec-row">
+                    <span>Grid Layout:</span>
+                    <strong>{{ selectedPreset().isRoll ? '1 Column Stream' : selectedPreset().columns + ' Cols x ' + selectedPreset().rows + ' Rows (' + selectedPreset().labelsPerPage + ' per sheet)' }}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Shop Information Toggles -->
+              <div class="settings-card">
+                <div class="card-header-row">
+                  <i class="pi pi-building text-blue"></i>
+                  <h4>Shop / Business Information</h4>
+                </div>
+
+                <div class="toggle-list">
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showShopName" />
+                    <span>Show Shop Name</span>
+                  </label>
+                  @if (settings.showShopName) {
+                    <input type="text" [(ngModel)]="settings.shopName" placeholder="Shop Name" class="nested-input" />
+                  }
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showShopPhone" />
+                    <span>Show Shop Phone Number</span>
+                  </label>
+                  @if (settings.showShopPhone) {
+                    <input type="text" [(ngModel)]="settings.shopPhone" placeholder="Phone Number" class="nested-input" />
+                  }
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showShopAddress" />
+                    <span>Show Store Address</span>
+                  </label>
+                  @if (settings.showShopAddress) {
+                    <input type="text" [(ngModel)]="settings.shopAddress" placeholder="Address" class="nested-input" />
+                  }
+                </div>
+              </div>
+
+              <!-- Product Info & Symbology -->
+              <div class="settings-card">
+                <div class="card-header-row">
+                  <i class="pi pi-barcode text-blue"></i>
+                  <h4>Product Info & Symbology</h4>
+                </div>
+
+                <div class="toggle-list">
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showProductName" />
+                    <span>Show Product Name & Variant</span>
+                  </label>
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showBarcode" />
+                    <span>Show 1D Barcode (Code-128)</span>
+                  </label>
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showBarcodeText" />
+                    <span>Show Human-Readable Barcode Digits</span>
+                  </label>
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showQrCode" />
+                    <span>Show 2D QR Code</span>
+                  </label>
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showHsnCode" />
+                    <span>Show HSN / Product Category Code</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Price Information -->
+              <div class="settings-card">
+                <div class="card-header-row">
+                  <i class="pi pi-wallet text-blue"></i>
+                  <h4>Price Information</h4>
+                </div>
+
+                <div class="toggle-list">
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showRetailPrice" />
+                    <span>Show Retail Selling Price (SAR)</span>
+                  </label>
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showWholesalePrice" />
+                    <span>Show Wholesale Price</span>
+                  </label>
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showDiscountPrice" />
+                    <span>Show Discounted / Promotional Price</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Tracking & Expiry -->
+              <div class="settings-card">
+                <div class="card-header-row">
+                  <i class="pi pi-calendar text-blue"></i>
+                  <h4>Tracking, Batch & Expiry</h4>
+                </div>
+
+                <div class="toggle-list">
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showPackingDate" />
+                    <span>Show Packaging Date</span>
+                  </label>
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.requireExpiryDate" />
+                    <span>Show Expiry Date</span>
+                  </label>
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.requireBatchNumber" />
+                    <span>Show Batch Number</span>
+                  </label>
+
+                  <label class="toggle-item">
+                    <input type="checkbox" [(ngModel)]="settings.showLabelDimensions" />
+                    <span>Show Label Size Indicator</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: WYSIWYG LIVE PREVIEW -->
+    <div class="workspace-right">
+      <div class="preview-card">
+        <div class="preview-header">
+          <div class="preview-title-left">
+            <i class="pi pi-eye text-blue"></i>
+            <div>
+              <h3>WYSIWYG Live Sheet Preview</h3>
+              <p>{{ selectedPreset().name }} • Page 1 of {{ pagesCount() }}</p>
+            </div>
+          </div>
+          <button type="button" class="btn-refresh-preview" (click)="triggerPrint()">
+            <i class="pi pi-print"></i>
+            <span>Print Sheet</span>
+          </button>
+        </div>
+
+        <!-- Preview Sheet Canvas -->
+        <div class="preview-canvas-viewport">
+          <div 
+            class="sheet-preview-paper" 
+            [class.roll-mode]="selectedPreset().isRoll"
+            [ngClass]="'grid-cols-' + selectedPreset().columns">
+            @for (label of flattenedLabels(); track $index) {
+              <div class="single-label-sticker" [class.thermal-sticker]="selectedPreset().isRoll">
+                <!-- Shop Header -->
+                @if (settings.showShopName) {
+                  <div class="label-shop-name">{{ settings.shopName }}</div>
+                }
+                @if (settings.showShopPhone) {
+                  <div class="label-shop-phone">Tel: {{ settings.shopPhone }}</div>
+                }
+
+                <!-- Product Name -->
+                @if (settings.showProductName) {
+                  <div class="label-prod-name" [title]="label.productName">
+                    {{ label.productName }}
+                    @if (label.variantAttrs) {
+                      <span class="label-variant">({{ label.variantAttrs }})</span>
+                    }
+                  </div>
+                }
+
+                <!-- Barcode & QR Code Section -->
+                <div class="label-codes-row">
+                  @if (settings.showBarcode) {
+                    <div class="label-barcode-svg" [innerHTML]="getBarcodeSvg(label.barcode)"></div>
+                  }
+                  @if (settings.showQrCode && label.qrDataUrl) {
+                    <img [src]="label.qrDataUrl" alt="QR" class="label-qr-img" />
+                  }
+                </div>
+
+                <!-- Barcode Text -->
+                @if (settings.showBarcodeText) {
+                  <div class="label-barcode-text">{{ label.barcode }}</div>
+                }
+
+                <!-- Price & Tracking Footer -->
+                <div class="label-footer-row">
+                  @if (settings.showRetailPrice) {
+                    <div class="label-price-tag">
+                      <span class="price-val">{{ label.retailPrice | number:'1.2-2' }}</span>
+                      <span class="currency-val">{{ settings.currencySymbol }}</span>
+                    </div>
+                  }
+
+                  <div class="label-dates-meta">
+                    @if (settings.requireExpiryDate && label.expiryDate) {
+                      <span>Exp: {{ label.expiryDate }}</span>
+                    }
+                    @if (settings.requireBatchNumber && label.batchNumber) {
+                      <span>B: {{ label.batchNumber }}</span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Dimensions Indicator -->
+                @if (settings.showLabelDimensions) {
+                  <div class="label-dimension-tag">
+                    {{ selectedPreset().labelWidthMm }}x{{ selectedPreset().labelHeightMm }}mm
+                  </div>
+                }
+              </div>
+            } @empty {
+              <div class="empty-sheet-msg">
+                <i class="pi pi-inbox"></i>
+                <p>No labels in print queue</p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINT-ONLY SHEET CANVAS (@media print) -->
+  <div id="printable-labels-sheet" class="print-only-sheet" [class.roll-mode]="selectedPreset().isRoll">
+    <div 
+      class="print-grid" 
+      [ngClass]="'grid-cols-' + selectedPreset().columns">
+      @for (label of flattenedLabels(); track $index) {
+        <div class="print-label-item" [class.thermal-item]="selectedPreset().isRoll">
+          @if (settings.showShopName) {
+            <div class="p-shop-name">{{ settings.shopName }}</div>
+          }
+          @if (settings.showShopPhone) {
+            <div class="p-shop-phone">Tel: {{ settings.shopPhone }}</div>
+          }
+          @if (settings.showProductName) {
+            <div class="p-prod-name">
+              {{ label.productName }}
+              @if (label.variantAttrs) {
+                <span>({{ label.variantAttrs }})</span>
+              }
+            </div>
+          }
+          <div class="p-codes-row">
+            @if (settings.showBarcode) {
+              <div class="p-barcode-svg" [innerHTML]="getBarcodeSvg(label.barcode)"></div>
+            }
+            @if (settings.showQrCode && label.qrDataUrl) {
+              <img [src]="label.qrDataUrl" alt="QR" class="p-qr-img" />
+            }
+          </div>
+          @if (settings.showBarcodeText) {
+            <div class="p-barcode-text">{{ label.barcode }}</div>
+          }
+          <div class="p-footer-row">
+            @if (settings.showRetailPrice) {
+              <div class="p-price">
+                <strong>{{ label.retailPrice | number:'1.2-2' }}</strong> {{ settings.currencySymbol }}
+              </div>
+            }
+            <div class="p-dates">
+              @if (settings.requireExpiryDate && label.expiryDate) {
+                <span>Exp: {{ label.expiryDate }}</span>
+              }
+              @if (settings.requireBatchNumber && label.batchNumber) {
+                <span>B: {{ label.batchNumber }}</span>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL: PRODUCT CATALOG PICKER -->
+<!-- ======================================================== -->
+@if (showProductPickerModal()) {
+  <div class="modal-backdrop" (click)="closeProductPicker()">
+    <div class="modal-content picker-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge blue">
+            <i class="pi pi-box"></i>
+          </div>
+          <div>
+            <h3>Select Products for Label Printing</h3>
+            <p>Search and click to add items to your active printing queue</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeProductPicker()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="picker-search-bar">
+        <i class="pi pi-search"></i>
+        <input 
+          type="text" 
+          placeholder="Search by product name, SKU, or barcode..." 
+          [ngModel]="pickerSearch()" 
+          (ngModelChange)="pickerSearch.set($event)" />
+      </div>
+
+      <div class="modal-body picker-body">
+        @if (isLoadingProducts()) {
+          <div class="picker-loading">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Loading catalog products...</span>
+          </div>
+        } @else {
+          <div class="picker-products-list">
+            @for (prod of filteredPickerProducts(); track prod.id) {
+              <div class="picker-item-row" (click)="addProductToQueue(prod)">
+                <div class="picker-item-info">
+                  <span class="picker-name">{{ prod.name || prod.productName }}</span>
+                  <div class="picker-meta">
+                    <span>SKU: {{ prod.sku || 'N/A' }}</span>
+                    <span>Barcode: {{ prod.barcode || 'N/A' }}</span>
+                    <span>Stock: {{ prod.stockQuantity || 0 }}</span>
+                  </div>
+                </div>
+                <div class="picker-item-action">
+                  <span class="picker-price">{{ prod.price | number:'1.2-2' }} SAR</span>
+                  <button type="button" class="btn-picker-add">
+                    <i class="pi pi-plus"></i>
+                    Add
+                  </button>
+                </div>
+              </div>
+            } @empty {
+              <div class="empty-picker-state">
+                <p>No products match "{{ pickerSearch() }}"</p>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" (click)="closeProductPicker()">Done</button>
+      </div>
+    </div>
+  </div>
+}

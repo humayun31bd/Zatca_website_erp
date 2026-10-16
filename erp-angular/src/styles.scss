@@ -1,0 +1,130 @@
+/* PrimeIcons & PrimeFlex */
+@import 'primeicons/primeicons.css';
+@import 'primeflex/primeflex.css';
+
+:root {
+  /* POS screen */
+  --font-pos: "Inter", "Roboto", "Noto Sans", system-ui, sans-serif;
+  /* Receipt / transaction details */
+  --font-receipt: "Roboto Mono", "IBM Plex Mono", monospace;
+  /* Arabic support */
+  --font-arabic-support: "Inter", "Noto Sans Arabic", "Roboto", sans-serif;
+
+  /* Standard Application Typography Tokens */
+  --font-sans: var(--font-pos);
+  --font-arabic: var(--font-arabic-support);
+  --font-mono: var(--font-receipt);
+  --font-family: var(--font-pos);
+
+  /* Spec colors from erp-frontend erp_sidebar.dart (_C) */
+  --sidebar-bg: #0F172A;
+  --sidebar-bg-hover: #1F2937;
+  --sidebar-bg-active: #2563EB;
+  --sidebar-text-primary: #F1F5F9;
+  --sidebar-text-secondary: #9CA3AF;
+  --sidebar-text-muted: #64748B;
+  --sidebar-divider: #1E293B;
+  --sidebar-search-bg: #1E293B;
+  --sidebar-focus-outline: #93C5FD;
+  --sidebar-badge-red: #EF4444;
+
+  /* ERP Core Palette */
+  --primary: #2563EB;
+  --primary-dark: #1D4ED8;
+  --emerald: #059669;
+  --emerald-dark: #064E3B;
+  --accent: #D4AF37;
+  --whatsapp: #25D366;
+  --bg-dark: #0F172A;
+  --bg-card: #1E293B;
+  --bg-light: #F8FAFC;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --border: #E2E8F0;
+  --border-dark: #334155;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  --primary-color: #2563EB;
+  --primary-color-text: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  background-color: var(--bg-light);
+  color: #1e293b;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1;
+}
+
+/* Headings crisp modern typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.02em;
+}
+
+/* Tabular figures for financial and tabular accuracy */
+.tabular-nums,
+table,
+.salary-cell,
+.id-number,
+.stat-value,
+.stat-number,
+.metric-value,
+.code-tag {
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* POS screen typography utility */
+.font-pos,
+.pos-screen {
+  font-family: var(--font-pos);
+}
+
+/* Receipt / transaction details monospace font utility */
+.font-receipt,
+.font-mono,
+.id-cell,
+.invoice-code,
+.voucher-num,
+.thermal-receipt,
+.transaction-detail {
+  font-family: var(--font-receipt);
+}
+
+/* Arabic typography support */
+.font-arabic,
+.text-arabic,
+.arabic-support,
+[lang="ar"],
+[dir="rtl"] {
+  font-family: var(--font-arabic-support);
+}
+
+/* Custom scrollbars for enterprise look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

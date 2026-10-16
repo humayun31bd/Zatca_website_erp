@@ -1,0 +1,901 @@
+CREATE TABLE "__drizzle_migrations" (
+				id SERIAL PRIMARY KEY,
+				hash text NOT NULL,
+				created_at numeric
+			)
+CREATE TABLE "apparel_product_types" (
+	`id` text PRIMARY KEY NOT NULL,
+	`type_name` text NOT NULL
+)
+CREATE TABLE "brands" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`brand_name` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "colors" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`color_name` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "countries_of_origin" (
+	`id` text PRIMARY KEY NOT NULL,
+	`country_name` text NOT NULL,
+	`country_code` text
+)
+CREATE TABLE "dosage_forms" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`form_name` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "genders" (
+	`id` text PRIMARY KEY NOT NULL,
+	`gender_name` text NOT NULL
+)
+CREATE TABLE "manufacturers" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`manufacturer_name` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "marketing_authorization_holders" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`holder_name` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "modifier_groups" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`is_required` integer DEFAULT false,
+	`min_selections` integer DEFAULT 0,
+	`max_selections` integer,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "product_batches" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`product_id` text NOT NULL,
+	`batch_number` text NOT NULL,
+	`manufacturing_date` integer,
+	`expiry_date` integer NOT NULL,
+	`quantity` real NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`product_id`) REFERENCES `unified_products`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "product_bundle_items" (
+	`id` text PRIMARY KEY NOT NULL,
+	`bundle_product_id` text NOT NULL,
+	`component_product_id` text NOT NULL,
+	`quantity` real NOT NULL,
+	FOREIGN KEY (`bundle_product_id`) REFERENCES `unified_products`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`component_product_id`) REFERENCES `unified_products`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "product_compliances" (
+	`product_id` text PRIMARY KEY NOT NULL,
+	`hs_code` text,
+	`country_of_origin_id` text,
+	`compliance_data` text DEFAULT '{}' NOT NULL,
+	`compliance_status` text DEFAULT 'PENDING',
+	`last_verified_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)),
+	FOREIGN KEY (`product_id`) REFERENCES `unified_products`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`country_of_origin_id`) REFERENCES `countries_of_origin`(`id`) ON UPDATE no action ON DELETE no action
+)
+CREATE TABLE "product_modifiers" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`group_id` text NOT NULL,
+	`name` text NOT NULL,
+	`price_adjustment` real DEFAULT 0,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`group_id`) REFERENCES `modifier_groups`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "product_types" (
+	`id` text PRIMARY KEY NOT NULL,
+	`type_name` text NOT NULL
+)
+CREATE TABLE "serial_numbers" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`product_id` text NOT NULL,
+	`serial_number` text NOT NULL,
+	`status` text DEFAULT 'IN_STOCK' NOT NULL,
+	`associated_sale_id` text,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`product_id`) REFERENCES `unified_products`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "sizes" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`size_name` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "storage_conditions" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`condition_name` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "strengths" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`strength_value` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "tax_categories" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`category_name` text NOT NULL,
+	`tax_rate` real NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "unified_product_modifier_groups" (
+	`product_id` text NOT NULL,
+	`group_id` text NOT NULL,
+	FOREIGN KEY (`product_id`) REFERENCES `unified_products`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`group_id`) REFERENCES `modifier_groups`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "unified_products" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`category_id` text,
+	`parent_product_id` text,
+	`sku` text NOT NULL,
+	`product_name` text NOT NULL,
+	`description` text,
+	`brand_id` text,
+	`barcode` text,
+	`product_type_id` text,
+	`image_urls` text DEFAULT '[]' NOT NULL,
+	`unit_id` text,
+	`pack_size` text,
+	`cost_price` real DEFAULT 0,
+	`base_selling_price` real NOT NULL,
+	`discounted_price` real,
+	`tax_category_id` text,
+	`weight_kg` real,
+	`length_cm` real,
+	`width_cm` real,
+	`height_cm` real,
+	`model_number` text,
+	`color_id` text,
+	`storage_capacity` text,
+	`ram` text,
+	`warranty_months` integer DEFAULT 0,
+	`requires_serial_tracking` integer DEFAULT false,
+	`generic_name` text,
+	`active_ingredient` text,
+	`strength_id` text,
+	`dosage_form_id` text,
+	`manufacturer_id` text,
+	`marketing_auth_holder_id` text,
+	`is_prescription_required` integer DEFAULT false,
+	`controlled_substance_schedule` text,
+	`storage_condition_id` text,
+	`requires_batch_tracking` integer DEFAULT false,
+	`apparel_product_type_id` text,
+	`fiber_composition` text,
+	`gender_id` text,
+	`age_group_id` text,
+	`size_id` text,
+	`is_underwear` integer DEFAULT false,
+	`is_active` integer DEFAULT true,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`parent_product_id`) REFERENCES `unified_products`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`brand_id`) REFERENCES `brands`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`product_type_id`) REFERENCES `product_types`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`unit_id`) REFERENCES `units`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`tax_category_id`) REFERENCES `tax_categories`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`color_id`) REFERENCES `colors`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`strength_id`) REFERENCES `strengths`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`dosage_form_id`) REFERENCES `dosage_forms`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`manufacturer_id`) REFERENCES `manufacturers`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`marketing_auth_holder_id`) REFERENCES `marketing_authorization_holders`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`storage_condition_id`) REFERENCES `storage_conditions`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`apparel_product_type_id`) REFERENCES `apparel_product_types`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`gender_id`) REFERENCES `genders`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`age_group_id`) REFERENCES `age_groups`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`size_id`) REFERENCES `sizes`(`id`) ON UPDATE no action ON DELETE no action
+)
+CREATE TABLE "cash_drawer_transactions" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`cashier_id` text,
+	`type` text NOT NULL,
+	`amount` real NOT NULL,
+	`reason` text NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action
+)
+CREATE TABLE "held_carts" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`cashier_id` text,
+	`customer_name` text,
+	`note` text,
+	`total_amount` real NOT NULL,
+	`items` text NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action
+)
+CREATE TABLE "api_keys" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`keyHash` text NOT NULL,
+	`prefix` text NOT NULL,
+	`scopes` text DEFAULT '["INVOICE:READ"]' NOT NULL,
+	`rate_limit` integer DEFAULT 500 NOT NULL,
+	`last_used_at` integer,
+	`expires_at` integer,
+	`is_active` integer DEFAULT true NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "warehouses" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`branch_id` text NOT NULL,
+	`name` text NOT NULL,
+	`location` text,
+	`is_active` integer DEFAULT true NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`branch_id`) REFERENCES `branches`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "audit_logs" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text,
+	`actor_type` text NOT NULL,
+	`action` text NOT NULL,
+	`resource_type` text,
+	`resource_id` text,
+	`metadata` text,
+	`ip_address` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "actor_type_check" CHECK("audit_logs"."actor_type" IN ('TENANT','ADMIN','SYSTEM'))
+)
+CREATE TABLE "billing_credits" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`transaction_type` text NOT NULL,
+	`amount` real NOT NULL,
+	`balance_after` real NOT NULL,
+	`description` text,
+	`invoice_id` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "transaction_type_check" CHECK("billing_credits"."transaction_type" IN ('TOPUP','DEDUCT','REFUND'))
+)
+CREATE TABLE "branch_inventory" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`branch_id` text NOT NULL,
+	`product_id` text NOT NULL,
+	`stock_quantity` integer DEFAULT 0 NOT NULL,
+	`min_stock_level` integer DEFAULT 5 NOT NULL,
+	`shelf_location` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`branch_id`) REFERENCES `branches`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "branch_stock_check" CHECK("branch_inventory"."stock_quantity" >= 0)
+)
+CREATE TABLE "branches" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`address` text,
+	`is_main_branch` integer DEFAULT false NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "cash_book_entries" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`type` text NOT NULL,
+	`amount` real NOT NULL,
+	`category` text,
+	`description` text,
+	`reference_id` text,
+	`entry_date` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "cash_book_type_check" CHECK("cash_book_entries"."type" IN ('IN','OUT'))
+)
+CREATE TABLE "categories" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`description` text,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "clients" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`vatNumber` text,
+	`address` text,
+	`email` text,
+	`phone_number` text,
+	`country` text,
+	`state` text,
+	`city` text,
+	`customer_type` text DEFAULT 'newCustomer',
+	`funds` real DEFAULT 0,
+	`dues` real DEFAULT 0,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "counter_sessions" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`counter_id` text NOT NULL,
+	`user_id` text NOT NULL,
+	`opened_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`closed_at` integer,
+	`opening_balance` real DEFAULT 0 NOT NULL,
+	`closing_balance` real,
+	`cash_sales` real DEFAULT 0,
+	`transfer_amount` real DEFAULT 0,
+	`status` text DEFAULT 'OPEN' NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`counter_id`) REFERENCES `counters`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "session_status_check" CHECK("counter_sessions"."status" IN ('OPEN','CLOSED'))
+)
+CREATE TABLE "counters" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`branch_id` text NOT NULL,
+	`name` text NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`branch_id`) REFERENCES `branches`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "csid_certificates" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`type` text NOT NULL,
+	`compliance_request_id` text,
+	`binary_security_token` text NOT NULL,
+	`secret` text NOT NULL,
+	`kms_key_id` text,
+	`issued_at` integer NOT NULL,
+	`expires_at` integer NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "type_check" CHECK("csid_certificates"."type" IN ('COMPLIANCE','PRODUCTION'))
+)
+CREATE TABLE "invoice_line_items" (
+	`id` text PRIMARY KEY NOT NULL,
+	`invoice_id` text NOT NULL,
+	`product_id` text,
+	`line_number` integer NOT NULL,
+	`description` text NOT NULL,
+	`quantity` real NOT NULL,
+	`unit_code` text DEFAULT 'PCE' NOT NULL,
+	`unit_price` real NOT NULL,
+	`discount_amount` real DEFAULT 0 NOT NULL,
+	`tax_percent` real DEFAULT 15 NOT NULL,
+	`tax_amount` real NOT NULL,
+	`line_total` real NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "quantity_check" CHECK("invoice_line_items"."quantity" > 0),
+	CONSTRAINT "unit_price_check" CHECK("invoice_line_items"."unit_price" >= 0)
+)
+CREATE TABLE "invoice_payments" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`invoice_id` text NOT NULL,
+	`payment_method` text NOT NULL,
+	`amount` real NOT NULL,
+	`reference_number` text,
+	`payment_date` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "payment_method_check" CHECK("invoice_payments"."payment_method" IN ('CASH','CARD','BANK','CREDIT')),
+	CONSTRAINT "amount_check" CHECK("invoice_payments"."amount" >= 0)
+)
+CREATE TABLE "invoices" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`client_id` text,
+	`counter_id` text,
+	`branch_id` text,
+	`cost_center_id` text,
+	`original_invoice_id` text,
+	`invoice_number` text NOT NULL,
+	`invoice_type` text NOT NULL,
+	`invoiceTypeCode` text DEFAULT '388' NOT NULL,
+	`seller_name` text NOT NULL,
+	`sellerVat` text NOT NULL,
+	`seller_address` text NOT NULL,
+	`buyer_name` text,
+	`buyerVat` text,
+	`buyer_address` text,
+	`subtotal_amount` real NOT NULL,
+	`total_vat_amount` real NOT NULL,
+	`total_amount` real NOT NULL,
+	`currencyCode` text DEFAULT 'SAR' NOT NULL,
+	`issue_datetime` integer NOT NULL,
+	`invoiceHash` text,
+	`previousHash` text,
+	`ubl_xml_s3_key` text,
+	`pdf_s3_key` text,
+	`qr_code_base64` text,
+	`zatca_status` text DEFAULT 'PENDING' NOT NULL,
+	`zatca_warnings` text,
+	`zatca_errors` text,
+	`zatca_cleared_at` integer,
+	`whatsapp_status` text DEFAULT 'PENDING' NOT NULL,
+	`payment_status` text DEFAULT 'UNPAID' NOT NULL,
+	`payment_gateway` text,
+	`paid_at` integer,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`counter_id`) REFERENCES `counters`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`branch_id`) REFERENCES `branches`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "invoice_type_check" CHECK("invoices"."invoice_type" IN ('STANDARD','SIMPLIFIED')),
+	CONSTRAINT "invoice_type_code_check" CHECK("invoices"."invoiceTypeCode" IN ('388','381','383')),
+	CONSTRAINT "zatca_status_check" CHECK("invoices"."zatca_status" IN ('PENDING','CLEARED','REPORTED','FAILED','QUEUED')),
+	CONSTRAINT "whatsapp_status_check" CHECK("invoices"."whatsapp_status" IN ('PENDING','QUEUED','SENT','DELIVERED','READ','FAILED')),
+	CONSTRAINT "payment_status_check" CHECK("invoices"."payment_status" IN ('UNPAID','PAID','REFUNDED','PARTIAL'))
+)
+CREATE TABLE "login_attempts" (
+	`id` text PRIMARY KEY NOT NULL,
+	`email` text NOT NULL,
+	`attempts` integer DEFAULT 0 NOT NULL,
+	`locked_until` integer,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL
+)
+CREATE TABLE "packages" (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`type` text NOT NULL,
+	`price` real NOT NULL,
+	`billing_cycle` text DEFAULT 'MONTHLY' NOT NULL,
+	`features` text NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	CONSTRAINT "type_check" CHECK("packages"."type" IN ('AGENCY','END_USER')),
+	CONSTRAINT "billing_cycle_check" CHECK("packages"."billing_cycle" IN ('MONTHLY','YEARLY'))
+)
+CREATE TABLE "product_units" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`product_id` text NOT NULL,
+	`unit_code` text NOT NULL,
+	`conversion_factor` real NOT NULL,
+	`barcode` text,
+	`price` real,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "conversion_factor_check" CHECK("product_units"."conversion_factor" > 0),
+	CONSTRAINT "unit_price_check" CHECK("product_units"."price" IS NULL OR "product_units"."price" >= 0)
+)
+CREATE TABLE "products" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`category_id` text,
+	`name` text NOT NULL,
+	`barcode` text,
+	`unit_code` text DEFAULT 'PCE' NOT NULL,
+	`description` text,
+	`price` real NOT NULL,
+	`cost_price` real,
+	`stock_quantity` integer DEFAULT 0 NOT NULL,
+	`min_stock_level` integer DEFAULT 5 NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "price_check" CHECK("products"."price" >= 0),
+	CONSTRAINT "stock_check" CHECK("products"."stock_quantity" >= 0)
+)
+CREATE TABLE "purchase_invoice_line_items" (
+	`id` text PRIMARY KEY NOT NULL,
+	`purchase_invoice_id` text NOT NULL,
+	`product_id` text,
+	`description` text NOT NULL,
+	`quantity` real NOT NULL,
+	`unit_price` real NOT NULL,
+	`vat_rate` real DEFAULT 15 NOT NULL,
+	`subtotal_amount` real NOT NULL,
+	`vat_amount` real NOT NULL,
+	`total_amount` real NOT NULL,
+	FOREIGN KEY (`purchase_invoice_id`) REFERENCES `purchase_invoices`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE no action
+)
+CREATE TABLE "purchase_invoices" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`supplier_id` text NOT NULL,
+	`invoice_number` text NOT NULL,
+	`issue_date` integer NOT NULL,
+	`due_date` integer,
+	`subtotal_amount` real NOT NULL,
+	`total_vat_amount` real NOT NULL,
+	`total_amount` real NOT NULL,
+	`payment_status` text DEFAULT 'UNPAID' NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "purchase_payment_status_check" CHECK("purchase_invoices"."payment_status" IN ('UNPAID','PAID','PARTIAL'))
+)
+CREATE TABLE "sub_categories" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`category_id` text NOT NULL,
+	`name` text NOT NULL,
+	`description` text,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "subscriptions" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`package_id` text NOT NULL,
+	`status` text DEFAULT 'ACTIVE' NOT NULL,
+	`current_period_start` integer NOT NULL,
+	`current_period_end` integer NOT NULL,
+	`cancel_at_period_end` integer DEFAULT false NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`package_id`) REFERENCES `packages`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "status_check" CHECK("subscriptions"."status" IN ('ACTIVE','CANCELED','PAST_DUE','TRIAL'))
+)
+CREATE TABLE "suppliers" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`vatNumber` text,
+	`cr_number` text,
+	`address` text,
+	`email` text,
+	`phone_number` text,
+	`bank_details` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "tenant_settings" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`business_type` text DEFAULT 'Retail' NOT NULL,
+	`product_policy` text DEFAULT '{}' NOT NULL,
+	`receipt_settings` text DEFAULT '{}' NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "tenant_translations" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`key` text NOT NULL,
+	`en_value` text NOT NULL,
+	`ar_value` text NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "tenants" (
+	`id` text PRIMARY KEY NOT NULL,
+	`parent_tenant_id` text,
+	`name` text NOT NULL,
+	`vatNumber` text NOT NULL,
+	`email` text NOT NULL,
+	`subdomain` text,
+	`logo_url` text,
+	`status` text DEFAULT 'ACTIVE' NOT NULL,
+	`whatsapp_number` text,
+	`payment_gateway` text DEFAULT 'TAP' NOT NULL,
+	`stripe_secret_key` text,
+	`tap_secret_key` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`parent_tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "status_check" CHECK("tenants"."status" IN ('ACTIVE','SUSPENDED','PENDING')),
+	CONSTRAINT "gateway_check" CHECK("tenants"."payment_gateway" IN ('TAP','STRIPE'))
+)
+CREATE TABLE "units" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`short_name` text NOT NULL,
+	`base_unit` integer DEFAULT true NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "users" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text,
+	`email` text NOT NULL,
+	`password_hash` text NOT NULL,
+	`role` text DEFAULT 'TENANT_USER' NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action
+)
+CREATE TABLE "variation_templates" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "variation_values" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`template_id` text NOT NULL,
+	`value` text NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`template_id`) REFERENCES `variation_templates`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "webhook_events" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text,
+	`source` text NOT NULL,
+	`event_type` text NOT NULL,
+	`reference_id` text,
+	`payload` text NOT NULL,
+	`is_processed` integer DEFAULT false NOT NULL,
+	`processed_at` integer,
+	`error_message` text,
+	`received_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "source_check" CHECK("webhook_events"."source" IN ('META','MOYASAR','PAYTABS','ZATCA'))
+)
+CREATE TABLE "whatsapp_messages" (
+	`id` text PRIMARY KEY NOT NULL,
+	`invoice_id` text NOT NULL,
+	`tenant_id` text NOT NULL,
+	`wa_message_id` text,
+	`phone_number` text NOT NULL,
+	`template_name` text NOT NULL,
+	`payload` text NOT NULL,
+	`status` text DEFAULT 'QUEUED' NOT NULL,
+	`error_code` text,
+	`error_message` text,
+	`sent_at` integer,
+	`delivered_at` integer,
+	`read_at` integer,
+	`failed_at` integer,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "status_check" CHECK("whatsapp_messages"."status" IN ('QUEUED','SENT','DELIVERED','READ','FAILED'))
+)
+CREATE TABLE "attendance" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`employee_id` text NOT NULL,
+	`date` integer NOT NULL,
+	`check_in` integer,
+	`check_out` integer,
+	`status` text DEFAULT 'PRESENT' NOT NULL,
+	`notes` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "attendance_status_check" CHECK("attendance"."status" IN ('PRESENT','ABSENT','LATE','LEAVE'))
+)
+CREATE TABLE "departments" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`description` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "designations" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`department_id` text NOT NULL,
+	`name` text NOT NULL,
+	`description` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "employees" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`user_id` text,
+	`department_id` text,
+	`designation_id` text,
+	`branch_id` text,
+	`first_name` text NOT NULL,
+	`last_name` text NOT NULL,
+	`email` text,
+	`phone` text,
+	`national_id` text,
+	`iqama_expiry_date` integer,
+	`passport_number` text,
+	`passport_expiry_date` integer,
+	`gosi_number` text,
+	`joining_date` integer,
+	`basic_salary` real DEFAULT 0,
+	`profile_picture` text,
+	`payment_method` text DEFAULT 'BANK' NOT NULL,
+	`status` text DEFAULT 'ACTIVE' NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`designation_id`) REFERENCES `designations`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`branch_id`) REFERENCES `branches`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "employee_status_check" CHECK("employees"."status" IN ('ACTIVE','INACTIVE','LEFT'))
+)
+CREATE TABLE "leave_requests" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`employee_id` text NOT NULL,
+	`leave_type` text NOT NULL,
+	`start_date` integer NOT NULL,
+	`end_date` integer NOT NULL,
+	`duration_days` real NOT NULL,
+	`status` text DEFAULT 'PENDING' NOT NULL,
+	`reason` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "leave_status_check" CHECK("leave_requests"."status" IN ('PENDING','MANAGER_APPROVED','APPROVED','REJECTED'))
+)
+CREATE TABLE "loans" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`employee_id` text NOT NULL,
+	`amount` real NOT NULL,
+	`monthly_installment` real NOT NULL,
+	`remaining_amount` real NOT NULL,
+	`status` text DEFAULT 'PENDING' NOT NULL,
+	`reason` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "loan_status_check" CHECK("loans"."status" IN ('PENDING','APPROVED','ACTIVE','COMPLETED','REJECTED'))
+)
+CREATE TABLE "overtime" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`employee_id` text NOT NULL,
+	`date` integer NOT NULL,
+	`hours` real NOT NULL,
+	`status` text DEFAULT 'PENDING' NOT NULL,
+	`reason` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "overtime_status_check" CHECK("overtime"."status" IN ('PENDING','APPROVED','REJECTED'))
+)
+CREATE TABLE "payroll" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`employee_id` text NOT NULL,
+	`month` integer NOT NULL,
+	`year` integer NOT NULL,
+	`basic_salary` real DEFAULT 0 NOT NULL,
+	`allowances` real DEFAULT 0 NOT NULL,
+	`deductions` real DEFAULT 0 NOT NULL,
+	`net_salary` real DEFAULT 0 NOT NULL,
+	`payment_date` integer,
+	`payment_method` text,
+	`status` text DEFAULT 'DRAFT' NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "payroll_status_check" CHECK("payroll"."status" IN ('DRAFT','APPROVED','PAID'))
+)
+CREATE TABLE "accounts" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`code` text NOT NULL,
+	`name` text NOT NULL,
+	`type` text NOT NULL,
+	`account_subtype` text,
+	`level` integer NOT NULL,
+	`parent_id` text,
+	`is_control` integer DEFAULT false NOT NULL,
+	`is_transaction` integer DEFAULT false NOT NULL,
+	`is_cash_nature` integer DEFAULT false NOT NULL,
+	`is_bank_nature` integer DEFAULT false NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "account_type_check" CHECK("accounts"."type" IN ('ASSET','LIABILITY','EQUITY','REVENUE','EXPENSE')),
+	CONSTRAINT "account_level_check" CHECK("accounts"."level" BETWEEN 1 AND 5)
+)
+CREATE TABLE "cost_centers" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "financial_years" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`name` text NOT NULL,
+	`from_date` integer NOT NULL,
+	`to_date` integer NOT NULL,
+	`is_active` integer DEFAULT false NOT NULL,
+	`is_closed` integer DEFAULT false NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+)
+CREATE TABLE "journal_entries" (
+	`id` text PRIMARY KEY NOT NULL,
+	`tenant_id` text NOT NULL,
+	`entry_number` text NOT NULL,
+	`reference_type` text,
+	`reference_id` text,
+	`entry_date` integer NOT NULL,
+	`description` text,
+	`status` text DEFAULT 'DRAFT' NOT NULL,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "je_status_check" CHECK("journal_entries"."status" IN ('DRAFT','POSTED','VOID'))
+)
+CREATE TABLE "journal_entry_lines" (
+	`id` text PRIMARY KEY NOT NULL,
+	`journal_entry_id` text NOT NULL,
+	`account_id` text NOT NULL,
+	`debit` real DEFAULT 0 NOT NULL,
+	`credit` real DEFAULT 0 NOT NULL,
+	`description` text,
+	`branch_id` text,
+	`cost_center_id` text,
+	`category_id` text,
+	`supplier_id` text,
+	`client_id` text,
+	`counter_id` text,
+	`created_at` integer DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer)) NOT NULL,
+	FOREIGN KEY (`journal_entry_id`) REFERENCES `journal_entries`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`account_id`) REFERENCES `accounts`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`branch_id`) REFERENCES `branches`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`cost_center_id`) REFERENCES `cost_centers`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`counter_id`) REFERENCES `counters`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "debit_credit_check" CHECK("journal_entry_lines"."debit" >= 0 AND "journal_entry_lines"."credit" >= 0 AND ("journal_entry_lines"."debit" > 0 OR "journal_entry_lines"."credit" > 0))
+)
+CREATE TABLE "age_groups" (
+	`id` text PRIMARY KEY NOT NULL,
+	`age_group_name` text NOT NULL
+)

@@ -6,6 +6,11 @@ import bcrypt from 'bcrypt';
 import { createSession } from '@/lib/auth/session';
 import { z } from 'zod';
 
+// Simple in-memory rate limiting (Note: For multi-instance production, use Redis)
+const ipRateLimit = new Map<string, { count: number; resetTime: number }>();
+const MAX_IP_ATTEMPTS = 20;
+const IP_LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
 const LoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -13,6 +18,22 @@ const LoginSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // 1. IP-based Rate Limiting (Anti-Bot)
+    const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
+    if (ip !== 'unknown') {
+      const now = Date.now();
+      const ipRecord = ipRateLimit.get(ip);
+
+      if (ipRecord && now < ipRecord.resetTime) {
+        if (ipRecord.count >= MAX_IP_ATTEMPTS) {
+          return NextResponse.json({ error: 'Too many requests from this IP. Try again later.' }, { status: 429 });
+        }
+        ipRecord.count++;
+      } else {
+        ipRateLimit.set(ip, { count: 1, resetTime: now + IP_LOCK_DURATION_MS });
+      }
+    }
+
     const body = await request.json();
     const parseResult = LoginSchema.safeParse(body);
 
@@ -22,7 +43,7 @@ export async function POST(request: Request) {
 
     const { email, password } = parseResult.data;
 
-    // Check brute-force attempts
+    // 2. Email-based Brute-Force Check
     const attemptRecord = await db.select().from(loginAttempts).where(eq(loginAttempts.email, email)).limit(1);
 
     if (attemptRecord.length > 0) {
@@ -36,6 +57,8 @@ export async function POST(request: Request) {
 
     if (result.length === 0) {
       await recordFailedAttempt(email, attemptRecord[0]);
+      // 3. Tar-pitting: Artificial delay to thwart automated brute-forcing
+      await new Promise(resolve => setTimeout(resolve, 1500));
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
@@ -44,6 +67,8 @@ export async function POST(request: Request) {
 
     if (!passwordMatch) {
       await recordFailedAttempt(email, attemptRecord[0]);
+      // 3. Tar-pitting: Artificial delay to thwart automated brute-forcing
+      await new Promise(resolve => setTimeout(resolve, 1500));
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 

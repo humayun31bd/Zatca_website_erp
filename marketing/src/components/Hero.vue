@@ -1,30 +1,30 @@
 <template>
-  <section class="hero">
+  <section class="hero" :dir="currentLang === 'ar' ? 'rtl' : 'ltr'">
     <div class="container hero-inner">
       <div class="hero-content">
         <h1 class="hero-title">
-          ZATCA Compliance <br/>
-          <span class="highlight">Made Effortless.</span>
+          {{ t('hero.titlePre') }} <br/>
+          <span class="highlight">{{ t('hero.titleHighlight') }}</span>
         </h1>
         <p class="hero-subtitle">
-          The all-in-one ERP built specifically for Saudi retail and service businesses. 1-click invoicing, WhatsApp receipts, and zero-configuration local compliance.
+          {{ t('hero.subtitle') }}
         </p>
         <div class="hero-cta">
-          <a href="/register" class="btn btn-primary btn-lg">Get Started Free</a>
-          <a href="#demo" class="btn btn-outline btn-lg">Watch Demo</a>
+          <a :href="getErpUrl('/register')" class="btn btn-primary btn-lg">{{ t('hero.ctaPrimary') }}</a>
+          <a href="#pricing" class="btn btn-outline btn-lg">{{ t('hero.ctaSecondary') }}</a>
         </div>
         <div class="hero-stats">
           <div class="stat">
-            <span class="stat-number">100%</span>
-            <span class="stat-label">ZATCA Phase 2</span>
+            <span class="stat-number">{{ t('hero.stat1') }}</span>
+            <span class="stat-label">{{ t('hero.stat1Label') }}</span>
           </div>
           <div class="stat">
-            <span class="stat-number">< 500ms</span>
-            <span class="stat-label">Clearance Time</span>
+            <span class="stat-number">{{ t('hero.stat2') }}</span>
+            <span class="stat-label">{{ t('hero.stat2Label') }}</span>
           </div>
           <div class="stat">
-            <span class="stat-number">24/7</span>
-            <span class="stat-label">Local Support</span>
+            <span class="stat-number">{{ t('hero.stat3') }}</span>
+            <span class="stat-label">{{ t('hero.stat3Label') }}</span>
           </div>
         </div>
       </div>
@@ -49,6 +49,47 @@
     </div>
   </section>
 </template>
+
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+import { translations as allTranslations } from '../data/translations.js'
+import { getErpUrl } from '../config/env.js'
+
+const currentLang = ref('en')
+
+function t(key) {
+  const parts = key.split('.')
+  let obj = allTranslations[currentLang.value] || allTranslations['en']
+  for (const p of parts) {
+    if (obj && obj[p] !== undefined) {
+      obj = obj[p]
+    } else {
+      return key
+    }
+  }
+  return obj
+}
+
+const handleLangChange = (e) => {
+  if (e.detail) {
+    currentLang.value = e.detail
+  }
+}
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('user_lang')
+    if (saved) currentLang.value = saved
+    window.addEventListener('language-change', handleLangChange)
+  }
+})
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('language-change', handleLangChange)
+  }
+})
+</script>
 
 <style scoped>
 .hero {

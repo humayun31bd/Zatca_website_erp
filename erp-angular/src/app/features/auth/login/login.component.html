@@ -1,0 +1,134 @@
+<div class="login-container">
+  <!-- Brand Showcase Side (Desktop) -->
+  <div class="brand-panel">
+    <div class="brand-top">
+      <div class="brand-badge">
+        <i class="pi pi-box brand-icon"></i>
+        <span>Intelligent ERP</span>
+      </div>
+    </div>
+
+    <div class="brand-center">
+      <h1 class="hero-title">Next-Gen Enterprise Platform & ZATCA Compliance</h1>
+      <p class="hero-subtitle">
+        Unified financials, automated Phase-2 e-invoicing, supply chain procurement, and real-time ledger accounting.
+      </p>
+
+      <div class="features-list">
+        <div class="feature-item">
+          <i class="pi pi-check-circle feature-icon"></i>
+          <div>
+            <strong>Phase 2 ZATCA Clearance</strong>
+            <p>Cryptographic stamping & QR code compliance</p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <i class="pi pi-check-circle feature-icon"></i>
+          <div>
+            <strong>Real-time Multi-tenant Ledger</strong>
+            <p>Double-entry accounting with audit trails</p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <i class="pi pi-check-circle feature-icon"></i>
+          <div>
+            <strong>Procurement & 3-Way Match</strong>
+            <p>Purchase Orders, GRN inspection, and Received Bills</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-footer">
+      <span>© 2026 Intelligent ERP Systems. All rights reserved.</span>
+    </div>
+  </div>
+
+  <!-- Login Form Side -->
+  <div class="form-panel">
+    <div class="form-card">
+      <div class="form-header">
+        <h2 class="form-title">Welcome back</h2>
+        <p class="form-subtitle">Enter your corporate credentials to access your ERP portal</p>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <i class="pi pi-exclamation-triangle"></i>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+        <div class="field-group">
+          <label for="email" class="field-label">Email Address</label>
+          <div class="input-with-icon">
+            <i class="pi pi-envelope"></i>
+            <input 
+              id="email" 
+              type="email" 
+              pInputText 
+              formControlName="email" 
+              placeholder="name@company.com" 
+              class="w-full"
+            />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label-row">
+            <label for="password" class="field-label">Password</label>
+            <a href="javascript:void(0)" class="forgot-link">Forgot password?</a>
+          </div>
+          <div class="password-wrapper">
+            <p-password 
+              id="password" 
+              formControlName="password" 
+              [feedback]="false" 
+              [toggleMask]="true" 
+              placeholder="••••••••" 
+              styleClass="w-full"
+              inputStyleClass="w-full"
+            ></p-password>
+          </div>
+        </div>
+
+        <div class="remember-row">
+          <div class="flex align-items-center gap-2">
+            <p-checkbox formControlName="rememberMe" [binary]="true" inputId="remember"></p-checkbox>
+            <label for="remember" class="remember-label">Remember me for 30 days</label>
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          pButton 
+          icon="pi pi-sign-in" 
+          label="Sign In to ERP" 
+          class="w-full submit-btn" 
+          [loading]="isLoading()"
+        ></button>
+      </form>
+
+      <!-- Quick Demo Credentials Filler -->
+      <div class="demo-box">
+        <div class="demo-header">
+          <i class="pi pi-info-circle"></i>
+          <span>Quick Demo Login</span>
+        </div>
+        <p class="demo-desc">Click below to auto-fill development credentials:</p>
+        <div class="demo-buttons">
+          <button 
+            type="button" 
+            pButton 
+            label="Tenant Owner (owner@demo-client.com)" 
+            class="p-button-outlined p-button-sm w-full demo-btn" 
+            (click)="fillDemoAccount('owner@demo-client.com', 'password123')"
+          ></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

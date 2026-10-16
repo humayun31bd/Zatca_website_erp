@@ -1,1 +1,39 @@
-node_modules
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production and build outputs
+.next/
+out/
+build/
+dist/
+
+# Environment files
+.env
+.env*.local
+*.local
+
+# Database
+*.db
+*.db-journal
+*.db.bak
+*.sqlite
+*.sqlite3
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+*.tsbuildinfo

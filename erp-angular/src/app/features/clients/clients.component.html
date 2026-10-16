@@ -1,0 +1,528 @@
+<div class="clients-page">
+  <!-- Header Row -->
+  <div class="page-title-row no-print">
+    <div>
+      <h1 class="page-title">Customers & Clients Directory</h1>
+      <p class="page-subtitle">Manage customer profiles, ZATCA VAT identities, credit limits, and accounts receivable ledgers</p>
+    </div>
+    <div class="action-buttons">
+      <p-button icon="pi pi-download" label="Export CSV" [outlined]="true" size="small" (click)="exportCsv()" [disabled]="!filteredClients().length"></p-button>
+      <p-button icon="pi pi-print" label="Print" [outlined]="true" size="small" (click)="printDirectory()"></p-button>
+      <p-button icon="pi pi-refresh" label="Refresh" [outlined]="true" size="small" (click)="loadClients()" [loading]="isLoading()"></p-button>
+      <p-button icon="pi pi-user-plus" label="Add Customer" size="small" (click)="openCreateDialog()"></p-button>
+    </div>
+  </div>
+
+  <!-- KPI Grid -->
+  <div class="kpi-grid no-print">
+    <div class="kpi-card" (click)="activeQuickFilter.set('ALL')" [class.active-card]="activeQuickFilter() === 'ALL'">
+      <div class="kpi-top">
+        <span class="kpi-title">Total Customers</span>
+        <div class="kpi-icon-box" style="background-color: #3b82f615; color: #3b82f6;">
+          <i class="pi pi-users"></i>
+        </div>
+      </div>
+      <div class="kpi-value font-mono">{{ totalClientsCount() }}</div>
+      <span class="kpi-sub">Registered accounts in database</span>
+    </div>
+
+    <div class="kpi-card" (click)="activeQuickFilter.set('BUSINESS')" [class.active-card]="activeQuickFilter() === 'BUSINESS'">
+      <div class="kpi-top">
+        <span class="kpi-title">Corporate (B2B)</span>
+        <div class="kpi-icon-box" style="background-color: #8b5cf615; color: #8b5cf6;">
+          <i class="pi pi-building"></i>
+        </div>
+      </div>
+      <div class="kpi-value font-mono">{{ businessClientsCount() }}</div>
+      <span class="kpi-sub">Business accounts with VAT TIN</span>
+    </div>
+
+    <div class="kpi-card" (click)="activeQuickFilter.set('WITH_DUES')" [class.active-card]="activeQuickFilter() === 'WITH_DUES'">
+      <div class="kpi-top">
+        <span class="kpi-title">Outstanding Receivables</span>
+        <div class="kpi-icon-box" style="background-color: #f59e0b15; color: #f59e0b;">
+          <i class="pi pi-dollar"></i>
+        </div>
+      </div>
+      <div class="kpi-value text-danger font-mono">SAR {{ totalOutstandingDues() | number:'1.2-2' }}</div>
+      <span class="kpi-sub">Uncollected customer balances</span>
+    </div>
+
+    <div class="kpi-card" (click)="activeQuickFilter.set('CREDIT')" [class.active-card]="activeQuickFilter() === 'CREDIT'">
+      <div class="kpi-top">
+        <span class="kpi-title">Credit Accounts</span>
+        <div class="kpi-icon-box" style="background-color: #10b98115; color: #10b981;">
+          <i class="pi pi-credit-card"></i>
+        </div>
+      </div>
+      <div class="kpi-value font-mono">{{ creditEnabledCount() }}</div>
+      <span class="kpi-sub">Approved credit line accounts</span>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card" id="printable-directory">
+    <!-- Toolbar with Search and Segmented Filters -->
+    <div class="table-toolbar no-print">
+      <div class="filter-group">
+        <span class="search-input-wrapper">
+          <i class="pi pi-search search-icon"></i>
+          <input 
+            type="text" 
+            pInputText 
+            placeholder="Search by customer name, VAT, CR, phone, city..." 
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            class="search-input"
+          />
+        </span>
+
+        <!-- Quick Filter Badges -->
+        <div class="quick-filter-pills">
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'ALL'"
+            (click)="activeQuickFilter.set('ALL')"
+          >
+            All ({{ totalClientsCount() }})
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'BUSINESS'"
+            (click)="activeQuickFilter.set('BUSINESS')"
+          >
+            B2B
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'INDIVIDUAL'"
+            (click)="activeQuickFilter.set('INDIVIDUAL')"
+          >
+            B2C
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'WITH_DUES'"
+            (click)="activeQuickFilter.set('WITH_DUES')"
+          >
+            <i class="pi pi-exclamation-circle text-danger"></i> With Dues
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="activeQuickFilter() === 'CREDIT'"
+            (click)="activeQuickFilter.set('CREDIT')"
+          >
+            Credit Enabled
+          </button>
+        </div>
+      </div>
+
+      <div class="toolbar-right">
+        <div class="results-count">
+          Showing <strong>{{ filteredClients().length }}</strong> of {{ totalClientsCount() }} customers
+        </div>
+
+        <div class="view-switcher-group">
+          <button 
+            type="button" 
+            class="view-toggle-btn" 
+            [class.active]="viewMode() === 'table'"
+            (click)="viewMode.set('table')"
+            title="Table View"
+          >
+            <i class="pi pi-list"></i>
+            <span>Table</span>
+          </button>
+          <button 
+            type="button" 
+            class="view-toggle-btn" 
+            [class.active]="viewMode() === 'grid'"
+            (click)="viewMode.set('grid')"
+            title="Card / Grid View"
+          >
+            <i class="pi pi-th-large"></i>
+            <span>Grid Cards</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 1: TABLE VIEW -->
+    @if (viewMode() === 'table') {
+      <p-table 
+        [value]="filteredClients()" 
+        [paginator]="true" 
+        [rows]="10" 
+        [rowsPerPageOptions]="[10, 25, 50]" 
+        [loading]="isLoading()"
+        [tableStyle]="{ 'min-width': '68rem' }" 
+        styleClass="p-datatable-sm p-datatable-striped"
+      >
+        <ng-template pTemplate="header">
+          <tr>
+            <th pSortableColumn="name">Customer Identity</th>
+            <th pSortableColumn="customerType" style="width: 8rem">Type</th>
+            <th>Tax Identification (VAT)</th>
+            <th>Contact & Phone</th>
+            <th>Location</th>
+            <th pSortableColumn="creditLimit" class="text-right">Credit Line</th>
+            <th pSortableColumn="dues" class="text-right">Receivables (SAR)</th>
+            <th style="width: 8rem" class="text-center no-print">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-client>
+          <tr>
+            <!-- Customer Name & Arabic -->
+            <td>
+              <div class="customer-name-cell" (click)="openDetailDialog(client)" title="Click to view ledger & profile">
+                <span class="client-name">
+                  {{ client.name }}
+                </span>
+                @if (client.nameAr) {
+                  <span class="client-name-ar font-arabic">{{ client.nameAr }}</span>
+                }
+                @if (client.email) {
+                  <span class="client-email">{{ client.email }}</span>
+                }
+              </div>
+            </td>
+
+            <!-- Customer Type Tag -->
+            <td>
+              <p-tag [value]="client.customerType || 'BUSINESS'" [severity]="getTypeSeverity(client.customerType)"></p-tag>
+            </td>
+
+            <!-- ZATCA VAT / CR Numbers -->
+            <td>
+              @if (client.vatNumber) {
+                <div class="tax-code-box">
+                  <span class="mono-code font-receipt">{{ client.vatNumber }}</span>
+                  @if (client.crNumber) {
+                    <span class="cr-code font-receipt">CR: {{ client.crNumber }}</span>
+                  }
+                </div>
+              } @else if (client.crNumber) {
+                <span class="cr-code font-receipt">CR: {{ client.crNumber }}</span>
+              } @else {
+                <span class="text-muted">—</span>
+              }
+            </td>
+
+            <!-- Contact & Phone -->
+            <td>
+              <div class="contact-box">
+                <span>{{ client.phoneNumber || '—' }}</span>
+                @if (client.phoneNumber) {
+                  <a [href]="'https://wa.me/' + client.phoneNumber.replace('+', '')" target="_blank" class="wa-quick-link" title="Open WhatsApp">
+                    <i class="pi pi-whatsapp"></i>
+                  </a>
+                }
+              </div>
+            </td>
+
+            <!-- City & Country -->
+            <td>
+              <span class="location-text">
+                {{ client.city || 'Riyadh' }}, {{ client.country || 'SA' }}
+              </span>
+            </td>
+
+            <!-- Credit Terms -->
+            <td class="text-right">
+              @if (client.permitCredit) {
+                <span class="credit-limit font-mono">
+                  SAR {{ (client.creditLimit || 0) | number:'1.2-2' }}
+                </span>
+              } @else {
+                <span class="no-credit">No Credit</span>
+              }
+            </td>
+
+            <!-- Outstanding Dues -->
+            <td class="text-right font-mono font-bold" [class.text-danger]="(client.dues || 0) > 0">
+              SAR {{ (client.dues || 0) | number:'1.2-2' }}
+            </td>
+
+            <!-- Action Buttons -->
+            <td class="text-center no-print">
+              <div class="row-actions">
+                <p-button 
+                  icon="pi pi-eye" 
+                  [text]="true" 
+                  [rounded]="true" 
+                  size="small" 
+                  (click)="openDetailDialog(client)" 
+                  pTooltip="View Profile & Ledger"
+                ></p-button>
+                <p-button 
+                  icon="pi pi-pencil" 
+                  [text]="true" 
+                  [rounded]="true" 
+                  size="small" 
+                  (click)="openEditDialog(client)" 
+                  pTooltip="Edit Customer"
+                ></p-button>
+                <p-button 
+                  icon="pi pi-trash" 
+                  [text]="true" 
+                  [rounded]="true" 
+                  severity="danger" 
+                  size="small" 
+                  (click)="deleteClient(client)" 
+                  pTooltip="Delete Customer"
+                ></p-button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="8" class="text-center py-6 text-500">
+              <div class="empty-state">
+                <i class="pi pi-users empty-icon"></i>
+                <p>No customers found matching the search criteria.</p>
+                <p-button label="Add Customer" icon="pi pi-plus" size="small" (click)="openCreateDialog()"></p-button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+
+    <!-- VIEW 2: CARD / GRID VIEW -->
+    @if (viewMode() === 'grid') {
+      <div class="customer-cards-grid">
+        @for (client of filteredClients(); track client.id) {
+          <div class="customer-card-box">
+            <!-- Header Identity -->
+            <div class="card-identity-header">
+              <div class="card-avatar">
+                {{ client.name.charAt(0).toUpperCase() }}
+              </div>
+              <div class="card-title-group">
+                <div class="name-row">
+                  <span class="card-customer-name" (click)="openDetailDialog(client)" title="Click to view details">
+                    {{ client.name }}
+                  </span>
+                  <p-tag [value]="client.customerType || 'BUSINESS'" [severity]="getTypeSeverity(client.customerType)"></p-tag>
+                </div>
+                @if (client.nameAr) {
+                  <span class="card-customer-ar font-arabic">{{ client.nameAr }}</span>
+                }
+              </div>
+            </div>
+
+            <!-- Tax & Legal Metadata -->
+            <div class="card-meta-section">
+              @if (client.vatNumber) {
+                <div class="meta-row font-receipt">
+                  <span class="meta-label">VAT TIN:</span>
+                  <span class="mono-code">{{ client.vatNumber }}</span>
+                </div>
+              }
+              @if (client.crNumber) {
+                <div class="meta-row font-receipt">
+                  <span class="meta-label">CR Number:</span>
+                  <span class="cr-code">{{ client.crNumber }}</span>
+                </div>
+              }
+              <div class="meta-row">
+                <span class="meta-label">Location:</span>
+                <span class="location-text">{{ client.city || 'Riyadh' }}, {{ client.country || 'SA' }}</span>
+              </div>
+              @if (client.phoneNumber) {
+                <div class="meta-row contact-meta">
+                  <span class="meta-label">Phone:</span>
+                  <span>{{ client.phoneNumber }}</span>
+                  <a [href]="'https://wa.me/' + client.phoneNumber.replace('+', '')" target="_blank" class="wa-quick-link" title="WhatsApp">
+                    <i class="pi pi-whatsapp"></i>
+                  </a>
+                </div>
+              }
+            </div>
+
+            <!-- Financial Strip -->
+            <div class="card-financial-strip">
+              <div class="fin-box">
+                <span class="fin-label">Outstanding Dues</span>
+                <span class="fin-amount font-mono" [class.text-danger]="(client.dues || 0) > 0">
+                  SAR {{ (client.dues || 0) | number:'1.2-2' }}
+                </span>
+              </div>
+              <div class="fin-box text-right">
+                <span class="fin-label">Credit Limit</span>
+                @if (client.permitCredit) {
+                  <span class="fin-amount text-success font-mono">
+                    SAR {{ (client.creditLimit || 0) | number:'1.2-2' }}
+                  </span>
+                } @else {
+                  <span class="fin-amount text-muted">No Credit</span>
+                }
+              </div>
+            </div>
+
+            <!-- Action Footer -->
+            <div class="card-footer-actions">
+              <p-button 
+                icon="pi pi-eye" 
+                label="Profile & Ledger" 
+                size="small" 
+                [outlined]="true" 
+                (click)="openDetailDialog(client)"
+                styleClass="flex-1"
+              ></p-button>
+              <p-button 
+                icon="pi pi-pencil" 
+                [text]="true" 
+                [rounded]="true" 
+                size="small" 
+                (click)="openEditDialog(client)" 
+                pTooltip="Edit Customer"
+              ></p-button>
+              <p-button 
+                icon="pi pi-trash" 
+                [text]="true" 
+                [rounded]="true" 
+                severity="danger" 
+                size="small" 
+                (click)="deleteClient(client)" 
+                pTooltip="Delete Customer"
+              ></p-button>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state-grid">
+            <i class="pi pi-users empty-icon"></i>
+            <p>No customers found matching the search criteria.</p>
+            <p-button label="Add Customer" icon="pi pi-plus" size="small" (click)="openCreateDialog()"></p-button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Create/Edit Modal Dialog -->
+  <p-dialog 
+    [(visible)]="isDialogOpen" 
+    [modal]="true" 
+    [style]="{ width: '680px', maxWidth: '96vw' }" 
+    [header]="editingClientId() ? 'Edit Customer Profile' : 'Register New Customer'"
+    [draggable]="false"
+    [resizable]="false"
+  >
+    <form [formGroup]="clientForm" (ngSubmit)="saveClient()" class="modal-form">
+      <div class="form-grid">
+        <!-- Customer English & Arabic Names -->
+        <div class="field-half">
+          <label class="field-label">Customer / Company Name (English) *</label>
+          <input pInputText formControlName="name" placeholder="e.g. Al-Faisaliah General Contracting" class="w-full" />
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">اسم العميل / الشركة (بالعربية)</label>
+          <input pInputText formControlName="nameAr" placeholder="مثال: شركة الفيصلية للمقاولات" class="w-full font-arabic" dir="rtl" />
+        </div>
+
+        <!-- Customer Classification & ZATCA VAT -->
+        <div class="field-half">
+          <label class="field-label">Customer Classification</label>
+          <p-select 
+            [options]="formCustomerTypes" 
+            optionLabel="label" 
+            optionValue="value" 
+            formControlName="customerType" 
+            styleClass="w-full"
+          ></p-select>
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">
+            ZATCA VAT Registration Number (TIN)
+            <i class="pi pi-info-circle text-xs text-secondary" pTooltip="15-digit number for Tax Invoices"></i>
+          </label>
+          <input 
+            pInputText 
+            formControlName="vatNumber" 
+            placeholder="15-digit Tax ID (e.g. 310123456700003)" 
+            maxlength="15" 
+            class="w-full font-mono" 
+          />
+          @if (clientForm.get('vatNumber')?.touched && clientForm.get('vatNumber')?.errors?.['pattern']) {
+            <small class="text-danger">VAT number must be exactly 15 digits.</small>
+          }
+        </div>
+
+        <!-- Commercial Registration & Email -->
+        <div class="field-half">
+          <label class="field-label">Commercial Registration (CR Number)</label>
+          <input pInputText formControlName="crNumber" placeholder="10-digit CR number" class="w-full font-mono" />
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">Billing Email Address</label>
+          <input type="email" pInputText formControlName="email" placeholder="billing@client.com" class="w-full" />
+        </div>
+
+        <!-- Phone & City -->
+        <div class="field-half">
+          <label class="field-label">Phone / WhatsApp Number</label>
+          <input pInputText formControlName="phoneNumber" placeholder="+966 50 123 4567" class="w-full" />
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">City</label>
+          <input pInputText formControlName="city" placeholder="Riyadh" class="w-full" />
+        </div>
+
+        <!-- State/Province & Country -->
+        <div class="field-half">
+          <label class="field-label">State / Province</label>
+          <input pInputText formControlName="state" placeholder="Riyadh Province" class="w-full" />
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">Country</label>
+          <input pInputText formControlName="country" placeholder="Saudi Arabia" class="w-full" />
+        </div>
+
+        <!-- Detailed Street / National Address -->
+        <div class="field-full">
+          <label class="field-label">National Address / Street Details</label>
+          <input pInputText formControlName="address" placeholder="Building No, Street Name, District, Postal Code" class="w-full" />
+        </div>
+
+        <!-- Credit Terms Section -->
+        <div class="field-half flex-align">
+          <p-toggleswitch formControlName="permitCredit" inputId="permitCredit"></p-toggleswitch>
+          <label for="permitCredit" class="switch-label">Permit Credit Sales (On Account)</label>
+        </div>
+
+        @if (clientForm.get('permitCredit')?.value) {
+          <div class="field-half">
+            <label class="field-label">Authorized Credit Limit (SAR)</label>
+            <input type="number" pInputText formControlName="creditLimit" placeholder="50000" class="w-full font-mono" />
+          </div>
+        }
+      </div>
+
+      <div class="dialog-actions">
+        <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" size="small" (click)="isDialogOpen.set(false)"></p-button>
+        <p-button type="submit" icon="pi pi-check" [label]="editingClientId() ? 'Update Customer' : 'Save Customer'" size="small" [loading]="isSubmitting()"></p-button>
+      </div>
+    </form>
+  </p-dialog>
+
+  <!-- Interactive Customer Profile & Ledger Drawer Dialog -->
+  <app-customer-detail-dialog
+    [(visible)]="isDetailDialogOpen"
+    [client]="selectedClientForDetail()"
+    (edit)="openEditDialog($event)"
+  ></app-customer-detail-dialog>
+</div>

@@ -1,0 +1,263 @@
+<div class="suppliers-page">
+  <!-- Header Row -->
+  <div class="page-title-row">
+    <div>
+      <h1 class="page-title">Suppliers & Vendors</h1>
+      <p class="page-subtitle">Directory of vendors, procurement categories, payment terms, and commercial registrations</p>
+    </div>
+    <div class="action-buttons">
+      <p-button icon="pi pi-refresh" label="Refresh" [outlined]="true" size="small" (click)="loadSuppliers()" [loading]="isLoading()"></p-button>
+      <p-button icon="pi pi-plus" label="Add Supplier" size="small" (click)="openCreateDialog()"></p-button>
+    </div>
+  </div>
+
+  <!-- KPI Grid -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-title">Total Suppliers</span>
+        <div class="kpi-icon-box" style="background-color: #3b82f615; color: #3b82f6;">
+          <i class="pi pi-truck"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ totalSuppliersCount() }}</div>
+      <span class="kpi-sub">Onboarded vendors</span>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-title">Merchandise Suppliers</span>
+        <div class="kpi-icon-box" style="background-color: #10b98115; color: #10b981;">
+          <i class="pi pi-box"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ merchandiseCount() }}</div>
+      <span class="kpi-sub">Inventory product lines</span>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-title">Strategic Tier 1</span>
+        <div class="kpi-icon-box" style="background-color: #8b5cf615; color: #8b5cf6;">
+          <i class="pi pi-star"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ strategicTiersCount() }}</div>
+      <span class="kpi-sub">Key volume contracts</span>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-title">Credit / Net Terms</span>
+        <div class="kpi-icon-box" style="background-color: #f59e0b15; color: #f59e0b;">
+          <i class="pi pi-calendar"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ netTermsCount() }}</div>
+      <span class="kpi-sub">Net 15/30/60 accounts</span>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div class="filter-group">
+        <span class="search-input-wrapper">
+          <i class="pi pi-search search-icon"></i>
+          <input 
+            type="text" 
+            pInputText 
+            placeholder="Search by supplier name, CR, VAT, phone..." 
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            class="search-input"
+          />
+        </span>
+
+        <p-select 
+          [options]="categoryOptions" 
+          optionLabel="label" 
+          optionValue="value" 
+          [ngModel]="selectedCategory()"
+          (ngModelChange)="selectedCategory.set($event)"
+          placeholder="Category"
+          styleClass="category-dropdown"
+        ></p-select>
+      </div>
+
+      <div class="results-count">
+        Showing <strong>{{ filteredSuppliers().length }}</strong> of {{ totalSuppliersCount() }} suppliers
+      </div>
+    </div>
+
+    <p-table 
+      [value]="filteredSuppliers()" 
+      [paginator]="true" 
+      [rows]="10" 
+      [rowsPerPageOptions]="[10, 25, 50]" 
+      [loading]="isLoading()"
+      [tableStyle]="{ 'min-width': '65rem' }" 
+      styleClass="p-datatable-sm p-datatable-striped"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="name">Supplier / Vendor</th>
+          <th pSortableColumn="category">Category</th>
+          <th pSortableColumn="supplierTier">Tier</th>
+          <th>CR & VAT Numbers</th>
+          <th>Contact</th>
+          <th pSortableColumn="paymentTerms">Payment Terms</th>
+          <th style="width: 8rem" class="text-center">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-supplier>
+        <tr>
+          <td>
+            <div class="supplier-name-cell">
+              <span class="supplier-name">{{ supplier.name }}</span>
+              @if (supplier.address) {
+                <span class="supplier-address">{{ supplier.address }}</span>
+              }
+            </div>
+          </td>
+          <td>
+            <span class="cat-badge">{{ supplier.category || 'MERCHANDISE' }}</span>
+          </td>
+          <td>
+            <p-tag [value]="supplier.supplierTier || 'TIER_2_STANDARD'" [severity]="getTierSeverity(supplier.supplierTier)"></p-tag>
+          </td>
+          <td>
+            <div class="id-stack">
+              @if (supplier.crNumber) {
+                <span class="id-badge">CR: {{ supplier.crNumber }}</span>
+              }
+              @if (supplier.vatNumber) {
+                <span class="id-badge vat">VAT: {{ supplier.vatNumber }}</span>
+              }
+              @if (!supplier.crNumber && !supplier.vatNumber) {
+                <span class="text-muted">—</span>
+              }
+            </div>
+          </td>
+          <td>
+            <div class="contact-stack">
+              @if (supplier.phoneNumber) {
+                <span>{{ supplier.phoneNumber }}</span>
+              }
+              @if (supplier.email) {
+                <span class="text-muted text-xs">{{ supplier.email }}</span>
+              }
+            </div>
+          </td>
+          <td>
+            <span class="terms-pill">{{ supplier.paymentTerms || 'NET_30' }}</span>
+          </td>
+          <td class="text-center">
+            <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small" (click)="openEditDialog(supplier)" pTooltip="Edit"></p-button>
+            <p-button icon="pi pi-trash" [text]="true" [rounded]="true" severity="danger" size="small" (click)="deleteSupplier(supplier)" pTooltip="Delete"></p-button>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="text-center py-6 text-500">
+            <div class="empty-state">
+              <i class="pi pi-truck empty-icon"></i>
+              <p>No suppliers found matching your filter criteria.</p>
+              <p-button label="Add Supplier" icon="pi pi-plus" size="small" (click)="openCreateDialog()"></p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Create/Edit Modal Dialog -->
+  <p-dialog 
+    [(visible)]="isDialogOpen" 
+    [modal]="true" 
+    [style]="{ width: '640px', maxWidth: '95vw' }" 
+    [header]="editingSupplierId() ? 'Edit Supplier' : 'Add New Supplier'"
+    [draggable]="false"
+    [resizable]="false"
+  >
+    <form [formGroup]="supplierForm" (ngSubmit)="saveSupplier()" class="modal-form">
+      <div class="form-grid">
+        <div class="field-full">
+          <label class="field-label">Supplier / Business Name *</label>
+          <input pInputText formControlName="name" placeholder="e.g. Saudi National Cable & Wire Co." class="w-full" />
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">Category</label>
+          <p-select 
+            [options]="formCategories" 
+            optionLabel="label" 
+            optionValue="value" 
+            formControlName="category" 
+            styleClass="w-full"
+          ></p-select>
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">Supplier Tier</label>
+          <p-select 
+            [options]="formTiers" 
+            optionLabel="label" 
+            optionValue="value" 
+            formControlName="supplierTier" 
+            styleClass="w-full"
+          ></p-select>
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">Payment Terms</label>
+          <p-select 
+            [options]="formTerms" 
+            optionLabel="label" 
+            optionValue="value" 
+            formControlName="paymentTerms" 
+            styleClass="w-full"
+          ></p-select>
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">ZATCA VAT Number</label>
+          <input pInputText formControlName="vatNumber" placeholder="15-digit Tax ID" class="w-full" />
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">Commercial Registration (CR)</label>
+          <input pInputText formControlName="crNumber" placeholder="10-digit CR Number" class="w-full" />
+        </div>
+
+        <div class="field-half">
+          <label class="field-label">Phone Number</label>
+          <input pInputText formControlName="phoneNumber" placeholder="+966 11 xxx xxxx" class="w-full" />
+        </div>
+
+        <div class="field-full">
+          <label class="field-label">Email Address</label>
+          <input type="email" pInputText formControlName="email" placeholder="sales@supplier.com" class="w-full" />
+        </div>
+
+        <div class="field-full">
+          <label class="field-label">Business Address</label>
+          <input pInputText formControlName="address" placeholder="Industrial City, Street, Riyadh" class="w-full" />
+        </div>
+
+        <div class="field-full">
+          <label class="field-label">Bank & IBAN Details</label>
+          <textarea pTextarea formControlName="bankDetails" rows="2" placeholder="Bank name, Account title, IBAN: SA..." class="w-full"></textarea>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <p-button type="button" label="Cancel" severity="secondary" [outlined]="true" size="small" (click)="isDialogOpen.set(false)"></p-button>
+        <p-button type="submit" icon="pi pi-check" [label]="editingSupplierId() ? 'Update Supplier' : 'Save Supplier'" size="small" [loading]="isSubmitting()"></p-button>
+      </div>
+    </form>
+  </p-dialog>
+</div>

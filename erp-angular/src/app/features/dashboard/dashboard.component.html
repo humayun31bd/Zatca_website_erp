@@ -1,0 +1,307 @@
+<div class="executive-dashboard">
+  <!-- Top Executive Brand Hero -->
+  <div class="dashboard-hero">
+    <div class="hero-titles">
+      <div class="title-with-badge">
+        <h1 class="page-title">Executive Financial Dashboard</h1>
+        <!-- ZATCA Phase 2 Live Badge -->
+        <div class="zatca-live-badge" [class.healthy]="stats().isZatcaHealthy" [class.unhealthy]="!stats().isZatcaHealthy">
+          <span class="pulse-dot"></span>
+          <i class="pi pi-shield"></i>
+          <span>ZATCA Phase 2: {{ stats().isZatcaHealthy ? 'Live Gateway Connected' : 'Offline Queue Mode' }}</span>
+        </div>
+      </div>
+      <p class="page-subtitle">Real-time enterprise metrics, cash liquidity, and tax compliance overview</p>
+    </div>
+
+    <div class="hero-actions">
+      <button class="btn-refresh" (click)="loadStats()" [disabled]="isLoading()" title="Refresh metrics">
+        <i class="pi pi-refresh" [class.pi-spin]="isLoading()"></i>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ZATCA Warning Banner (if offline, matching Flutter) -->
+  @if (!stats().isZatcaHealthy) {
+    <div class="zatca-alert-banner">
+      <i class="pi pi-exclamation-triangle"></i>
+      <div class="alert-content">
+        <strong>ZATCA Gateway Warning:</strong>
+        <span>E-Invoicing clearing service is currently operating in offline queue mode. Documents will auto-sync upon reconnection.</span>
+      </div>
+    </div>
+  }
+
+  <!-- 4 Core Grand KPI Cards (Flutter Parity) -->
+  <div class="kpi-grid">
+    <!-- 1. Total Revenue (Accrual) -->
+    <div class="kpi-card revenue-card">
+      <div class="kpi-card-top">
+        <span class="card-label">Total Revenue (Accrual)</span>
+        <div class="icon-bubble revenue-bubble">
+          <i class="pi pi-wallet"></i>
+        </div>
+      </div>
+      <div class="card-value">{{ stats().totalRevenue | currency:'SAR ':'symbol':'1.0-0' }}</div>
+      <div class="card-trend up">
+        <i class="pi pi-arrow-up-right"></i>
+        <span class="trend-num">+12.5%</span>
+        <span class="trend-desc">vs prior billing cycle</span>
+      </div>
+    </div>
+
+    <!-- 2. Cash on Hand (Real Liquidity) -->
+    <div class="kpi-card cash-card">
+      <div class="kpi-card-top">
+        <span class="card-label">Cash on Hand (Real)</span>
+        <div class="icon-bubble cash-bubble">
+          <i class="pi pi-dollar"></i>
+        </div>
+      </div>
+      <div class="card-value">{{ stats().totalCashOnHand | currency:'SAR ':'symbol':'1.0-0' }}</div>
+      <div class="card-trend up">
+        <i class="pi pi-arrow-up-right"></i>
+        <span class="trend-num">+8.3%</span>
+        <span class="trend-desc">liquid cash reserves</span>
+      </div>
+    </div>
+
+    <!-- 3. Cleared Invoices (ZATCA) -->
+    <div class="kpi-card invoices-card">
+      <div class="kpi-card-top">
+        <span class="card-label">Cleared Invoices</span>
+        <div class="icon-bubble invoices-bubble">
+          <i class="pi pi-receipt"></i>
+        </div>
+      </div>
+      <div class="card-value">{{ stats().invoicesCleared }}</div>
+      <div class="card-trend up">
+        <i class="pi pi-check"></i>
+        <span class="trend-num">100%</span>
+        <span class="trend-desc">ZATCA clearance rate</span>
+      </div>
+    </div>
+
+    <!-- 4. Overdue / Pending Amount -->
+    <div class="kpi-card overdue-card">
+      <div class="kpi-card-top">
+        <span class="card-label">Overdue & Pending</span>
+        <div class="icon-bubble overdue-bubble">
+          <i class="pi pi-exclamation-circle"></i>
+        </div>
+      </div>
+      <div class="card-value">{{ stats().overdueAmount | currency:'SAR ':'symbol':'1.0-0' }}</div>
+      <div class="card-trend down">
+        <i class="pi pi-arrow-down-right"></i>
+        <span class="trend-num">-2.1%</span>
+        <span class="trend-desc">aging receivables</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Command Actions Bar -->
+  <div class="actions-hub-bar">
+    <span class="hub-label">Quick Actions:</span>
+    <div class="hub-buttons">
+      <a routerLink="/invoices" class="hub-btn primary">
+        <i class="pi pi-plus"></i>
+        <span>New Tax Invoice</span>
+      </a>
+      <a routerLink="/pos/terminal" class="hub-btn emerald">
+        <i class="pi pi-desktop"></i>
+        <span>POS Terminal</span>
+      </a>
+      <a routerLink="/purchases" class="hub-btn outline">
+        <i class="pi pi-shopping-cart"></i>
+        <span>Record Bill</span>
+      </a>
+      <a routerLink="/hr/employees" class="hub-btn outline">
+        <i class="pi pi-users"></i>
+        <span>Staff Roster</span>
+      </a>
+      <a routerLink="/hr/attendance" class="hub-btn outline">
+        <i class="pi pi-clock"></i>
+        <span>Attendance</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Analytics & Activity Grid -->
+  <div class="dashboard-split-grid">
+    <!-- Left Column: Recent Activity (Flutter RecentActivityList Match) -->
+    <div class="panel-card activity-panel">
+      <div class="panel-header">
+        <div class="panel-titles">
+          <h2 class="panel-title">
+            <i class="pi pi-history"></i>
+            <span>Recent Invoices & ZATCA Filings</span>
+          </h2>
+          <span class="panel-subtitle">Latest issued tax invoices and clearing status</span>
+        </div>
+        <a routerLink="/invoices" class="panel-link">
+          <span>View All Invoices</span>
+          <i class="pi pi-arrow-right"></i>
+        </a>
+      </div>
+
+      <div class="panel-body">
+        @if (isLoading()) {
+          <div class="loading-state">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Loading recent activity...</span>
+          </div>
+        } @else if (stats().recentActivity.length === 0) {
+          <div class="empty-state">
+            <i class="pi pi-inbox"></i>
+            <p>No recent activity found. Issue your first invoice to populate this list.</p>
+            <a routerLink="/invoices" class="hub-btn primary">Create Invoice</a>
+          </div>
+        } @else {
+          <div class="activity-list">
+            @for (act of stats().recentActivity; track act.id) {
+              <div class="activity-item" (click)="openActivityDetail(act)">
+                <!-- Leading Status Icon Box -->
+                <div class="status-icon-box" [ngClass]="act.zatcaStatus.toLowerCase()">
+                  <i class="pi" 
+                     [class.pi-check-circle]="act.zatcaStatus === 'CLEARED'"
+                     [class.pi-info-circle]="act.zatcaStatus === 'REPORTED'"
+                     [class.pi-hourglass]="act.zatcaStatus === 'PENDING'"
+                     [class.pi-times-circle]="act.zatcaStatus === 'FAILED'"></i>
+                </div>
+
+                <!-- Main Info -->
+                <div class="activity-info">
+                  <div class="doc-number-row">
+                    <span class="invoice-no">{{ act.invoiceNumber }}</span>
+                    <span class="activity-time">{{ act.issueDatetime | date:'short' }}</span>
+                  </div>
+                  <span class="buyer-name">{{ act.buyerName }}</span>
+                </div>
+
+                <!-- Trailing Amount & Status Tag -->
+                <div class="activity-trailing">
+                  <span class="doc-amount">{{ act.totalAmount | currency:'SAR ':'symbol':'1.2-2' }}</span>
+                  <span class="zatca-tag" [ngClass]="act.zatcaStatus.toLowerCase()">
+                    {{ act.zatcaStatus }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right Column: Compliance & Health Cards -->
+    <div class="side-column">
+      <!-- 1. Cash Liquidity vs Accrual Health -->
+      <div class="panel-card health-card">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <i class="pi pi-chart-pie"></i>
+            <span>Liquidity Coverage</span>
+          </h2>
+          <span class="ratio-badge">{{ liquidityRatio() }}% Ratio</span>
+        </div>
+        <div class="panel-body">
+          <div class="liquidity-bar-container">
+            <div class="bar-labels">
+              <span>Cash Reserve</span>
+              <span>Accrued Revenue</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" [style.width.%]="liquidityRatio()"></div>
+            </div>
+          </div>
+          <div class="liquidity-legend">
+            <div class="legend-item">
+              <span class="dot emerald"></span>
+              <span>Cash on Hand: <strong>{{ stats().totalCashOnHand | currency:'SAR ':'symbol':'1.0-0' }}</strong></span>
+            </div>
+            <div class="legend-item">
+              <span class="dot blue"></span>
+              <span>Billed Revenue: <strong>{{ stats().totalRevenue | currency:'SAR ':'symbol':'1.0-0' }}</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. ZATCA Compliance Spec Box -->
+      <div class="panel-card compliance-card">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <i class="pi pi-lock"></i>
+            <span>ZATCA Phase 2 Security</span>
+          </h2>
+          <span class="status-shield"><i class="pi pi-verified"></i> Enforced</span>
+        </div>
+        <div class="panel-body">
+          <div class="spec-row">
+            <span class="spec-label">Cryptographic Algorithm:</span>
+            <span class="spec-val">ECDSA secp256k1</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Invoice Hashing:</span>
+            <span class="spec-val">SHA-256 Digest Chain</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">QR Code Standard:</span>
+            <span class="spec-val">TLV Base64 Format</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Compliance Certificate:</span>
+            <span class="spec-val text-emerald">Production CSID Active</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal Dialog -->
+  @if (showDetailModal() && selectedActivity(); as doc) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal-box" (click)="$event.stopPropagation()">
+        <div class="modal-top">
+          <div class="modal-title-col">
+            <h3 class="m-title">{{ doc.invoiceNumber }}</h3>
+            <span class="m-sub">{{ doc.buyerName }}</span>
+          </div>
+          <button class="m-close" (click)="closeModal()"><i class="pi pi-times"></i></button>
+        </div>
+
+        <div class="modal-body-content">
+          <div class="summary-box">
+            <div class="sb-item">
+              <span class="sb-label">Total Amount</span>
+              <span class="sb-val">{{ doc.totalAmount | currency:'SAR ':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="sb-item">
+              <span class="sb-label">VAT (15%)</span>
+              <span class="sb-val">{{ (doc.totalVatAmount || (doc.totalAmount * 0.15)) | currency:'SAR ':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="sb-item">
+              <span class="sb-label">Filing Status</span>
+              <span class="zatca-tag" [ngClass]="doc.zatcaStatus.toLowerCase()">{{ doc.zatcaStatus }}</span>
+            </div>
+          </div>
+
+          <div class="doc-info-grid">
+            <div class="info-row">
+              <span class="key">Timestamp:</span>
+              <span class="value">{{ doc.issueDatetime | date:'medium' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="key">ZATCA Clearance:</span>
+              <span class="value">{{ doc.zatcaStatus === 'CLEARED' ? 'Cleared & Cryptographically Signed' : 'Submitted' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-bottom">
+          <button class="btn-done" (click)="closeModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

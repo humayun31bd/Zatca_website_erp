@@ -11,6 +11,14 @@ const ClientUpdateSchema = z.object({
   address: z.string().optional().nullable(),
   email: z.string().email().optional().nullable(),
   phoneNumber: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  customerType: z.string().optional().nullable(),
+  funds: z.number().optional().nullable(),
+  dues: z.number().optional().nullable(),
+  permitCredit: z.boolean().optional(),
+  creditLimit: z.number().optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {

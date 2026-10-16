@@ -12,6 +12,7 @@ const ProductPayloadSchema = z.object({
   description: z.string().optional(),
   price: z.number().min(0),
   costPrice: z.number().min(0).optional(),
+  discountAmount: z.number().min(0).optional().default(0),
   stockQuantity: z.number().int().min(0).optional().default(0),
   minStockLevel: z.number().int().min(0).optional().default(5),
   units: z.array(z.object({
@@ -41,10 +42,23 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(tenantProducts);
+    const mapped = tenantProducts.map(p => ({
+      ...p,
+      productName: p.productName || p.name,
+      name: p.name || p.productName,
+      baseSellingPrice: p.baseSellingPrice ?? p.price,
+      price: p.price ?? p.baseSellingPrice,
+      sku: p.sku || p.barcode,
+      stockQuantity: p.stockQuantity ?? p.stockInHand,
+      stockInHand: p.stockInHand ?? p.stockQuantity,
+      minStockLevel: p.minStockLevel ?? p.minOrderQty,
+      minOrderQty: p.minOrderQty ?? p.minStockLevel,
+    }));
+
+    return NextResponse.json(mapped);
   } catch (error: any) {
     console.error("GET Products error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -54,33 +68,51 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     
     const body = await req.json();
-    const parseResult = ProductPayloadSchema.safeParse(body);
+    const productName = body.productName || body.name;
 
-    if (!parseResult.success) {
-      return NextResponse.json({ error: "Invalid payload", details: parseResult.error.format() }, { status: 400 });
+    if (!productName) {
+      return NextResponse.json({ error: "Product name is required" }, { status: 400 });
     }
 
-    const { categoryId, name, barcode, description, price, costPrice, stockQuantity, minStockLevel, units, branchInventory } = parseResult.data;
+    const price = body.baseSellingPrice ?? body.price ?? 0;
+    const units = body.units || [];
 
     const newProduct = await db.transaction(async (tx) => {
       const [product] = await tx.insert(products).values({
         tenantId: session.tenantId as string,
-        categoryId: categoryId || null,
-        name,
-        barcode: barcode || null,
-        description: description || null,
-        price: price.toString() as any, // drizzle decimal expects string
-        costPrice: costPrice ? costPrice.toString() as any : null,
-        stockQuantity,
-        minStockLevel,
+        name: productName,
+        productName: productName,
+        price: price,
+        baseSellingPrice: price,
+        costPrice: body.costPrice,
+        sku: body.sku || body.barcode,
+        barcode: body.barcode || body.sku,
+        description: body.description || null,
+        categoryId: body.categoryId || null,
+        brandId: body.brandId || null,
+        productTypeId: body.productTypeId || null,
+        unitId: body.unitId || null,
+        sizeId: body.sizeId || null,
+        colorId: body.colorId || null,
+        taxCategoryId: body.taxCategoryId || null,
+        discountAmount: body.discountAmount ?? 0,
+        stockQuantity: body.stockQuantity ?? body.stockInHand ?? 0,
+        stockInHand: body.stockInHand ?? body.stockQuantity ?? 0,
+        minStockLevel: body.minStockLevel ?? body.minOrderQty ?? 5,
+        minOrderQty: body.minOrderQty ?? body.minStockLevel ?? 0,
+        isElectronics: body.isElectronics ?? false,
+        isPharmacy: body.isPharmacy ?? false,
+        isApparel: body.isApparel ?? false,
+        isMedicine: body.isMedicine ?? false,
+        isProductDisplayPosApp: body.isProductDisplayPosApp ?? true,
       }).returning();
 
       if (units.length > 0) {
         await tx.insert(productUnits).values(
-          units.map(u => ({
+          units.map((u: any) => ({
             tenantId: session.tenantId as string,
             productId: product.id,
-            unitCode: u.unitName, // using unitName payload field as unitCode
+            unitCode: u.unitName || u.unitCode,
             conversionFactor: u.conversionFactor as any,
             barcode: u.barcode || null,
             price: u.price ? u.price as any : null,
@@ -88,17 +120,20 @@ export async function POST(req: NextRequest) {
         );
       }
 
-
-
       return product;
     });
 
-    return NextResponse.json(newProduct, { status: 201 });
+    return NextResponse.json({
+      ...newProduct,
+      productName: newProduct.productName || newProduct.name,
+      baseSellingPrice: newProduct.baseSellingPrice ?? newProduct.price,
+      sku: newProduct.sku || newProduct.barcode,
+    }, { status: 201 });
   } catch (error: any) {
     console.error("POST Product error:", error);
     if (error.code === '23505') { 
       return NextResponse.json({ error: "Product with this barcode already exists" }, { status: 409 });
     }
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

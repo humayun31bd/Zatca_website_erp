@@ -1,0 +1,849 @@
+<div class="kds-container">
+  <!-- Toast Message -->
+  @if (toastMessage()) {
+    <div class="kds-toast" [ngClass]="'toast-' + toastMessage()!.type">
+      <span>{{ toastMessage()!.text }}</span>
+    </div>
+  }
+
+  <!-- Top App Header -->
+  <header class="kds-header">
+    <div class="header-left">
+      <div class="kds-logo-icon">
+        <i class="pi pi-box"></i>
+      </div>
+      <div class="kds-title-group">
+        <div class="title-row">
+          <h1>Kitchen Display & Delivery Dispatch (KDS)</h1>
+          <span class="live-pill">
+            <span class="pulse-dot"></span>
+            LIVE ({{ filteredOrders().length }})
+          </span>
+        </div>
+        <p class="subtitle-ar">شاشة عرض المطبخ وإدارة توزيع الطلبات والسائقين</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Sound Toggle -->
+      <button 
+        type="button" 
+        class="action-btn icon-btn" 
+        [ngClass]="{ 'active-green': isSoundOn() }"
+        (click)="toggleSound()"
+        [title]="isSoundOn() ? 'Sound Alerts: Active (Mute)' : 'Sound Alerts: Muted (Unmute)'">
+        <i class="pi" [ngClass]="isSoundOn() ? 'pi-volume-up' : 'pi-volume-off'"></i>
+      </button>
+
+      <!-- Auto-refresh Toggle -->
+      <button 
+        type="button" 
+        class="action-btn icon-btn" 
+        [ngClass]="{ 'active-blue': autoRefreshEnabled() }"
+        (click)="toggleAutoRefresh()"
+        [title]="autoRefreshEnabled() ? 'Auto-refresh active (12s)' : 'Auto-refresh paused'">
+        <i class="pi" [ngClass]="autoRefreshEnabled() ? 'pi-sync pi-spin-hover' : 'pi-ban'"></i>
+      </button>
+
+      <!-- Manual Refresh -->
+      <button 
+        type="button" 
+        class="action-btn icon-btn" 
+        (click)="fetchOrders(false)"
+        title="Refresh Board Now">
+        <i class="pi pi-refresh" [class.pi-spin]="isLoading()"></i>
+      </button>
+
+      <!-- View Mode Toggle (Kanban vs Tabs) -->
+      <button 
+        type="button" 
+        class="action-btn icon-btn" 
+        (click)="toggleViewMode()"
+        [title]="isKanbanMode() ? 'Switch to Tabs View' : 'Switch to Kanban Board'">
+        <i class="pi" [ngClass]="isKanbanMode() ? 'pi-table' : 'pi-list'"></i>
+      </button>
+
+      <!-- Back to POS Cashier -->
+      <button type="button" class="btn-back-pos" (click)="goToPos()">
+        <i class="pi pi-desktop"></i>
+        <span>Back to POS</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="kds-toolbar">
+    <div class="filter-chips">
+      <button 
+        type="button" 
+        class="filter-chip" 
+        [class.selected]="activeFilter() === 'all'" 
+        (click)="setFilter('all')">
+        All Orders
+      </button>
+      <button 
+        type="button" 
+        class="filter-chip" 
+        [class.selected]="activeFilter() === 'dine_in'" 
+        (click)="setFilter('dine_in')">
+        🍽️ Dine In
+      </button>
+      <button 
+        type="button" 
+        class="filter-chip" 
+        [class.selected]="activeFilter() === 'take_away'" 
+        (click)="setFilter('take_away')">
+        🛍️ Take Away
+      </button>
+      <button 
+        type="button" 
+        class="filter-chip" 
+        [class.selected]="activeFilter() === 'delivery'" 
+        (click)="setFilter('delivery')">
+        🛵 Delivery
+      </button>
+      <button 
+        type="button" 
+        class="filter-chip" 
+        [class.selected]="activeFilter() === 'third_party'" 
+        (click)="setFilter('third_party')">
+        🚀 Aggregators
+      </button>
+    </div>
+
+    <div class="search-box">
+      <i class="pi pi-search search-icon"></i>
+      <input 
+        type="text" 
+        placeholder="Search order #, table, customer, rider..."
+        [ngModel]="searchQuery()" 
+        (ngModelChange)="searchQuery.set($event)" />
+      @if (searchQuery()) {
+        <button type="button" class="clear-search-btn" (click)="searchQuery.set('')">
+          <i class="pi pi-times"></i>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Loading Indicator -->
+  @if (isLoading() && orders().length === 0) {
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner spinner-lg"></i>
+      <p>Loading live kitchen & delivery orders...</p>
+    </div>
+  }
+
+  <!-- Main View: Kanban Board -->
+  @if (isKanbanMode()) {
+    <div class="kanban-board">
+      <!-- Column 1: New Orders (WFC) -->
+      <div class="kanban-column col-new">
+        <div class="column-header">
+          <div class="col-title-left">
+            <i class="pi pi-bell col-icon"></i>
+            <div>
+              <div class="col-name">New Orders</div>
+              <div class="col-name-ar">بانتظار التأكيد (WFC)</div>
+            </div>
+          </div>
+          <span class="col-count-badge">{{ newOrders().length }}</span>
+        </div>
+        <div class="cards-list">
+          @for (order of newOrders(); track order.id) {
+            <ng-container *ngTemplateOutlet="orderCardTemplate; context: { $implicit: order }"></ng-container>
+          } @empty {
+            <div class="empty-column-state">
+              <i class="pi pi-inbox"></i>
+              <p>No new orders pending</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Column 2: In Kitchen (OUP) -->
+      <div class="kanban-column col-kitchen">
+        <div class="column-header">
+          <div class="col-title-left">
+            <i class="pi pi-cog col-icon"></i>
+            <div>
+              <div class="col-name">In Kitchen</div>
+              <div class="col-name-ar">قيد التحضير (OUP)</div>
+            </div>
+          </div>
+          <span class="col-count-badge">{{ kitchenOrders().length }}</span>
+        </div>
+        <div class="cards-list">
+          @for (order of kitchenOrders(); track order.id) {
+            <ng-container *ngTemplateOutlet="orderCardTemplate; context: { $implicit: order }"></ng-container>
+          } @empty {
+            <div class="empty-column-state">
+              <i class="pi pi-check-circle"></i>
+              <p>Kitchen is clear</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Column 3: Ready (RTS/RFT/RFD) -->
+      <div class="kanban-column col-ready">
+        <div class="column-header">
+          <div class="col-title-left">
+            <i class="pi pi-check-circle col-icon"></i>
+            <div>
+              <div class="col-name">Ready</div>
+              <div class="col-name-ar">جاهز للتسليم / التقديم</div>
+            </div>
+          </div>
+          <span class="col-count-badge">{{ readyOrders().length }}</span>
+        </div>
+        <div class="cards-list">
+          @for (order of readyOrders(); track order.id) {
+            <ng-container *ngTemplateOutlet="orderCardTemplate; context: { $implicit: order }"></ng-container>
+          } @empty {
+            <div class="empty-column-state">
+              <i class="pi pi-info-circle"></i>
+              <p>No ready orders</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Column 4: Out for Delivery (OOW) -->
+      <div class="kanban-column col-dispatch">
+        <div class="column-header">
+          <div class="col-title-left">
+            <i class="pi pi-send col-icon"></i>
+            <div>
+              <div class="col-name">Out for Delivery</div>
+              <div class="col-name-ar">في الطريق (OOW)</div>
+            </div>
+          </div>
+          <span class="col-count-badge">{{ dispatchOrders().length }}</span>
+        </div>
+        <div class="cards-list">
+          @for (order of dispatchOrders(); track order.id) {
+            <ng-container *ngTemplateOutlet="orderCardTemplate; context: { $implicit: order }"></ng-container>
+          } @empty {
+            <div class="empty-column-state">
+              <i class="pi pi-compass"></i>
+              <p>No orders in transit</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Column 5: Completed (Dlvd / Srvd / TA) -->
+      <div class="kanban-column col-completed">
+        <div class="column-header">
+          <div class="col-title-left">
+            <i class="pi pi-check-square col-icon"></i>
+            <div>
+              <div class="col-name">Completed</div>
+              <div class="col-name-ar">مكتمل (Dlvd/Srvd/TA)</div>
+            </div>
+          </div>
+          <span class="col-count-badge">{{ completedOrders().length }}</span>
+        </div>
+        <div class="cards-list">
+          @for (order of completedOrders(); track order.id) {
+            <ng-container *ngTemplateOutlet="orderCardTemplate; context: { $implicit: order }"></ng-container>
+          } @empty {
+            <div class="empty-column-state">
+              <i class="pi pi-check"></i>
+              <p>No completed orders today</p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  } @else {
+    <!-- Alternative Tabbed View (for smaller screens or focused workflow) -->
+    <div class="tabbed-view-container">
+      <div class="kds-tabs-header">
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'new'" 
+          (click)="setTab('new')">
+          New Orders ({{ newOrders().length }})
+        </button>
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'kitchen'" 
+          (click)="setTab('kitchen')">
+          In Kitchen ({{ kitchenOrders().length }})
+        </button>
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'ready'" 
+          (click)="setTab('ready')">
+          Ready ({{ readyOrders().length }})
+        </button>
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'dispatch'" 
+          (click)="setTab('dispatch')">
+          Out for Delivery ({{ dispatchOrders().length }})
+        </button>
+        <button 
+          type="button" 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'completed'" 
+          (click)="setTab('completed')">
+          Completed ({{ completedOrders().length }})
+        </button>
+      </div>
+
+      <div class="tab-cards-grid">
+        @for (order of activeTabOrders(); track order.id) {
+          <ng-container *ngTemplateOutlet="orderCardTemplate; context: { $implicit: order }"></ng-container>
+        } @empty {
+          <div class="empty-tab-state">
+            <i class="pi pi-inbox"></i>
+            <p>No orders currently in this tab</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ========================================== -->
+<!-- REUSABLE ORDER CARD TEMPLATE -->
+<!-- ========================================== -->
+<ng-template #orderCardTemplate let-order>
+  <div class="order-card" [ngClass]="getTimerClass(order)">
+    <!-- Card Top Header -->
+    <div class="card-header">
+      <div class="header-order-info">
+        <span class="order-num">{{ order.orderNumber }}</span>
+        <span class="type-badge" [ngClass]="'badge-' + order.orderType">
+          {{ getOrderTypeLabel(order.orderType) }}
+        </span>
+      </div>
+
+      <!-- Elapsed Timer -->
+      <div class="timer-badge" [ngClass]="getTimerClass(order)">
+        <i class="pi pi-clock"></i>
+        <span>{{ getElapsedMinutes(order) }}m</span>
+      </div>
+    </div>
+
+    <!-- Card Metadata: Table / Aggregator / Driver / Customer -->
+    <div class="card-meta">
+      <div class="meta-row-top">
+        @if (order.tableNumber) {
+          <div class="meta-pill table-pill">
+            <i class="pi pi-th-large"></i>
+            <span>Table {{ order.tableNumber }}</span>
+          </div>
+        } @else if (order.aggregator) {
+          <div class="meta-pill agg-pill" [ngClass]="getAggregatorBadgeClass(order.aggregator)">
+            <span>{{ order.aggregator }}</span>
+            @if (order.aggregatorReference) {
+              <span class="agg-ref">#{{ order.aggregatorReference }}</span>
+            }
+          </div>
+        }
+
+        <!-- Driver Assigned or Assign Driver Link -->
+        @if (order.driverName) {
+          <div class="meta-pill driver-assigned-pill" (click)="openAssignDriverModal(order)" title="Click to change driver">
+            <i class="pi pi-user"></i>
+            <span>{{ order.driverName }}</span>
+            <i class="pi pi-pencil edit-icon"></i>
+          </div>
+        } @else if (order.orderType === 'delivery' || order.orderType === 'third_party_delivery') {
+          <button type="button" class="btn-assign-driver-pill" (click)="openAssignDriverModal(order)">
+            <i class="pi pi-user-plus"></i>
+            <span>+ Assign Driver</span>
+          </button>
+        }
+      </div>
+
+      <!-- Customer Name & Phone -->
+      @if (order.customerName) {
+        <div class="customer-row">
+          <i class="pi pi-user text-muted"></i>
+          <span class="customer-name">{{ order.customerName }}</span>
+          @if (order.customerPhone) {
+            <span class="customer-phone">({{ order.customerPhone }})</span>
+          }
+        </div>
+      }
+
+      <!-- Delivery Address -->
+      @if (order.deliveryAddress) {
+        <div class="address-row" [title]="order.deliveryAddress">
+          <i class="pi pi-map-marker text-muted"></i>
+          <span class="address-text">{{ order.deliveryAddress }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="card-divider"></div>
+
+    <!-- Items List -->
+    <div class="card-items">
+      @if (!order.items || order.items.length === 0) {
+        <div class="no-items-text">No line items recorded</div>
+      } @else {
+        <ul class="items-list">
+          @for (item of order.items; track $index) {
+            <li class="item-row">
+              <span class="item-qty-pill">{{ item.quantity }}x</span>
+              <span class="item-name">{{ item.productName }}</span>
+              <span class="item-price">
+                {{ (item.totalPrice || item.price || 0) | number:'1.2-2' }} SAR
+              </span>
+            </li>
+          }
+        </ul>
+      }
+
+      <!-- Order Note -->
+      @if (order.note) {
+        <div class="order-notes-box">
+          <i class="pi pi-comment"></i>
+          <span>{{ order.note }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- Card Footer & Next Action -->
+    <div class="card-footer">
+      <div class="total-row">
+        <span class="total-label">Total Amount</span>
+        <span class="total-val">{{ order.totalAmount | number:'1.2-2' }} SAR</span>
+      </div>
+
+      <div class="footer-actions">
+        <!-- Print KOT Ticket -->
+        <button 
+          type="button" 
+          class="card-btn-icon" 
+          (click)="openKotModal(order)" 
+          title="Print Kitchen Ticket (KOT)">
+          <i class="pi pi-print"></i>
+        </button>
+
+        <!-- Cancel Order (if eligible) -->
+        @if (order.status !== 'CANCELLED' && order.status !== 'Dlvd' && order.status !== 'Srvd' && order.status !== 'TA') {
+          <button 
+            type="button" 
+            class="card-btn-icon btn-cancel" 
+            (click)="openCancelModal(order)" 
+            title="Cancel Order">
+            <i class="pi pi-times"></i>
+          </button>
+        }
+
+        <div class="action-spacer"></div>
+
+        <!-- Primary Progression Button -->
+        @if (kdsService.getNextAction(order); as next) {
+          <button 
+            type="button" 
+            class="btn-primary-action" 
+            [ngClass]="next.buttonClass"
+            [disabled]="isSubmitting()"
+            (click)="handlePrimaryAction(order)">
+            <span>{{ next.label }}</span>
+            <i class="pi pi-arrow-right"></i>
+          </button>
+        } @else {
+          <span class="terminal-status-pill" [ngClass]="order.status === 'CANCELLED' ? 'status-cancelled' : 'status-done'">
+            {{ order.status }}
+          </span>
+        }
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<!-- ========================================== -->
+<!-- MODAL: ASSIGN DRIVER -->
+<!-- ========================================== -->
+@if (showAssignDriverModal() && selectedOrderForDriver()) {
+  <div class="modal-backdrop" (click)="closeAssignDriverModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge purple">
+            <i class="pi pi-truck"></i>
+          </div>
+          <div>
+            <h3>Assign Driver & Dispatch</h3>
+            <p>Order {{ selectedOrderForDriver()!.orderNumber }}</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeAssignDriverModal()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <!-- Tabs: Company Fleet vs Third Party -->
+      <div class="modal-tabs">
+        <button 
+          type="button" 
+          class="modal-tab-btn" 
+          [class.active]="driverModalTab() === 'fleet'"
+          (click)="driverModalTab.set('fleet')">
+          <i class="pi pi-users"></i>
+          Company Fleet Drivers
+        </button>
+        <button 
+          type="button" 
+          class="modal-tab-btn" 
+          [class.active]="driverModalTab() === 'third_party'"
+          (click)="driverModalTab.set('third_party')">
+          <i class="pi pi-external-link"></i>
+          Third-Party Rider
+        </button>
+      </div>
+
+      <div class="modal-body">
+        @if (driverModalTab() === 'fleet') {
+          <!-- Fleet Driver Selection -->
+          <div class="form-group">
+            <label>Select Available Fleet Driver</label>
+            <select 
+              [ngModel]="assignDriverForm.selectedFleetDriverId" 
+              (ngModelChange)="onFleetDriverSelected($event)">
+              <option value="">-- Choose from registered drivers --</option>
+              @for (driver of drivers(); track driver.id) {
+                <option [value]="driver.id">
+                  {{ driver.name }} ({{ driver.phone }}) - {{ driver.vehicleType | uppercase }} {{ driver.isAvailable ? '🟢 Available' : '🔴 On Delivery' }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="driver-quick-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Driver Name *</label>
+                <input type="text" [(ngModel)]="assignDriverForm.driverName" placeholder="e.g. Tariq Mansoor" />
+              </div>
+              <div class="form-group">
+                <label>Phone Number *</label>
+                <input type="text" [(ngModel)]="assignDriverForm.driverPhone" placeholder="05XXXXXXXX" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Vehicle / Plate Info</label>
+              <input type="text" [(ngModel)]="assignDriverForm.vehicleInfo" placeholder="e.g. BIKE - 1234 KSA" />
+            </div>
+          </div>
+
+          <!-- Quick Add Inline Driver Toggle -->
+          <div class="inline-add-section">
+            <button type="button" class="btn-link-action" (click)="showInlineNewDriver.set(!showInlineNewDriver())">
+              <i class="pi" [ngClass]="showInlineNewDriver() ? 'pi-chevron-up' : 'pi-plus'"></i>
+              <span>{{ showInlineNewDriver() ? 'Hide Add Driver Form' : 'Register New Driver to Fleet' }}</span>
+            </button>
+
+            @if (showInlineNewDriver()) {
+              <div class="inline-driver-box">
+                <h4>Register New Driver</h4>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" [(ngModel)]="newFleetDriverForm.name" placeholder="Driver name" />
+                  </div>
+                  <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" [(ngModel)]="newFleetDriverForm.phone" placeholder="05XXXXXXXX" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Vehicle Type</label>
+                    <select [(ngModel)]="newFleetDriverForm.vehicleType">
+                      <option value="bike">Motorcycle (Bike)</option>
+                      <option value="car">Car</option>
+                      <option value="van">Van</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>License Plate</label>
+                    <input type="text" [(ngModel)]="newFleetDriverForm.vehiclePlate" placeholder="1234 ABC" />
+                  </div>
+                </div>
+                <button type="button" class="btn-secondary-submit" (click)="submitNewFleetDriver()">
+                  Save & Select Driver
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Third-Party Aggregator Rider -->
+          <div class="form-group">
+            <label>Delivery Platform / Aggregator</label>
+            <select [(ngModel)]="assignDriverForm.aggregator">
+              @for (plat of aggregatorPlatforms; track plat) {
+                <option [value]="plat">{{ plat }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Rider Name *</label>
+              <input type="text" [(ngModel)]="assignDriverForm.driverName" placeholder="e.g. Captain Ahmed" />
+            </div>
+            <div class="form-group">
+              <label>Rider Phone *</label>
+              <input type="text" [(ngModel)]="assignDriverForm.driverPhone" placeholder="05XXXXXXXX" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Aggregator Order Ref #</label>
+              <input type="text" [(ngModel)]="assignDriverForm.aggregatorReference" placeholder="e.g. JHZ-98765" />
+            </div>
+            <div class="form-group">
+              <label>Vehicle / Plate</label>
+              <input type="text" [(ngModel)]="assignDriverForm.vehicleInfo" placeholder="Motorcycle" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Rider Tracking / Dispatch Note</label>
+            <input type="text" [(ngModel)]="assignDriverForm.riderTrackingNote" placeholder="e.g. Arrived at gate 2" />
+          </div>
+        }
+
+        <!-- Auto-dispatch Checkbox -->
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="assignDriverForm.autoDispatch" />
+            <span>Automatically dispatch order & mark as <strong>On the Way (OOW)</strong></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeAssignDriverModal()">Cancel</button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="isSubmitting()"
+          (click)="submitDriverAssignment()">
+          Assign & Dispatch Driver
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- MODAL: PROOF OF DELIVERY (POD) -->
+<!-- ========================================== -->
+@if (showPodModal() && selectedOrderForPod()) {
+  <div class="modal-backdrop" (click)="closePodModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge green">
+            <i class="pi pi-verified"></i>
+          </div>
+          <div>
+            <h3>Confirm Proof of Delivery (POD)</h3>
+            <p>Order {{ selectedOrderForPod()!.orderNumber }}</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closePodModal()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Recipient Type</label>
+          <select [(ngModel)]="podForm.recipientType">
+            @for (rec of recipientTypes; track rec) {
+              <option [value]="rec">{{ rec }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Recipient Name</label>
+          <input type="text" [(ngModel)]="podForm.recipientName" placeholder="Name of person who received the order" />
+        </div>
+
+        <div class="form-group">
+          <label>Delivery Handover Notes</label>
+          <textarea rows="3" [(ngModel)]="podForm.podNotes" placeholder="e.g. Handed over at apartment 4B, payment verified."></textarea>
+        </div>
+
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="podForm.cashCollected" />
+            <span>Payment collected / confirmed paid</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closePodModal()">Cancel</button>
+        <button 
+          type="button" 
+          class="btn-primary btn-success" 
+          [disabled]="isSubmitting()"
+          (click)="submitPod()">
+          Confirm Delivered & Close Order
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- MODAL: CANCEL ORDER -->
+<!-- ========================================== -->
+@if (showCancelModal() && selectedOrderForCancel()) {
+  <div class="modal-backdrop" (click)="closeCancelModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge red">
+            <i class="pi pi-times-circle"></i>
+          </div>
+          <div>
+            <h3>Cancel Order</h3>
+            <p>{{ selectedOrderForCancel()!.orderNumber }}</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeCancelModal()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Cancellation Reason</label>
+          <select [(ngModel)]="cancelForm.presetReason">
+            @for (reason of cancelReasons; track reason) {
+              <option [value]="reason">{{ reason }}</option>
+            }
+          </select>
+        </div>
+
+        @if (cancelForm.presetReason.startsWith('Other')) {
+          <div class="form-group">
+            <label>Specific Reason Details</label>
+            <input type="text" [(ngModel)]="cancelForm.customReason" placeholder="Please describe why this order was cancelled" />
+          </div>
+        }
+
+        <div class="form-group">
+          <label>Cancelled By</label>
+          <select [(ngModel)]="cancelForm.cancelledBy">
+            <option value="kitchen">Kitchen Staff</option>
+            <option value="server">Server / Cashier</option>
+            <option value="customer">Customer Request</option>
+            <option value="admin">Store Manager / Admin</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeCancelModal()">Back</button>
+        <button 
+          type="button" 
+          class="btn-primary btn-danger" 
+          [disabled]="isSubmitting()"
+          (click)="submitCancel()">
+          Confirm Cancellation
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- MODAL: PRINT KOT TICKET -->
+<!-- ========================================== -->
+@if (showKotModal() && selectedOrderForKot()) {
+  <div class="modal-backdrop" (click)="closeKotModal()">
+    <div class="modal-content kot-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header no-print">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge blue">
+            <i class="pi pi-print"></i>
+          </div>
+          <div>
+            <h3>Kitchen Order Ticket (KOT)</h3>
+            <p>{{ selectedOrderForKot()!.orderNumber }}</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeKotModal()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="kot-ticket-body" id="kot-ticket-printable">
+        <div class="kot-header">
+          <h2>KITCHEN ORDER TICKET</h2>
+          <div class="kot-order-num">{{ selectedOrderForKot()!.orderNumber }}</div>
+          <div class="kot-timestamp">{{ selectedOrderForKot()!.createdAt | date:'short' }}</div>
+          <div class="kot-details-bar">
+            <span>Type: <strong>{{ getOrderTypeLabel(selectedOrderForKot()!.orderType) }}</strong></span>
+            @if (selectedOrderForKot()!.tableNumber) {
+              <span>Table: <strong>{{ selectedOrderForKot()!.tableNumber }}</strong></span>
+            }
+            @if (selectedOrderForKot()!.aggregator) {
+              <span>Channel: <strong>{{ selectedOrderForKot()!.aggregator }}</strong></span>
+            }
+          </div>
+        </div>
+
+        <div class="kot-divider"></div>
+
+        <table class="kot-items-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">QTY</th>
+              <th>ITEM</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of selectedOrderKotItems(); track $index) {
+              <tr>
+                <td class="qty-cell"><strong>{{ item.quantity }}x</strong></td>
+                <td class="name-cell">{{ item.productName }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        @if (selectedOrderForKot()!.note) {
+          <div class="kot-notes-section">
+            <strong>CUSTOMER NOTE:</strong>
+            <p>{{ selectedOrderForKot()!.note }}</p>
+          </div>
+        }
+
+        <div class="kot-footer">
+          <div>Status: {{ selectedOrderForKot()!.status }}</div>
+          <div>Printed at: {{ currentTime() | date:'mediumTime' }}</div>
+        </div>
+      </div>
+
+      <div class="modal-footer no-print">
+        <button type="button" class="btn-secondary" (click)="closeKotModal()">Close</button>
+        <button type="button" class="btn-primary" (click)="triggerPrint()">
+          <i class="pi pi-print"></i>
+          Print Ticket
+        </button>
+      </div>
+    </div>
+  </div>
+}

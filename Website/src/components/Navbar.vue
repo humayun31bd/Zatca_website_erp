@@ -2,8 +2,8 @@
   <nav class="navbar">
     <div class="navbar__inner">
       <a href="/" class="navbar__logo">
-        <div class="navbar__logo-icon">N</div>
-        <span>Numou <span class="text-gradient">ERP</span></span>
+        <div class="navbar__logo-icon">I</div>
+        <span>Intelligent <span class="text-gradient">ERP</span></span>
       </a>
 
       <div class="navbar__links" :class="{ 'active': isMobileMenuOpen }">
@@ -16,7 +16,7 @@
         <button class="lang-toggle" @click="toggleLang">
           {{ currentLang === 'en' ? '🌐 العربية' : '🌐 English' }}
         </button>
-        <a href="https://app.numouerp.com" class="btn btn--primary btn--small">Dashboard</a>
+        <a href="https://erp.intelligentdive.com" class="btn btn--primary btn--small">Dashboard</a>
       </div>
 
       <div class="navbar__hamburger" @click="isMobileMenuOpen = !isMobileMenuOpen">

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { invoices, invoiceLineItems, auditLogs } from "@/lib/db/schema";
+import { invoices, invoiceLineItems, invoicePayments, clients, auditLogs } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifySession } from "@/lib/auth/session";
 
@@ -28,6 +28,13 @@ export async function GET(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
+    // Fetch buyer phone if clientId exists
+    let buyerPhone = null;
+    if (invoice.clientId) {
+      const [client] = await db.select().from(clients).where(eq(clients.id, invoice.clientId)).limit(1);
+      if (client?.phoneNumber) buyerPhone = client.phoneNumber;
+    }
+
     // Fetch line items
     const lineItems = await db
       .select()
@@ -38,6 +45,7 @@ export async function GET(
       success: true,
       invoice: {
         ...invoice,
+        buyerPhone,
         lineItems,
       }
     });
@@ -64,21 +72,36 @@ export async function PUT(
 
     if (!invoice) return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
 
-    // ZATCA TAMPER RESISTANCE RULE: Cannot modify cleared/reported invoices
-    if (invoice.zatcaStatus === 'CLEARED' || invoice.zatcaStatus === 'REPORTED') {
+    const body = await req.json();
+    const isOnlyPaymentUpdate = Object.keys(body).every(k => ['paymentStatus', 'paymentMethod', 'referenceNumber'].includes(k));
+
+    // ZATCA TAMPER RESISTANCE RULE: Cannot modify fiscal fields of cleared/reported invoices
+    if ((invoice.zatcaStatus === 'CLEARED' || invoice.zatcaStatus === 'REPORTED') && !isOnlyPaymentUpdate) {
       return NextResponse.json({
         error: "ZATCA Tamper Resistance",
-        message: "Invoices that have been cleared or reported to ZATCA cannot be modified. You must issue a Credit/Debit Note instead."
+        message: "Invoices that have been cleared or reported to ZATCA cannot have their fiscal contents modified. You must issue a Credit/Debit Note instead."
       }, { status: 403 });
     }
 
-    // Proceed with update (e.g. for DRAFT or FAILED invoices)
-    // Skipping full update logic for brevity, just updating payment status for now.
-    const body = await req.json();
+    // Update payment status and record payment if provided
     if (body.paymentStatus) {
       await db.update(invoices)
-        .set({ paymentStatus: body.paymentStatus, updatedAt: new Date() })
+        .set({ 
+          paymentStatus: body.paymentStatus, 
+          paidAt: body.paymentStatus === 'PAID' ? new Date() : null,
+          updatedAt: new Date() 
+        })
         .where(eq(invoices.id, invoiceId));
+
+      if (body.paymentMethod) {
+        await db.insert(invoicePayments).values({
+          tenantId: session.tenantId as string,
+          invoiceId: invoiceId,
+          paymentMethod: body.paymentMethod,
+          amount: Number(invoice.totalAmount),
+          referenceNumber: body.referenceNumber || null,
+        });
+      }
     }
 
     // Audit log

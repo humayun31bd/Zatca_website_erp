@@ -1,7 +1,7 @@
-﻿?# Website & Frontend Architecture Document — Numou ERP
+﻿?# Website & Frontend Architecture Document — Intelligent ERP
 
-**Company:** Numou Technologies Limited  
-**Product:** Numou ERP  
+**Company:** Intelligent Technologies Limited  
+**Product:** Intelligent ERP  
 **Tagline:** Empowering Smart Business Growth. (Arabic: تمكين نمو الأعمال الذكية.)  
 **Target Environment:** AWS Riyadh (`me-central-1`) & Global Edge CDN  
 **Framework:** Next.js 14+ (App Router) with TypeScript & React 19  
@@ -13,7 +13,7 @@
 
 ## 1. High Level Architecture
 
-The Numou ERP website serves as the public digital flagship, high-converting sales engine, interactive compliance simulator, and white-label agency onboarding gateway for Numou Technologies Limited across the Kingdom of Saudi Arabia and the GCC region.
+The Intelligent ERP website serves as the public digital flagship, high-converting sales engine, interactive compliance simulator, and white-label agency onboarding gateway for Intelligent Technologies Limited across the Kingdom of Saudi Arabia and the GCC region.
 
 ```mermaid
 flowchart TD
@@ -130,7 +130,7 @@ The user interface implements a strict **Server-Component-First** pattern. Stati
 
 ```mermaid
 graph TD
-    App["Numou ERP Web Application"]
+    App["Intelligent ERP Web Application"]
     App --> M1["1.0 Global Design System & Shell"]
     App --> M2["2.0 Interactive Hero & Dual 3D Showcase"]
     App --> M3["3.0 Interactive WhatsApp Simulator"]
@@ -146,8 +146,8 @@ graph TD
 * **Accessibility:** WCAG 2.1 AA compliant, Radix UI accessible primitives.
 
 ### Module 2.0: Interactive Hero & Dual 3D Showcase (AmalERP Benchmark)
-* **Left Window (`<DashboardMockup />`):** Simulates live `app.numouerp.com` dashboard with animated SVG revenue sparklines, business health score donut dial, and real-time ZATCA green clearance stamp badge (`CLEARED #388`).
-* **Right Window (`<PhoneMockup />`):** Realistic iPhone 15 frame simulating WhatsApp chat with verified green badge (`Numou Invoicing Bot`) rendering dynamic interactive PDF message cards and click-to-pay Mada buttons.
+* **Left Window (`<DashboardMockup />`):** Simulates live `app.Intelligenterp.com` dashboard with animated SVG revenue sparklines, business health score donut dial, and real-time ZATCA green clearance stamp badge (`CLEARED #388`).
+* **Right Window (`<PhoneMockup />`):** Realistic iPhone 15 frame simulating WhatsApp chat with verified green badge (`Intelligent Invoicing Bot`) rendering dynamic interactive PDF message cards and click-to-pay Mada buttons.
 * **Physics:** Framer Motion 3D perspective tilt (`perspective: 1600px`, `rotateX`, `rotateY`) reacting to user cursor movement.
 
 ### Module 3.0: Instant WhatsApp Invoicing Simulator
@@ -169,7 +169,7 @@ graph TD
 
 ### Module 7.0: Lead Capture & Sales CRM Pipeline
 * **Form Handlers:** Contact sales, schedule 1-on-1 demo, download agency pitch deck.
-* **Automations:** Real-time Slack/WhatsApp webhook alert to Numou sales team in Riyadh; automated confirmation email with PDF attachment.
+* **Automations:** Real-time Slack/WhatsApp webhook alert to Intelligent sales team in Riyadh; automated confirmation email with PDF attachment.
 
 ---
 
@@ -179,7 +179,7 @@ graph TD
 Website/
 ├── public/
 │   ├── assets/
-│   │   ├── branding/           # Numou ERP logos (SVG, PNG, favicon)
+│   │   ├── branding/           # Intelligent ERP logos (SVG, PNG, favicon)
 │   │   ├── mockups/            # Dashboard & phone mockup graphic assets
 │   │   ├── badges/             # ZATCA, AWS Riyadh, Mada, Vision 2030 badges
 │   │   └── og.png              # 1200x630 Open Graph sharing card
@@ -314,9 +314,9 @@ sequenceDiagram
     actor Visitor as Anonymous Visitor
     actor Dev as Sandbox Developer
     actor Partner as Agency Partner
-    participant Web as Numou Website (Next.js)
+    participant Web as Intelligent Website (Next.js)
     participant Auth as Auth / Session Engine
-    participant App as Numou ERP Master Portal (app.numouerp.com)
+    participant App as Intelligent ERP Master Portal (app.Intelligenterp.com)
     participant DB as PostgreSQL (Drizzle ORM)
 
     Note over Visitor,Web: Tier 1: Public Marketing
@@ -331,16 +331,16 @@ sequenceDiagram
 
     Note over Partner,App: Tier 3: Partner Portal Login
     Partner->>Web: Click "Partner Portal Login"
-    Web->>App: Redirect to app.numouerp.com/login
+    Web->>App: Redirect to app.Intelligenterp.com/login
     App->>Auth: Authenticate Credentials & 2FA
     Auth->>DB: Query Agency Workspace & RLS Context
     DB-->>Auth: Verified Tenant Context
-    Auth-->>Partner: Set Secure HTTP-Only Cookie (__Secure-Numou-session)
+    Auth-->>Partner: Set Secure HTTP-Only Cookie (__Secure-Intelligent-session)
 ```
 
 1. **Tier 1 (Public Visitors):** Zero authentication overhead. Stateful UI preferences (selected locale, dark/light theme, collapsed states) persist in lightweight client cookies (`NEXT_LOCALE`, `theme`).
 2. **Tier 2 (Developer Sandbox):** Generates short-lived, signed, stateless JWTs (60-minute TTL) allowing developers to test mock ZATCA clearance and QR decoding endpoints without registration.
-3. **Tier 3 (Partner & Enterprise Dashboard):** Seamless SSO redirect to `app.numouerp.com/login` using secure HTTP-only cookies, AES-256 encrypted JWTs, and PostgreSQL Row-Level Security (RLS) managed by Drizzle ORM.
+3. **Tier 3 (Partner & Enterprise Dashboard):** Seamless SSO redirect to `app.Intelligenterp.com/login` using secure HTTP-only cookies, AES-256 encrypted JWTs, and PostgreSQL Row-Level Security (RLS) managed by Drizzle ORM.
 
 ---
 
@@ -469,7 +469,7 @@ All application logs are formatted as structured JSON to enable instant parsing 
   "timestamp": "2026-09-19T20:30:00.123Z",
   "level": "INFO",
   "environment": "production",
-  "service": "Numou-website",
+  "service": "Intelligent-website",
   "traceId": "trace-9842a-871b",
   "event": "PARTNER_APPLICATION_SUBMITTED",
   "clientIp": "158.140.x.x",
