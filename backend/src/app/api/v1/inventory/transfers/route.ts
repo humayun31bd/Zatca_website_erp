@@ -66,10 +66,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const {
+      transferNumber: customTransferNo,
       fromWarehouseId,
       fromWarehouseName,
       toWarehouseId,
       toWarehouseName,
+      status,
       transferDate,
       remarks,
       items = [],
@@ -79,7 +81,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Source and destination locations are required" }, { status: 400 });
     }
 
-    const transferNumber = `TRF-${Date.now().toString().slice(-6)}`;
+    const transferNumber = customTransferNo?.trim() || `TRF-${Date.now().toString().slice(-6)}`;
     const newTrfId = crypto.randomUUID();
 
     const [newTrf] = await db
@@ -92,7 +94,7 @@ export async function POST(req: NextRequest) {
         fromWarehouseName: fromWarehouseName || "Source Location",
         toWarehouseId,
         toWarehouseName: toWarehouseName || "Destination Location",
-        status: "COMPLETED",
+        status: status || "COMPLETED",
         transferDate: transferDate || new Date().toISOString(),
         remarks: remarks || "",
       })

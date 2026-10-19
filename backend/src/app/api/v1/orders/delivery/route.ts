@@ -95,6 +95,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       orders,
+      data: orders,
       count: orders.length,
     });
   } catch (error: any) {

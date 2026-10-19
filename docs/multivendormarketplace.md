@@ -1,0 +1,355 @@
+## Multi-vendor, Multi-Branch, Multi-Currency , Multi-language Marketplace eCommerce Web Site & Admin Panel
+
+## WebSite Features
+    - Top Banner - Logo, Download app, Wishlist, Cart, Account Login/Signup, Become a Seller, Login Seller
+    - Navigation Bar
+        - Categories (Selected by Admin Settings - Max 10 Categories)
+        - Help line
+        - Support
+        - Contact us
+        - Become a Seller  
+        - Login Seller
+    - Home Page
+        - Country Selection 
+            - Default Selected Country - Bangladesh
+            - Default Selected Currency - BDT
+            - Default Selected Language - Bangla
+            - All Country List
+                - All Country Products
+                    - Each Country Products
+                        - Geolocation Base Product Finding
+                        - Shipping Calculator (Based on Weight, Dimensions, Distance)
+                        - Shippers (Based on Country)
+                            - Pathao Shipping
+                            - RedX Shipping
+                            - Sundarban Courier Service
+                            - eCourier
+                    - Shop Listing
+                        - Shop Search
+                        - Shop Filter
+                        - Shop Sort
+                        - Shop Pagination
+                        - Shop Products list page 
+                            - Search by Category (Tabs - All, Sub-category1, Sub-category2, Sub-category3, ...)
+                            - Filter by Price range, Brand, Color, Size
+                                - product detail page
+                                    - Same Product Image 
+                                    - Same Product Image Zoom
+                                    - Product Thumbnail Images
+                                    - Product Zoom
+                                    - Product sales (Last 30 days)
+                            - Sort by (
+                                Price High to Low, 
+                                Price Low to High, 
+                                Newest, Oldest, 
+                                Rating High to Low, 
+                                Rating Low to High)
+                            - Pagination (10 products per page, Limit 20 products)
+                            - Related products
+                                - Geolocation Base Product Finding
+                                - Same Category Products
+                                - Same Brand Products
+                                - Same Supplier Products
+                - Recently Added Products (Limit 12)
+                - Best Selling Products (Limit 12)
+                - Featured Products (Limit 12)
+                - Hot Deals (Limit 12)                
+                - Offers                 
+                    - Offer Details Page
+                    - Offer Products
+                - Best Selling
+                    - Best Selling Products
+                    - Best Selling Details Page
+                - Featured
+                    - Featured Products
+                    - Featured Details Page
+                - Hot Deals
+                    - Hot Deals Products
+                    - Hot Deals Details Page
+                - Recently Added
+                    - Recently Added Products
+                    - Recently Added Details Page
+    - Shop Details Page
+        - Shop Products
+        - Shop Reviews and Ratings
+        - Shop Reviews and Ratings Submission
+    - Footer Menu
+        - About Us
+        - Contact Us
+        - Privacy Policy
+        - Terms of Use
+        - Return Policy
+        - Refund Policy
+        - Cancel Policy
+        - Delivery Options
+        - Payment Options
+    - Become a Seller Detail Page
+        - Why Sell on (Platform Name)? (Section 1) 
+        - Requirements (Section 2) 
+        - Account Registration (Step-by-Step Guide) (Section 3)
+        - Account Activation (Section 4)
+        - Shop Setup & Profile Completion (Section 5)
+        - Product Listings (Upload, Details, Policies) (Section 6)
+        - Pricing, Discounts & Payments (Section 7)
+        - Shipping Options (Pathao, RedX, Sundarban Courier, eCourier) (Section 8)
+        - Order Management (Dashboard, Processing, Tracking, Returns) (Section 9)
+        - Financial Dashboard (Earning Reports, Payouts, Analytics) (Section 10)
+        - Performance Monitoring (Rating, Reviews, Ranking) (Section 11)
+        - Important Policies & Rules (Section 12)
+        - Support & FAQ (Section 13)
+        - Contact Us (Section 14)
+    - Seller Login Page
+        - Logo
+        - Slogan
+        - User Name / Email / Mobile No
+        - Password  
+        - Forgot Password
+        - Login Button
+        - Remember me
+        - Don't have an account? Register here
+    - Seller Registration Page
+        - Logo
+        - Slogan
+        - User Name / Email / Mobile No
+        - Password
+        - Confirm Password
+        - Register Button
+        - Already have an account? Login here
+    - Seller Dashboard Page
+        - Dashboard
+        - Products
+        - Orders
+        - Reviews
+        - Financial Reports
+        - Settings
+    - Seller Products Page
+        - Products
+        - Add Product
+        - Edit Product
+        - Delete Product
+        - Product Details
+        - Product Image
+        - Product Price
+        - Product Stock Status
+        - Product Minimum Quantity
+        - Product Maximum Quantity
+        - Product SKU (Stock Keeping Unit)
+        - Product UPC (Universal Product Code)
+        - Product EAN (European Article Number)
+        - Product ASIN (Amazon Standard Identification Number)
+        - Product MPN (Manufacturer Part Number)
+        - Product GTIN (Global Trade Item Number)
+        - Product ISBN (International Standard Book Number)
+    - Seller Orders Page
+        - Orders
+        - Add Order
+        - Edit Order
+        - Delete Order
+        - Order Details
+        - Order Status
+        - Order Date
+        - Order Total
+    - Seller Reviews Page
+        - Reviews
+        - Add Review
+        - Edit Review
+        - Delete Review
+        - Review Details
+        - Review Rating
+        - Review Date
+    - Seller Financial Reports Page
+        - Financial Reports
+        - Add Fund Load with Payment gateway (Stripe, PayPal, etc)
+        - Request Fund withdraw 
+        - Transaction History 
+    - Seller Settings Page
+        - Settings
+        - Bank Account
+        - Payment Option
+    - Seller Help Line Page
+        - Help Line
+        - Add Help Line
+        - Edit Help Line
+        - Delete Help Line
+        - Help Line Details
+    - Seller Support Page
+        - Support
+        - Add Support
+        - Edit Support
+        - Delete Support
+    - Seller Contact Us Page
+        - Contact Us
+        - Add Contact Us
+        - Edit Contact Us
+        - Delete Contact Us
+
+## WebSite Admin Panel Features
+    - Multi-Country
+        - Country Details Page
+    - Multi-Currency
+        - Currency Details Page
+    - Multi-language
+        - Language Details Page
+    - Category Management
+        - Category Details Page
+            - Category Name (Duplicate Name checking whole database)
+            - Category Description
+            - Category Image
+                - Sub-Category Management
+                    - Sub-Category Details Page
+                        - Sub-Category Name (Duplicate Name checking whole database)
+                        - Sub-Category Description
+                        - Sub-Category Image
+    - Vendor Shop Page
+        - Device Fingerprinting — Flag logins from new/unrecognized devices.
+        - Suspicious Activity Alerts — Notify user of unusual login or transaction patterns.
+        - Two-Factor Authentication (2FA) — OTP via SMS/email; authenticator app support.
+        - Email and OTP-based login for sellers (email + OTP on login)
+        - Email and OTP-based login for customers (email + OTP on login)
+        - Biometric Login — Fingerprint/Face ID on mobile app.
+        - Verification Workflow — Pending → Under Review → Verified → Rejected.
+            - Rejection Reasons — Standard reason codes
+            - Applicant can re-submit.
+        - Verification Status — Verified badge for KYC-complete businesses.
+        - Verification Required Status — Unverified badge for KYC-pending businesses.
+        - Document Upload — Business license, tax ID, ID proofs, etc.
+        - Address Verification System (AVS) — Verify billing/delivery address against records.
+        - Transaction PIN — Optional PIN for high-value transactions.
+
+        - Multi-Branch
+            - Branch Dashboard
+            - Branch Products
+            - Branch Orders
+        - Vendor Shop Dashboard
+        - Product Management
+            -Product Details Page
+                - Product Image Limit (5)
+                    - Default Image (1)
+                    - Thumbnail Image (4)
+                - Product Name (Duplicate Name checking whole database)
+                - Product Price (whole sale price - only for whole sale)
+                - Product Retail Price (retail price - only for retail)
+                - Product Discounted Price (if any)
+                - Product Discount Percentage (if any)
+                - Product Stock Status (In Stock / Out of Stock)
+                - Product Minimum Quantity (if any)
+                - Product Maximum Quantity (if any)
+                - Product SKU (if any) - Stock Keeping Unit
+                - Product UPC (if any) - Universal Product Code
+                - Product EAN (if any) - European Article Number
+                - Product ASIN (if any) - Amazon Standard Identification Number
+                - Product MPN (if any) - Manufacturer Part Number
+                - Product GTIN (if any) - Global Trade Item Number
+                - Product ISBN (if any) - International Standard Book Number                
+                - Product Specifications (Json Data) Key-Value Type Variants
+                - Product Description
+                - Product Return Policy (if any)
+                - Product Refund Policy (if any)
+                - Product Cancel Policy (if any)
+                - Product Delivery Options
+                - Product Payment Options
+                - Product Reviews and Ratings
+                - Product Reviews and Ratings Submission
+    - Order Management
+    - Customer / Member Reviews and Ratings
+    - Search and Filtering
+    - Shopping Cart and Checkout
+    - Offers Management
+    - Hot Deals Management
+    - Best Selling Management
+    - Featured Management
+    - Recently Added Management
+    - Order Tracking
+        - Order History
+        - Order Details
+        - Order Status
+        - Return Request
+        - Refund Request
+        - Cancel Request
+    - Member Profiles & Manage Profile
+        - KYC Verification
+        - Notifications
+        - NID/Passport upload & Verification
+        - Face Verification        
+        - Email Verification 
+        - Phone Number Verification
+        - Password Reset
+        - OTP Verification
+        - Member Benefits
+            - Bank Account Management
+            - Wallet Management
+            - Pay Later Shopping
+                - Pay Later Shop Credit Limit
+                - Pay Later Shop Monthly Installment Limit
+                - Pay Later Shop Installment Duration
+                - Pay Later Shop Monthly Installment Due Date
+                - Pay Later Shop Monthly Installment Payment Status
+                - Pay Later Shop Monthly Installment Payment History
+                - Member Loyalty Points
+                - Member Loyalty Points History
+                - Member Loyalty Points Redeem
+        - Payment Status
+    - Vendor Shop Analytics
+        - Order Analytics
+        - Revenue Analytics
+        - Profit Analytics
+    - Payment Gateway Integration
+        - SSLCOMMERZ Payment Gateway Integration
+        - Cash on Delivery (COD) (Display Y/N)
+        - Bank Transfer (Display Y/N)
+    - Shipping Management
+        - Pathao Shipping
+        - RedX Shipping
+        - Sundarban Courier Service
+        - eCourier
+        - Delivery Person Management
+        - Order Return
+        - Order Cancel
+        - Order Refund
+
+    
+
+## Roles  
+ - Admin
+ -Vendor / Shop Owner
+ - Customer / Buyer
+ -Delivery person
+
+## Countries
+    - Bangladesh (Current Active)
+    - United States (Coming Soon)
+    - United Kingdom (Coming Soon)
+    - Canada (Coming Soon)
+    - Australia (Coming Soon)
+    - Germany (Coming Soon)
+    - France (Coming Soon)
+    - Spain (Coming Soon)
+    - Italy (Coming Soon)
+    - Pakistan (Coming Soon)
+    - Japan (Coming Soon)
+
+## Currencies
+    - BDT (Bangladeshi Taka) (Current Active)
+    - USD (United States Dollar) (Coming Soon)
+    - EUR (Euro) (Coming Soon)
+    - GBP (British Pound) (Coming Soon)
+    - CAD (Canadian Dollar) (Coming Soon)
+    - AUD (Australian Dollar) (Coming Soon)
+    - JPY (Japanese Yen) (Coming Soon)
+    - INR (Indian Rupee) (Coming Soon)
+    - PKR (Pakistani Rupee) (Coming Soon)
+
+## Languages
+    - English (Current Active)
+    - Bengali (Current Active)
+    - Arabic (Coming Soon)
+    - French    (Coming Soon)
+    - Spanish (Coming Soon)
+    - German (Coming Soon)
+    - Italian (Coming Soon)
+    - Portuguese (Coming Soon)
+    - Chinese (Coming Soon)
+    - Japanese (Coming Soon)
+    - Russian (Coming Soon)
+    - Korean (Coming Soon)
+

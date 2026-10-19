@@ -1,7 +1,7 @@
-﻿?# Data Flow Diagram (DFD) Documentation — Numou ERP Website
+﻿?# Data Flow Diagram (DFD) Documentation — Intelligent ERP Website
 
-**Company:** Numou Technologies Limited  
-**Product:** Numou ERP  
+**Company:** Intelligent Technologies Limited  
+**Product:** Intelligent ERP  
 **Tagline:** Empowering Smart Business Growth. (Arabic: تمكين نمو الأعمال الذكية.)  
 **System:** Marketing Website, Interactive Compliance Simulator & Agency Partner Portal  
 **Location:** `Website/dfd.md`  
@@ -11,7 +11,7 @@
 
 ## 1. Context Diagram (Level 0 DFD)
 
-The Context Diagram establishes the boundary of the **Numou ERP Website & Frontend Portal**, illustrating all data inflows and outflows between the central website system and external entities.
+The Context Diagram establishes the boundary of the **Intelligent ERP Website & Frontend Portal**, illustrating all data inflows and outflows between the central website system and external entities.
 
 ```mermaid
 flowchart TD
@@ -20,10 +20,10 @@ flowchart TD
     Dev["💻 Developer / Integrator"]
     MetaWA["💬 Meta WhatsApp Cloud API"]
     ZATCA["🏛️ ZATCA FATOORA Portal"]
-    SalesTeam["👥 Numou Sales Team (Riyadh)"]
+    SalesTeam["👥 Intelligent Sales Team (Riyadh)"]
     Payment["💳 Saudi Payment Gateway (Moyasar/PayTabs)"]
 
-    System((Numou ERP\nWebsite & Portal Engine))
+    System((Intelligent ERP\nWebsite & Portal Engine))
 
     %% Visitor Interactions
     Visitor -- "1. Page Request & Locale Preference" --> System
@@ -73,7 +73,7 @@ flowchart TD
     Dev["💻 Developer"]
     MetaWA["💬 Meta WhatsApp Cloud API"]
     ZATCA["🏛️ ZATCA FATOORA Portal"]
-    SalesTeam["👥 Numou Sales Team"]
+    SalesTeam["👥 Intelligent Sales Team"]
     Payment["💳 Saudi Payment Gateway (Moyasar/PayTabs)"]
 
     %% Data Stores
@@ -289,7 +289,7 @@ flowchart TD
     D1[("D1: Leads DB")]
     D6[("D6: Payment Logs")]
     Payment["Saudi Payment Gateway"]
-    Sales["Numou Sales Team"]
+    Sales["Intelligent Sales Team"]
 
     P6_1(("6.1\nForm Schema\nValidator (Zod)"))
     P6_2(("6.2\nLead Record\nPersistence (Drizzle)"))
@@ -397,8 +397,8 @@ flowchart TD
 To visualize and edit this architecture diagram in **Draw.io** or **diagrams.net**, copy the XML block below and paste it directly into Draw.io (*Tools ➔ Edit Diagram*):
 
 ```xml
-<mxfile host="app.diagrams.net" modified="2026-09-19T20:30:00.000Z" agent="Numou Architecture Engine" version="21.0.0" type="device">
-  <diagram id="Numou-website-dfd" name="Numou ERP Website DFD Level 0 and 1">
+<mxfile host="app.diagrams.net" modified="2026-09-19T20:30:00.000Z" agent="Intelligent Architecture Engine" version="21.0.0" type="device">
+  <diagram id="Intelligent-website-dfd" name="Intelligent ERP Website DFD Level 0 and 1">
     <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
@@ -425,7 +425,7 @@ To visualize and edit this architecture diagram in **Draw.io** or **diagrams.net
           <mxGeometry x="900" y="240" width="180" height="70" as="geometry" />
         </mxCell>
         
-        <mxCell id="ent_sales" value="&lt;b&gt;👥 Numou Sales Team&lt;/b&gt;&lt;br&gt;(Riyadh Headquarters)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1F5F9;strokeColor=#475569;strokeWidth=2;fontFamily=Helvetica;fontSize=13;fontColor=#1E293B;" vertex="1" parent="1">
+        <mxCell id="ent_sales" value="&lt;b&gt;👥 Intelligent Sales Team&lt;/b&gt;&lt;br&gt;(Riyadh Headquarters)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1F5F9;strokeColor=#475569;strokeWidth=2;fontFamily=Helvetica;fontSize=13;fontColor=#1E293B;" vertex="1" parent="1">
           <mxGeometry x="900" y="400" width="180" height="70" as="geometry" />
         </mxCell>
 
@@ -434,7 +434,7 @@ To visualize and edit this architecture diagram in **Draw.io** or **diagrams.net
         </mxCell>
 
         <!-- Central Website System Process -->
-        <mxCell id="sys_center" value="&lt;b&gt;Numou ERP&lt;/b&gt;&lt;br&gt;Website &amp;amp; Portal Engine&lt;br&gt;&lt;i&gt;(Next.js 14+ / Drizzle ORM)&lt;/i&gt;" style="shape=ellipse;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#D4AF37;strokeWidth=3;fontFamily=Helvetica;fontSize=15;fontColor=#FFFFFF;shadow=1;" vertex="1" parent="1">
+        <mxCell id="sys_center" value="&lt;b&gt;Intelligent ERP&lt;/b&gt;&lt;br&gt;Website &amp;amp; Portal Engine&lt;br&gt;&lt;i&gt;(Next.js 14+ / Drizzle ORM)&lt;/i&gt;" style="shape=ellipse;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#D4AF37;strokeWidth=3;fontFamily=Helvetica;fontSize=15;fontColor=#FFFFFF;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="440" y="200" width="260" height="150" as="geometry" />
         </mxCell>
 
