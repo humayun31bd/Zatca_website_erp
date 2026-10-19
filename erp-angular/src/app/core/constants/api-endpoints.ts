@@ -1,5 +1,5 @@
 export const API_ENDPOINTS = {
-  baseUrl: 'http://localhost:3000/api/v1',
+  baseUrl: '/api/v1',
   auth: {
     login: '/auth/login',
     register: '/auth/register',

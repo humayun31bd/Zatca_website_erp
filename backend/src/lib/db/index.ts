@@ -66,6 +66,89 @@ sqlite.exec(`
     updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS packages (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    price REAL NOT NULL,
+    billing_cycle TEXT DEFAULT 'MONTHLY' NOT NULL,
+    features TEXT NOT NULL,
+    is_active INTEGER DEFAULT 1 NOT NULL,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS subscriptions (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    package_id TEXT NOT NULL,
+    status TEXT DEFAULT 'ACTIVE' NOT NULL,
+    current_period_start INTEGER NOT NULL,
+    current_period_end INTEGER NOT NULL,
+    cancel_at_period_end INTEGER DEFAULT 0 NOT NULL,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS invoices (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    client_id TEXT,
+    counter_id TEXT,
+    branch_id TEXT,
+    cost_center_id TEXT,
+    original_invoice_id TEXT,
+    invoice_number TEXT NOT NULL,
+    invoice_type TEXT NOT NULL,
+    invoice_type_code TEXT DEFAULT '388' NOT NULL,
+    seller_name TEXT NOT NULL,
+    seller_vat TEXT NOT NULL,
+    seller_address TEXT NOT NULL,
+    buyer_name TEXT,
+    buyer_vat TEXT,
+    buyer_address TEXT,
+    subtotal_amount REAL NOT NULL,
+    total_vat_amount REAL NOT NULL,
+    total_amount REAL NOT NULL,
+    currency_code TEXT DEFAULT 'SAR' NOT NULL,
+    issue_datetime INTEGER NOT NULL,
+    invoice_hash TEXT,
+    previous_hash TEXT,
+    ubl_xml_s3_key TEXT,
+    pdf_s3_key TEXT,
+    qr_code_base64 TEXT,
+    zatca_status TEXT DEFAULT 'PENDING' NOT NULL,
+    zatca_warnings TEXT,
+    zatca_errors TEXT,
+    zatca_cleared_at INTEGER,
+    whatsapp_status TEXT DEFAULT 'PENDING' NOT NULL,
+    payment_status TEXT DEFAULT 'UNPAID' NOT NULL,
+    payment_gateway TEXT,
+    paid_at INTEGER,
+    delivery_type TEXT DEFAULT 'take_away',
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS clients (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    vat_number TEXT,
+    address TEXT,
+    email TEXT,
+    phone_number TEXT,
+    country TEXT,
+    state TEXT,
+    city TEXT,
+    customer_type TEXT DEFAULT 'newCustomer',
+    funds REAL DEFAULT 0,
+    dues REAL DEFAULT 0,
+    permit_credit INTEGER DEFAULT 0 NOT NULL,
+    credit_limit REAL DEFAULT 0 NOT NULL,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS onboarding_subscriptions (
     id TEXT PRIMARY KEY,
     company_name TEXT NOT NULL,
@@ -241,6 +324,153 @@ sqlite.exec(`
     reference_doc_name TEXT,
     remarks TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS departments (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS designations (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    department_id TEXT,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS employees (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    user_id TEXT,
+    department_id TEXT,
+    designation_id TEXT,
+    branch_id TEXT,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    father_name TEXT,
+    mother_name TEXT,
+    address TEXT,
+    email TEXT,
+    phone TEXT,
+    department_name TEXT,
+    designation_name TEXT,
+    manager_id TEXT,
+    manager_name TEXT,
+    job_responsibility TEXT,
+    working_hours TEXT,
+    off_day TEXT,
+    shift_info TEXT,
+    yearly_benefits TEXT,
+    national_id TEXT,
+    iqama_expiry_date INTEGER,
+    passport_number TEXT,
+    passport_expiry_date INTEGER,
+    gosi_number TEXT,
+    joining_date INTEGER,
+    basic_salary REAL DEFAULT 0,
+    pay_grade TEXT,
+    pay_scale TEXT,
+    housing_allowance REAL DEFAULT 0,
+    transport_allowance REAL DEFAULT 0,
+    other_allowance REAL DEFAULT 0,
+    profile_picture TEXT,
+    experiences TEXT,
+    skills TEXT,
+    educations TEXT,
+    documents TEXT,
+    payment_method TEXT DEFAULT 'BANK' NOT NULL,
+    status TEXT DEFAULT 'ACTIVE' NOT NULL,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS attendance (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    employee_id TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    check_in INTEGER,
+    check_out INTEGER,
+    status TEXT DEFAULT 'PRESENT' NOT NULL,
+    notes TEXT,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS leave_requests (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    employee_id TEXT NOT NULL,
+    leave_type TEXT NOT NULL,
+    start_date INTEGER NOT NULL,
+    end_date INTEGER NOT NULL,
+    duration_days REAL NOT NULL,
+    status TEXT DEFAULT 'PENDING' NOT NULL,
+    reason TEXT,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS overtime (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    employee_id TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    hours REAL NOT NULL,
+    status TEXT DEFAULT 'PENDING' NOT NULL,
+    reason TEXT,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS payroll (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    employee_id TEXT NOT NULL,
+    month INTEGER NOT NULL,
+    year INTEGER NOT NULL,
+    basic_salary REAL DEFAULT 0 NOT NULL,
+    housing_allowance REAL DEFAULT 0,
+    transport_allowance REAL DEFAULT 0,
+    other_allowance REAL DEFAULT 0,
+    allowances REAL DEFAULT 0 NOT NULL,
+    overtime_hours REAL DEFAULT 0,
+    overtime_pay REAL DEFAULT 0,
+    present_days INTEGER DEFAULT 0,
+    absent_days INTEGER DEFAULT 0,
+    late_days INTEGER DEFAULT 0,
+    fines_penalties REAL DEFAULT 0,
+    loan_deduction REAL DEFAULT 0,
+    gosi_deduction REAL DEFAULT 0,
+    deductions REAL DEFAULT 0 NOT NULL,
+    net_salary REAL DEFAULT 0 NOT NULL,
+    start_date TEXT,
+    end_date TEXT,
+    payment_date INTEGER,
+    payment_method TEXT,
+    status TEXT DEFAULT 'DRAFT' NOT NULL,
+    department_name TEXT,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS loans (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    employee_id TEXT NOT NULL,
+    amount REAL NOT NULL,
+    monthly_installment REAL NOT NULL,
+    remaining_amount REAL NOT NULL,
+    status TEXT DEFAULT 'PENDING' NOT NULL,
+    reason TEXT,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
   );
 `);
 

@@ -28,7 +28,7 @@ export interface DashboardStats {
 })
 export class DashboardService {
   private http = inject(HttpClient);
-  private apiUrl = `${API_ENDPOINTS.baseUrl}/dashboard/stats`;
+  private apiUrl = '/dashboard/stats';
 
   getDashboardStats(): Observable<DashboardStats> {
     return this.http.get<DashboardStats>(this.apiUrl).pipe(

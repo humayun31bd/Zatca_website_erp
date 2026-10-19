@@ -35,7 +35,7 @@ export class MainLayoutComponent implements OnInit {
   searchQuery = signal('');
 
   // Groups that are expanded (default: Main, Sales & POS)
-  expandedGroups = signal<Set<string>>(new Set(['Main', 'Sales & POS']));
+  expandedGroups = signal<Set<string>>(new Set(['Main', 'Sales & POS', 'Human Resource (HRM)']));
 
   readonly menuGroups: SidebarGroup[] = [
     {
@@ -110,6 +110,7 @@ export class MainLayoutComponent implements OnInit {
       children: [
         { label: 'HR Overview Dashboard', labelAr: 'لوحة تحكم الموارد البشرية', icon: 'pi pi-briefcase', route: '/hr/dashboard' },
         { label: 'Employee Directory', labelAr: 'دليل الموظفين', icon: 'pi pi-id-card', route: '/hr/employees' },
+        { label: 'Add Employee', labelAr: 'إضافة موظف', icon: 'pi pi-user-plus', route: '/hr/employees/new' },
         { label: 'Daily Attendance & Time logs', labelAr: 'سجل الحضور والانصراف', icon: 'pi pi-clock', route: '/hr/attendance' },
         { label: 'Leave Requests & Approvals', labelAr: 'طلبات الإجازات والموافقات', icon: 'pi pi-calendar-times', route: '/hr/leaves' },
         { label: 'Overtime Register', labelAr: 'سجل العمل الإضافي', icon: 'pi pi-stopwatch', route: '/hr/overtime' },

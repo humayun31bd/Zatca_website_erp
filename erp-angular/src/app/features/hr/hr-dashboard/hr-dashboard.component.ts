@@ -73,6 +73,6 @@ export class HrDashboardComponent implements OnInit {
   }
 
   navigateToAddEmployee() {
-    this.router.navigate(['/hr/employees'], { queryParams: { action: 'new' } });
+    this.router.navigate(['/hr/employees/new']);
   }
 }

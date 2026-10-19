@@ -6,10 +6,10 @@
       <p class="page-subtitle">Manage company staff, contracts, departments, and payroll details</p>
     </div>
     <div class="header-actions">
-      <button class="btn-primary" (click)="openCreateDialog()">
+      <a class="btn-primary" routerLink="/hr/employees/new">
         <i class="pi pi-user-plus"></i>
         <span>Add Employee</span>
-      </button>
+      </a>
     </div>
   </div>
 
@@ -87,7 +87,7 @@
       <i class="pi pi-users empty-icon"></i>
       <h3>No employees found</h3>
       <p>Try adjusting your search query or filters.</p>
-      <button class="btn-primary" (click)="openCreateDialog()">Add Employee</button>
+      <a class="btn-primary" routerLink="/hr/employees/new">Add Employee</a>
     </div>
   } @else {
     <!-- Table View -->
@@ -109,15 +109,15 @@
             @for (emp of paginatedEmployees(); track emp.id) {
               <tr>
                 <td>
-                  <div class="emp-cell">
+                  <a class="emp-cell emp-link" [routerLink]="['/hr/employees', emp.id]">
                     <div class="avatar-badge">
-                      {{ emp.firstName.charAt(0) }}{{ emp.lastName.charAt(0) }}
+                      {{ (emp.firstName || '?').charAt(0) }}{{ (emp.lastName || '').charAt(0) }}
                     </div>
                     <div class="emp-cell-meta">
                       <span class="emp-cell-name">{{ emp.firstName }} {{ emp.lastName }}</span>
                       <span class="emp-cell-sub">{{ emp.email || emp.phone || 'No direct contact' }}</span>
                     </div>
-                  </div>
+                  </a>
                 </td>
                 <td>
                   <div class="role-cell">
@@ -150,9 +150,12 @@
                 </td>
                 <td class="text-right">
                   <div class="actions-group">
-                    <button class="icon-btn edit-btn" (click)="openEditDialog(emp)" title="Edit Employee">
+                    <a class="icon-btn" [routerLink]="['/hr/employees', emp.id]" title="View Employee">
+                      <i class="pi pi-eye"></i>
+                    </a>
+                    <a class="icon-btn edit-btn" [routerLink]="['/hr/employees', emp.id, 'edit']" title="Edit Employee">
                       <i class="pi pi-pencil"></i>
-                    </button>
+                    </a>
                     <button class="icon-btn delete-btn" (click)="deleteEmployee(emp)" title="Delete Employee">
                       <i class="pi pi-trash"></i>
                     </button>
@@ -167,7 +170,7 @@
       <!-- Grid Card View -->
       <div class="cards-grid">
         @for (emp of paginatedEmployees(); track emp.id) {
-          <div class="emp-card">
+          <div class="emp-card" (click)="openDetail(emp)">
             <div class="card-top">
               <div class="card-avatar">
                 {{ emp.firstName.charAt(0) }}{{ emp.lastName.charAt(0) }}
@@ -209,10 +212,13 @@
                 <span class="val">{{ emp.basicSalary ? (emp.basicSalary | currency:'SAR ':'symbol':'1.0-0') : '—' }}</span>
               </div>
               <div class="card-actions">
-                <button class="icon-btn" (click)="openEditDialog(emp)" title="Edit">
+                <a class="icon-btn" [routerLink]="['/hr/employees', emp.id]" title="View" (click)="$event.stopPropagation()">
+                  <i class="pi pi-eye"></i>
+                </a>
+                <a class="icon-btn" [routerLink]="['/hr/employees', emp.id, 'edit']" title="Edit" (click)="$event.stopPropagation()">
                   <i class="pi pi-pencil"></i>
-                </button>
-                <button class="icon-btn text-danger" (click)="deleteEmployee(emp)" title="Delete">
+                </a>
+                <button class="icon-btn text-danger" (click)="deleteEmployee(emp); $event.stopPropagation()" title="Delete">
                   <i class="pi pi-trash"></i>
                 </button>
               </div>
@@ -301,165 +307,4 @@
     </div>
   }
 
-  <!-- Add/Edit Modal Dialog -->
-  @if (showDialog()) {
-    <div class="modal-overlay" (click)="closeDialog()">
-      <div class="modal-card" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div class="modal-titles">
-            <h2 class="modal-title">{{ isEditMode() ? 'Edit Employee Profile' : 'New Employee Onboarding' }}</h2>
-            <p class="modal-subtitle">Fill in employment details for payroll and regulatory compliance</p>
-          </div>
-          <button class="close-btn" (click)="closeDialog()">
-            <i class="pi pi-times"></i>
-          </button>
-        </div>
-
-        <!-- Form Navigation Tabs -->
-        <div class="modal-tabs">
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="activeTab() === 'personal'" 
-            (click)="activeTab.set('personal')"
-          >
-            <i class="pi pi-user"></i>
-            <span>Personal & ID</span>
-          </button>
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="activeTab() === 'job'" 
-            (click)="activeTab.set('job')"
-          >
-            <i class="pi pi-briefcase"></i>
-            <span>Department & Job</span>
-          </button>
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="activeTab() === 'financial'" 
-            (click)="activeTab.set('financial')"
-          >
-            <i class="pi pi-dollar"></i>
-            <span>Salary & Bank</span>
-          </button>
-        </div>
-
-        <form [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
-          <div class="modal-body">
-            <!-- TAB 1: Personal & ID -->
-            @if (activeTab() === 'personal') {
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>First Name <span class="required">*</span></label>
-                  <input type="text" formControlName="firstName" placeholder="e.g. Tariq" />
-                </div>
-                <div class="form-group">
-                  <label>Last Name <span class="required">*</span></label>
-                  <input type="text" formControlName="lastName" placeholder="e.g. Al-Mansoor" />
-                </div>
-                <div class="form-group">
-                  <label>Email Address</label>
-                  <input type="email" formControlName="email" placeholder="e.g. tariq@company.com" />
-                </div>
-                <div class="form-group">
-                  <label>Phone Number</label>
-                  <input type="text" formControlName="phone" placeholder="e.g. +966 50 123 4567" />
-                </div>
-                <div class="form-group full-width">
-                  <label>Residential Address</label>
-                  <input type="text" formControlName="address" placeholder="Street, City, Postal Code" />
-                </div>
-                <div class="form-group">
-                  <label>National ID / Iqama Number</label>
-                  <input type="text" formControlName="nationalId" placeholder="10-digit Saudi/Iqama ID" />
-                </div>
-                <div class="form-group">
-                  <label>Iqama Expiry Date</label>
-                  <input type="date" formControlName="iqamaExpiryDate" />
-                </div>
-                <div class="form-group">
-                  <label>Passport Number</label>
-                  <input type="text" formControlName="passportNumber" placeholder="e.g. A12345678" />
-                </div>
-                <div class="form-group">
-                  <label>Passport Expiry Date</label>
-                  <input type="date" formControlName="passportExpiryDate" />
-                </div>
-              </div>
-            }
-
-            <!-- TAB 2: Department & Job -->
-            @if (activeTab() === 'job') {
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Department Name</label>
-                  <input type="text" formControlName="departmentName" placeholder="e.g. Finance, Sales, IT" />
-                </div>
-                <div class="form-group">
-                  <label>Designation / Job Title</label>
-                  <input type="text" formControlName="designationName" placeholder="e.g. Senior Accountant" />
-                </div>
-                <div class="form-group">
-                  <label>Joining Date</label>
-                  <input type="date" formControlName="joiningDate" />
-                </div>
-                <div class="form-group">
-                  <label>Employment Status</label>
-                  <select formControlName="status">
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                    <option value="LEFT">Terminated / Left</option>
-                  </select>
-                </div>
-              </div>
-            }
-
-            <!-- TAB 3: Salary & Compensation -->
-            @if (activeTab() === 'financial') {
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Basic Salary (SAR)</label>
-                  <input type="number" formControlName="basicSalary" min="0" step="100" />
-                </div>
-                <div class="form-group">
-                  <label>Housing Allowance (SAR)</label>
-                  <input type="number" formControlName="housingAllowance" min="0" step="50" />
-                </div>
-                <div class="form-group">
-                  <label>Transport Allowance (SAR)</label>
-                  <input type="number" formControlName="transportAllowance" min="0" step="50" />
-                </div>
-                <div class="form-group">
-                  <label>Other Allowances (SAR)</label>
-                  <input type="number" formControlName="otherAllowance" min="0" step="50" />
-                </div>
-                <div class="form-group">
-                  <label>Disbursement Method</label>
-                  <select formControlName="paymentMethod">
-                    <option value="BANK">Bank Transfer (WPS)</option>
-                    <option value="CASH">Cash Disbursement</option>
-                  </select>
-                </div>
-              </div>
-            }
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" class="btn-cancel" (click)="closeDialog()">Cancel</button>
-            <button type="submit" class="btn-submit" [disabled]="isSaving()">
-              @if (isSaving()) {
-                <i class="pi pi-spin pi-spinner"></i>
-                <span>Saving...</span>
-              } @else {
-                <i class="pi pi-check"></i>
-                <span>{{ isEditMode() ? 'Save Changes' : 'Confirm Employee' }}</span>
-              }
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  }
 </div>

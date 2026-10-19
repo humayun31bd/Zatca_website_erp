@@ -129,6 +129,21 @@ export const routes: Routes = [
           import('./features/hr/hr-dashboard/hr-dashboard.component').then(m => m.HrDashboardComponent)
       },
       {
+        path: 'hr/employees/new',
+        loadComponent: () =>
+          import('./features/hr/employees/employee-form.component').then(m => m.EmployeeFormComponent)
+      },
+      {
+        path: 'hr/employees/:id/edit',
+        loadComponent: () =>
+          import('./features/hr/employees/employee-form.component').then(m => m.EmployeeFormComponent)
+      },
+      {
+        path: 'hr/employees/:id',
+        loadComponent: () =>
+          import('./features/hr/employees/employee-detail.component').then(m => m.EmployeeDetailComponent)
+      },
+      {
         path: 'hr/employees',
         loadComponent: () =>
           import('./features/hr/employees/employees-list.component').then(m => m.EmployeesListComponent)

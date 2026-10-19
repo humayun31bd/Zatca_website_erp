@@ -112,7 +112,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "First name and last name are required" }, { status: 400 });
     }
 
-    const [newEmployee] = await db.insert(employees).values(insertData).returning();
+    const now = new Date();
+    const [newEmployee] = await db.insert(employees).values({
+      ...insertData,
+      createdAt: now,
+      updatedAt: now,
+    }).returning();
 
     return NextResponse.json(newEmployee, { status: 201 });
   } catch (error: any) {

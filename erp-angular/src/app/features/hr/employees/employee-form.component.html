@@ -1,0 +1,537 @@
+<div class="employee-form-page">
+  <div class="page-header">
+    <div class="header-titles">
+      <a class="back-link" routerLink="/hr/employees">
+        <i class="pi pi-arrow-left"></i>
+        Employees
+      </a>
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">{{ tabs.length }} tabs — Step {{ currentTabIndex() + 1 }}: {{ tabs[currentTabIndex()].label }}</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-cancel" (click)="cancel()">Cancel</button>
+      <button type="button" class="btn-primary" (click)="saveEmployee()" [disabled]="isSaving() || isLoading()">
+        @if (isSaving()) {
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Saving...</span>
+        } @else {
+          <i class="pi pi-check"></i>
+          <span>{{ saveLabel() }}</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  @if (saveError()) {
+    <div class="alert-error" role="alert">
+      <i class="pi pi-exclamation-circle"></i>
+      <span>{{ saveError() }}</span>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="loading-banner">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Loading employee...</span>
+    </div>
+  }
+
+  <div class="form-shell">
+    <nav class="form-tabs" aria-label="Employee form sections">
+      <p class="tabs-hint">All 6 sections</p>
+      @for (tab of tabs; track tab.id; let i = $index) {
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === tab.id"
+          (click)="setTab(tab.id)"
+        >
+          <span class="step-index">{{ i + 1 }}</span>
+          <span class="tab-copy">
+            <i [class]="tab.icon"></i>
+            <span>{{ tab.label }}</span>
+          </span>
+        </button>
+      }
+    </nav>
+
+    <form [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
+      <div class="form-body">
+        @if (activeTab() === 'personal') {
+          <section class="section-card">
+            <h2 class="section-title">Profile photo</h2>
+            <div class="photo-row">
+              <div class="avatar-preview" aria-hidden="true">
+                @if (profilePreview()) {
+                  <img [src]="profilePreview()" alt="" />
+                } @else {
+                  <i class="pi pi-user"></i>
+                }
+              </div>
+              <div class="photo-actions">
+                <label class="btn-outline file-btn">
+                  <i class="pi pi-upload"></i>
+                  <span>Upload photo</span>
+                  <input type="file" accept="image/*" (change)="onProfileFile($event)" hidden />
+                </label>
+                @if (profilePreview()) {
+                  <button type="button" class="btn-ghost-danger" (click)="clearProfilePhoto()">Remove</button>
+                }
+                <p class="hint">JPG, PNG or WEBP. Max 2 MB.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="section-card">
+            <h2 class="section-title">Personal information</h2>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="firstName">First name <span class="required">*</span></label>
+                <input id="firstName" type="text" formControlName="firstName" autocomplete="given-name" placeholder="e.g. Tariq" />
+                @if (fieldInvalid('firstName')) {
+                  <span class="field-error">First name is required</span>
+                }
+              </div>
+              <div class="form-group">
+                <label for="lastName">Last name <span class="required">*</span></label>
+                <input id="lastName" type="text" formControlName="lastName" autocomplete="family-name" placeholder="e.g. Al-Mansoor" />
+                @if (fieldInvalid('lastName')) {
+                  <span class="field-error">Last name is required</span>
+                }
+              </div>
+              <div class="form-group">
+                <label for="fatherName">Father's name</label>
+                <input id="fatherName" type="text" formControlName="fatherName" />
+              </div>
+              <div class="form-group">
+                <label for="motherName">Mother's name</label>
+                <input id="motherName" type="text" formControlName="motherName" />
+              </div>
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input id="email" type="email" formControlName="email" autocomplete="email" placeholder="name@company.com" />
+                @if (fieldInvalid('email')) {
+                  <span class="field-error">Enter a valid email</span>
+                }
+              </div>
+              <div class="form-group">
+                <label for="phone">Phone</label>
+                <div class="phone-row">
+                  <select
+                    class="dial-select"
+                    [ngModel]="selectedCountry().dialCode"
+                    (ngModelChange)="onCountryChange($event)"
+                    [ngModelOptions]="{standalone: true}"
+                    aria-label="Country dial code"
+                  >
+                    @for (c of countryCodes; track c.code) {
+                      <option [value]="c.dialCode">{{ c.dialCode }} {{ c.name }}</option>
+                    }
+                  </select>
+                  <input id="phone" type="tel" formControlName="phone" autocomplete="tel" placeholder="50 123 4567" />
+                </div>
+              </div>
+              <div class="form-group full-width">
+                <label for="address">Address</label>
+                <textarea id="address" formControlName="address" rows="2" placeholder="Street, city, postal code"></textarea>
+              </div>
+            </div>
+          </section>
+        }
+
+        @if (activeTab() === 'job') {
+          <section class="section-card">
+            <h2 class="section-title">Employment details</h2>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="departmentName">Department</label>
+                <select id="departmentName" [ngModel]="employeeForm.get('departmentName')?.value" (ngModelChange)="onDepartmentChange($event)" [ngModelOptions]="{standalone: true}">
+                  @for (dept of departments(); track dept) {
+                    <option [value]="dept">{{ dept }}</option>
+                  }
+                  <option value="__custom__">Add custom department...</option>
+                </select>
+                @if (showCustomDept()) {
+                  <div class="inline-add">
+                    <input type="text" [ngModel]="customDept()" (ngModelChange)="customDept.set($event)" [ngModelOptions]="{standalone: true}" placeholder="Department name" />
+                    <button type="button" class="btn-outline" (click)="addCustomDepartment()">Add</button>
+                  </div>
+                }
+              </div>
+              <div class="form-group">
+                <label for="designationName">Position / designation</label>
+                <select id="designationName" [ngModel]="employeeForm.get('designationName')?.value" (ngModelChange)="onDesignationChange($event)" [ngModelOptions]="{standalone: true}">
+                  @for (d of designations(); track d) {
+                    <option [value]="d">{{ d }}</option>
+                  }
+                  <option value="__custom__">Add custom designation...</option>
+                </select>
+                @if (showCustomDesignation()) {
+                  <div class="inline-add">
+                    <input type="text" [ngModel]="customDesignation()" (ngModelChange)="customDesignation.set($event)" [ngModelOptions]="{standalone: true}" placeholder="Job title" />
+                    <button type="button" class="btn-outline" (click)="addCustomDesignation()">Add</button>
+                  </div>
+                }
+              </div>
+              <div class="form-group">
+                <label for="employmentType">Employment type</label>
+                <select id="employmentType" formControlName="employmentType">
+                  @for (t of employmentTypes; track t) {
+                    <option [value]="t">{{ t }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="managerId">Reporting manager</label>
+                <select id="managerId" formControlName="managerId">
+                  <option value="">No manager (top-level)</option>
+                  @for (m of managerOptions(); track m.id) {
+                    <option [value]="m.id">{{ m.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="joiningDate">Start date</label>
+                <input id="joiningDate" type="date" formControlName="joiningDate" />
+              </div>
+              <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" formControlName="status">
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                  <option value="LEFT">Terminated / Left</option>
+                </select>
+              </div>
+              <div class="form-group full-width">
+                <label for="jobResponsibility">Responsibilities</label>
+                <textarea id="jobResponsibility" formControlName="jobResponsibility" rows="3" placeholder="Key duties, KPIs, and role scope"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="section-card">
+            <h2 class="section-title">Payroll</h2>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="basicSalary">Basic (SAR)</label>
+                <input id="basicSalary" type="number" min="0" step="50" formControlName="basicSalary" />
+              </div>
+              <div class="form-group">
+                <label for="housingAllowance">Housing (SAR)</label>
+                <input id="housingAllowance" type="number" min="0" step="50" formControlName="housingAllowance" />
+              </div>
+              <div class="form-group">
+                <label for="transportAllowance">Transportation (SAR)</label>
+                <input id="transportAllowance" type="number" min="0" step="50" formControlName="transportAllowance" />
+              </div>
+              <div class="form-group">
+                <label for="otherAllowance">Other (SAR)</label>
+                <input id="otherAllowance" type="number" min="0" step="50" formControlName="otherAllowance" />
+              </div>
+              <div class="form-group">
+                <label>Gross total</label>
+                <div class="readonly-value">{{ grossPay() | number:'1.0-0' }} SAR</div>
+              </div>
+              <div class="form-group">
+                <label for="paymentMethod">Payment method</label>
+                <select id="paymentMethod" formControlName="paymentMethod">
+                  <option value="BANK">Bank transfer (WPS)</option>
+                  <option value="CASH">Cash</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="payGrade">Pay grade</label>
+                <input id="payGrade" type="text" formControlName="payGrade" placeholder="e.g. G5" />
+              </div>
+              <div class="form-group">
+                <label for="payScale">Pay scale</label>
+                <input id="payScale" type="text" formControlName="payScale" placeholder="e.g. Scale A" />
+              </div>
+            </div>
+          </section>
+        }
+
+        @if (activeTab() === 'schedule') {
+          <section class="section-card">
+            <h2 class="section-title">Work schedule</h2>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="workingHours">Work schedule / shift</label>
+                <select id="workingHours" formControlName="workingHours">
+                  @for (s of shifts; track s) {
+                    <option [value]="s">{{ s }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="offDay">Off days</label>
+                <select id="offDay" formControlName="offDay">
+                  @for (d of offDays; track d) {
+                    <option [value]="d">{{ d }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-group full-width">
+                <label for="shiftInfo">Shift notes</label>
+                <input id="shiftInfo" type="text" formControlName="shiftInfo" placeholder="e.g. Day Shift, Ramadan hours" />
+              </div>
+            </div>
+          </section>
+
+          <section class="section-card">
+            <h2 class="section-title">Yearly benefits</h2>
+            <div class="chip-list">
+              @for (b of yearlyBenefitOptions; track b) {
+                <button
+                  type="button"
+                  class="chip"
+                  [class.selected]="selectedBenefits().includes(b)"
+                  (click)="toggleBenefit(b)"
+                >
+                  {{ b }}
+                </button>
+              }
+            </div>
+          </section>
+        }
+
+        @if (activeTab() === 'documents') {
+          <section class="section-card">
+            <h2 class="section-title">Identity numbers</h2>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="nationalId">National ID / Iqama</label>
+                <input id="nationalId" type="text" formControlName="nationalId" placeholder="10-digit ID" />
+              </div>
+              <div class="form-group">
+                <label for="iqamaExpiryDate">Iqama expiry</label>
+                <input id="iqamaExpiryDate" type="date" formControlName="iqamaExpiryDate" />
+              </div>
+              <div class="form-group">
+                <label for="passportNumber">Passport number</label>
+                <input id="passportNumber" type="text" formControlName="passportNumber" />
+              </div>
+              <div class="form-group">
+                <label for="passportExpiryDate">Passport expiry</label>
+                <input id="passportExpiryDate" type="date" formControlName="passportExpiryDate" />
+              </div>
+              <div class="form-group">
+                <label for="gosiNumber">GOSI number</label>
+                <input id="gosiNumber" type="text" formControlName="gosiNumber" />
+              </div>
+            </div>
+          </section>
+
+          <section class="section-card">
+            <div class="section-head">
+              <h2 class="section-title">Employee documents</h2>
+              <span class="count-badge">{{ documents().length }} attached</span>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="docType">Document type</label>
+                <select id="docType" [ngModel]="docType()" (ngModelChange)="docType.set($event)" [ngModelOptions]="{standalone: true}">
+                  @for (t of documentTypes; track t) {
+                    <option [value]="t">{{ t }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="docTitle">Title</label>
+                <input id="docTitle" type="text" [ngModel]="docTitle()" (ngModelChange)="docTitle.set($event)" [ngModelOptions]="{standalone: true}" placeholder="e.g. Iqama copy" />
+              </div>
+              <div class="form-group">
+                <label for="docIssueDate">Issue date</label>
+                <input id="docIssueDate" type="date" [ngModel]="docIssueDate()" (ngModelChange)="docIssueDate.set($event)" [ngModelOptions]="{standalone: true}" />
+              </div>
+              <div class="form-group">
+                <label for="docExpiryDate">Expiry date</label>
+                <input id="docExpiryDate" type="date" [ngModel]="docExpiryDate()" (ngModelChange)="docExpiryDate.set($event)" [ngModelOptions]="{standalone: true}" />
+              </div>
+              <div class="form-group full-width">
+                <label>File upload</label>
+                <label class="drop-zone">
+                  <i class="pi pi-cloud-upload"></i>
+                  <span>{{ docFileName() || 'Browse PDF, image, or Word file (max 2 MB)' }}</span>
+                  <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx" (change)="onDocFile($event)" hidden />
+                </label>
+              </div>
+              <div class="form-group full-width">
+                <label for="docNotes">Notes</label>
+                <input id="docNotes" type="text" [ngModel]="docNotes()" (ngModelChange)="docNotes.set($event)" [ngModelOptions]="{standalone: true}" placeholder="Optional note" />
+              </div>
+            </div>
+            @if (docUploadError()) {
+              <p class="field-error">{{ docUploadError() }}</p>
+            }
+            <button type="button" class="btn-outline" (click)="addDocument()">
+              <i class="pi pi-plus"></i>
+              Attach document
+            </button>
+
+            @if (documents().length === 0) {
+              <p class="empty-hint">No documents attached yet. Upload National ID/Iqama, passport, visa, or contract copies.</p>
+            } @else {
+              <ul class="doc-list">
+                @for (doc of documents(); track doc.id) {
+                  <li class="doc-item">
+                    <div>
+                      <strong>{{ doc.title }}</strong>
+                      <span class="doc-meta">
+                        {{ doc.documentType }}
+                        @if (doc.fileName) {
+                          <span> · {{ doc.fileName }}</span>
+                        }
+                        @if (doc.expiryDate) {
+                          <span> · Exp {{ doc.expiryDate }}</span>
+                        }
+                      </span>
+                    </div>
+                    <button type="button" class="icon-btn delete-btn" (click)="removeDocument(doc.id)" aria-label="Remove document">
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+
+        @if (activeTab() === 'education') {
+          <section class="section-card">
+            <h2 class="section-title">Education</h2>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="eduDegree">Degree</label>
+                <input id="eduDegree" type="text" [ngModel]="eduDegree()" (ngModelChange)="eduDegree.set($event)" [ngModelOptions]="{standalone: true}" placeholder="e.g. BSc Accounting" />
+              </div>
+              <div class="form-group">
+                <label for="eduInstitution">Institution</label>
+                <input id="eduInstitution" type="text" [ngModel]="eduInstitution()" (ngModelChange)="eduInstitution.set($event)" [ngModelOptions]="{standalone: true}" />
+              </div>
+              <div class="form-group">
+                <label for="eduYear">Passing year</label>
+                <input id="eduYear" type="text" [ngModel]="eduYear()" (ngModelChange)="eduYear.set($event)" [ngModelOptions]="{standalone: true}" placeholder="2018" />
+              </div>
+              <div class="form-group">
+                <label for="eduResult">Result / GPA</label>
+                <input id="eduResult" type="text" [ngModel]="eduResult()" (ngModelChange)="eduResult.set($event)" [ngModelOptions]="{standalone: true}" />
+              </div>
+            </div>
+            <button type="button" class="btn-outline" (click)="addEducation()">
+              <i class="pi pi-plus"></i>
+              Add education
+            </button>
+            @if (educations().length) {
+              <ul class="doc-list">
+                @for (edu of educations(); track $index) {
+                  <li class="doc-item">
+                    <div>
+                      <strong>{{ edu.degree }}</strong>
+                      <span class="doc-meta">{{ edu.institution }} · {{ edu.passingYear }} {{ edu.result }}</span>
+                    </div>
+                    <button type="button" class="icon-btn delete-btn" (click)="removeEducation($index)" aria-label="Remove education">
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <section class="section-card">
+            <h2 class="section-title">Experience</h2>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="expCompany">Company</label>
+                <input id="expCompany" type="text" [ngModel]="expCompany()" (ngModelChange)="expCompany.set($event)" [ngModelOptions]="{standalone: true}" />
+              </div>
+              <div class="form-group">
+                <label for="expPeriod">Period</label>
+                <input id="expPeriod" type="text" [ngModel]="expPeriod()" (ngModelChange)="expPeriod.set($event)" [ngModelOptions]="{standalone: true}" placeholder="2019 – 2023" />
+              </div>
+              <div class="form-group full-width">
+                <label for="expResponsibilities">Responsibilities</label>
+                <textarea id="expResponsibilities" rows="2" [ngModel]="expResponsibilities()" (ngModelChange)="expResponsibilities.set($event)" [ngModelOptions]="{standalone: true}"></textarea>
+              </div>
+            </div>
+            <button type="button" class="btn-outline" (click)="addExperience()">
+              <i class="pi pi-plus"></i>
+              Add experience
+            </button>
+            @if (experiences().length) {
+              <ul class="doc-list">
+                @for (exp of experiences(); track $index) {
+                  <li class="doc-item">
+                    <div>
+                      <strong>{{ exp.company }}</strong>
+                      <span class="doc-meta">{{ exp.period }} · {{ exp.responsibilities }}</span>
+                    </div>
+                    <button type="button" class="icon-btn delete-btn" (click)="removeExperience($index)" aria-label="Remove experience">
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+
+        @if (activeTab() === 'skills') {
+          <section class="section-card">
+            <h2 class="section-title">Skills</h2>
+            <div class="skill-add">
+              <input
+                type="text"
+                [ngModel]="skillDraft()"
+                (ngModelChange)="skillDraft.set($event)"
+                [ngModelOptions]="{standalone: true}"
+                placeholder="Type a skill and press Add"
+                (keydown.enter)="$event.preventDefault(); addSkill()"
+              />
+              <button type="button" class="btn-outline" (click)="addSkill()">Add skill</button>
+            </div>
+            <p class="hint">Suggested skills</p>
+            <div class="chip-list">
+              @for (s of popularSkills; track s) {
+                <button type="button" class="chip" [class.selected]="skills().includes(s)" (click)="addSkill(s)">{{ s }}</button>
+              }
+            </div>
+            @if (skills().length) {
+              <div class="chip-list selected-skills">
+                @for (s of skills(); track s) {
+                  <span class="chip selected">
+                    {{ s }}
+                    <button type="button" class="chip-remove" (click)="removeSkill(s)" aria-label="Remove skill">
+                      <i class="pi pi-times"></i>
+                    </button>
+                  </span>
+                }
+              </div>
+            }
+          </section>
+        }
+      </div>
+
+      <div class="form-footer">
+        <button type="button" class="btn-cancel" (click)="prevTab()" [disabled]="currentTabIndex() === 0">
+          Previous
+        </button>
+        <div class="footer-right">
+          @if (currentTabIndex() < tabs.length - 1) {
+            <button type="button" class="btn-outline" (click)="nextTab()">Next step</button>
+          }
+          <button type="submit" class="btn-primary" [disabled]="isSaving() || isLoading()">
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Saving...</span>
+            } @else {
+              <i class="pi pi-check"></i>
+              <span>{{ saveLabel() }}</span>
+            }
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

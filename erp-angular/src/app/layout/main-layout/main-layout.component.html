@@ -67,7 +67,8 @@
               @for (item of group.children; track item.route) {
                 <a 
                   [routerLink]="item.route" 
-                  routerLinkActive="active" 
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: item.route === '/hr/employees' || item.route === '/hr/employees/new' }"
                   class="nav-item"
                   [title]="isCollapsed() ? (isArabic() ? item.labelAr : item.label) : ''"
                 >

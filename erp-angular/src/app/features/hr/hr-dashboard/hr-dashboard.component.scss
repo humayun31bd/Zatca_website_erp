@@ -45,10 +45,12 @@
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
   transition: background-color 0.15s;
 
   &:hover {
     background-color: var(--primary-dark, #064e3b);
+    color: #ffffff;
   }
 }
 
@@ -294,6 +296,8 @@
   border-radius: 8px;
   background: #f8fafc;
   transition: background 0.15s;
+  text-decoration: none;
+  color: inherit;
 
   &:hover {
     background: #f1f5f9;

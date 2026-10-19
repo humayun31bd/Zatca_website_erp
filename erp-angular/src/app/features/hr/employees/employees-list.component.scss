@@ -39,10 +39,12 @@
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
   transition: background-color 0.15s;
 
   &:hover {
     background-color: var(--primary-dark, #064e3b);
+    color: #ffffff;
   }
 }
 
@@ -182,6 +184,15 @@
   text-align: right;
 }
 
+.emp-link {
+  text-decoration: none;
+  color: inherit;
+
+  &:hover .emp-cell-name {
+    color: var(--primary, #059669);
+  }
+}
+
 .emp-cell {
   display: flex;
   align-items: center;
@@ -297,6 +308,10 @@
   gap: 8px;
 }
 
+a.icon-btn {
+  text-decoration: none;
+}
+
 .icon-btn {
   background: transparent;
   border: none;
@@ -337,6 +352,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  cursor: pointer;
 
   .card-top {
     display: flex;

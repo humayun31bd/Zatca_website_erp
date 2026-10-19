@@ -1,7 +1,31 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { API_ENDPOINTS } from '../constants/api-endpoints';
+
+export interface EmployeeDocument {
+  id: string;
+  documentType: string;
+  title: string;
+  fileUrl: string;
+  fileName?: string | null;
+  issueDate?: string | null;
+  expiryDate?: string | null;
+  notes?: string | null;
+}
+
+export interface EmployeeEducation {
+  degree: string;
+  institution: string;
+  passingYear: string;
+  result: string;
+}
+
+export interface EmployeeExperience {
+  company: string;
+  period: string;
+  responsibilities: string;
+}
 
 export interface Employee {
   id: string;
@@ -15,6 +39,13 @@ export interface Employee {
   address?: string | null;
   departmentName?: string | null;
   designationName?: string | null;
+  managerId?: string | null;
+  managerName?: string | null;
+  jobResponsibility?: string | null;
+  workingHours?: string | null;
+  offDay?: string | null;
+  shiftInfo?: string | null;
+  yearlyBenefits?: string | null;
   nationalId?: string | null;
   iqamaExpiryDate?: string | Date | null;
   passportNumber?: string | null;
@@ -22,9 +53,16 @@ export interface Employee {
   gosiNumber?: string | null;
   joiningDate?: string | Date | null;
   basicSalary?: number | string | null;
+  payGrade?: string | null;
+  payScale?: string | null;
   housingAllowance?: number | string | null;
   transportAllowance?: number | string | null;
   otherAllowance?: number | string | null;
+  profilePicture?: string | null;
+  experiences?: EmployeeExperience[] | string | null;
+  skills?: string[] | string | null;
+  educations?: EmployeeEducation[] | string | null;
+  documents?: EmployeeDocument[] | string | null;
   paymentMethod?: 'BANK' | 'CASH' | string;
   status: 'ACTIVE' | 'INACTIVE' | 'LEFT' | string;
   createdAt?: string;
@@ -82,11 +120,13 @@ export interface PayrollRecord {
 })
 export class HrService {
   private http = inject(HttpClient);
-  private baseUrl = `${API_ENDPOINTS.baseUrl}/hr`;
+  private baseUrl = API_ENDPOINTS.hr;
 
   // --- Employees ---
   getEmployees(): Observable<Employee[]> {
-    return this.http.get<Employee[]>(`${this.baseUrl}/employees`);
+    return this.http.get<Employee[] | { error?: string }>(`${this.baseUrl}/employees`).pipe(
+      map(data => (Array.isArray(data) ? data : []))
+    );
   }
 
   getEmployeeById(id: string): Observable<Employee> {
