@@ -1,0 +1,61 @@
+<div class="settings-panel rbac-hub">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Product &amp; Pricing Policy</h1>
+      <p class="page-subtitle">Feature flags follow tenant business type. Use Pricing Policy for discounts, excise, VAT-exempt, and selling-price groups.</p>
+    </div>
+    <div class="toolbar-actions">
+      <button type="button" class="btn-ghost" (click)="applyRecommended()" [disabled]="isLoading()">Apply recommended</button>
+      <button type="button" class="btn-primary" (click)="save()" [disabled]="isSaving() || isLoading()">
+        <i class="pi pi-save"></i> Save Settings
+      </button>
+    </div>
+  </div>
+
+  <nav class="rbac-tabs" aria-label="Product settings by business type">
+    @for (item of tabs; track item.id) {
+      <button
+        type="button"
+        class="rbac-tab product-type-tab"
+        [class.active]="activeTab() === item.id"
+        (click)="selectTab(item.id)"
+      >
+        <i [class]="item.icon"></i>
+        <span>{{ item.label }}</span>
+        @if (item.id === tenantBusinessType()) {
+          <span class="type-chip tenant-chip">Tenant</span>
+        }
+        <span class="count-chip">{{ enabledCount(item) }}/{{ item.keys.length }}</span>
+      </button>
+    }
+  </nav>
+
+  @if (bannerError()) { <div class="alert error">{{ bannerError() }}</div> }
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+
+  @if (isLoading()) {
+    <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading product settings...</div>
+  } @else {
+    <section class="card">
+      <div class="legend">{{ currentTab().hint }}</div>
+      @for (toggle of visibleToggles(); track toggle.key) {
+        <div class="switch-row">
+          <div>
+            <h4>{{ toggle.title }}</h4>
+            <p>{{ toggle.subtitle }}</p>
+          </div>
+          <label class="switch">
+            <input
+              type="checkbox"
+              [(ngModel)]="flags[toggle.key]"
+              [disabled]="disabled(toggle.key)"
+              (ngModelChange)="onToggle(toggle.key)"
+              [attr.aria-label]="toggle.title"
+            />
+            <span></span>
+          </label>
+        </div>
+      }
+    </section>
+  }
+</div>

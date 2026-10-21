@@ -1,0 +1,202 @@
+<div class="detail-page">
+  <div class="page-header">
+    <div class="header-titles">
+      <a class="back-link" routerLink="/hr/employees">
+        <i class="pi pi-arrow-left"></i>
+        Employees
+      </a>
+      <h1 class="page-title">Employee Master Profile</h1>
+      <p class="page-subtitle">Full employment record, documents, education, and compensation</p>
+    </div>
+    @if (employee()) {
+      <div class="header-actions">
+        <button type="button" class="btn-outline" (click)="goEdit()">
+          <i class="pi pi-pencil"></i>
+          <span>Edit Employee</span>
+        </button>
+        <button type="button" class="btn-danger" (click)="deleteEmployee()" [disabled]="isDeleting()">
+          @if (isDeleting()) {
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Deleting...</span>
+          } @else {
+            <i class="pi pi-trash"></i>
+            <span>Delete Employee</span>
+          }
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (loadError()) {
+    <div class="alert-error" role="alert">
+      <i class="pi pi-exclamation-circle"></i>
+      <span>{{ loadError() }}</span>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="loading-banner">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Loading employee profile...</span>
+    </div>
+  } @else if (employee(); as emp) {
+    <section class="profile-card">
+      <div class="avatar">
+        @if (emp.profilePicture) {
+          <img [src]="emp.profilePicture" [alt]="fullName()" />
+        } @else {
+          <span>{{ initials() }}</span>
+        }
+      </div>
+      <div class="profile-meta">
+        <h2>{{ fullName() }}</h2>
+        <p>{{ emp.designationName || 'No Designation' }} • {{ emp.departmentName || 'General Department' }}</p>
+        <div class="chip-row">
+          <span class="status-pill" [class.active]="emp.status === 'ACTIVE'" [class.inactive]="emp.status !== 'ACTIVE'">
+            {{ emp.status }}
+          </span>
+          <span class="pay-chip">Payment: {{ emp.paymentMethod || 'BANK' }}</span>
+        </div>
+      </div>
+      <div class="gross-box">
+        <span class="label">Gross monthly pay</span>
+        <span class="val">{{ money(grossPay()) }}</span>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h3><i class="pi pi-user"></i> Personal & Family Information</h3>
+      <div class="info-grid">
+        <div class="info-item"><span class="k">Father's Name</span><span class="v">{{ display(emp.fatherName) }}</span></div>
+        <div class="info-item"><span class="k">Mother's Name</span><span class="v">{{ display(emp.motherName) }}</span></div>
+        <div class="info-item"><span class="k">Email Address</span><span class="v">{{ display(emp.email) }}</span></div>
+        <div class="info-item"><span class="k">Phone Number</span><span class="v">{{ display(emp.phone) }}</span></div>
+        <div class="info-item full"><span class="k">Address</span><span class="v">{{ display(emp.address) }}</span></div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h3><i class="pi pi-briefcase"></i> Job & Position Details</h3>
+      <div class="info-grid">
+        <div class="info-item"><span class="k">Department</span><span class="v">{{ display(emp.departmentName) }}</span></div>
+        <div class="info-item"><span class="k">Designation / Title</span><span class="v">{{ display(emp.designationName) }}</span></div>
+        <div class="info-item"><span class="k">Manager</span><span class="v">{{ display(emp.managerName) }}</span></div>
+        <div class="info-item"><span class="k">Joining Date</span><span class="v">{{ formatDate(emp.joiningDate) }}</span></div>
+        <div class="info-item full"><span class="k">Job Responsibilities</span><span class="v">{{ display(emp.jobResponsibility) }}</span></div>
+        <div class="info-item"><span class="k">Basic Salary</span><span class="v">{{ money(emp.basicSalary) }}</span></div>
+        <div class="info-item"><span class="k">Pay Grade</span><span class="v">{{ display(emp.payGrade) }}</span></div>
+        <div class="info-item"><span class="k">Pay Scale</span><span class="v">{{ display(emp.payScale) }}</span></div>
+        <div class="info-item"><span class="k">Housing Allowance</span><span class="v">{{ money(emp.housingAllowance) }}</span></div>
+        <div class="info-item"><span class="k">Transport Allowance</span><span class="v">{{ money(emp.transportAllowance) }}</span></div>
+        <div class="info-item"><span class="k">Other Allowances</span><span class="v">{{ money(emp.otherAllowance) }}</span></div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h3><i class="pi pi-clock"></i> Work Schedule & Yearly Benefits</h3>
+      <div class="info-grid">
+        <div class="info-item"><span class="k">Working Hours</span><span class="v">{{ display(emp.workingHours) }}</span></div>
+        <div class="info-item"><span class="k">Off Day / Weekend</span><span class="v">{{ display(emp.offDay) }}</span></div>
+        <div class="info-item"><span class="k">Shifting Roster</span><span class="v">{{ display(emp.shiftInfo) }}</span></div>
+        <div class="info-item full">
+          <span class="k">Yearly Benefits & Perks</span>
+          @if (benefits().length) {
+            <div class="chip-row">
+              @for (b of benefits(); track b) {
+                <span class="skill-chip">{{ b }}</span>
+              }
+            </div>
+          } @else {
+            <span class="v muted">Not specified</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h3><i class="pi pi-id-card"></i> Identification & Legal Documents</h3>
+      <div class="info-grid">
+        <div class="info-item"><span class="k">National ID / Iqama</span><span class="v">{{ display(emp.nationalId) }}</span></div>
+        <div class="info-item"><span class="k">Iqama Expiry Date</span><span class="v">{{ formatDate(emp.iqamaExpiryDate) }}</span></div>
+        <div class="info-item"><span class="k">Passport Number</span><span class="v">{{ display(emp.passportNumber) }}</span></div>
+        <div class="info-item"><span class="k">Passport Expiry Date</span><span class="v">{{ formatDate(emp.passportExpiryDate) }}</span></div>
+        <div class="info-item"><span class="k">GOSI Number</span><span class="v">{{ display(emp.gosiNumber) }}</span></div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h3><i class="pi pi-folder"></i> Uploaded Document Attachments & Files</h3>
+      @if (!documents().length) {
+        <p class="empty-text">No uploaded document attachments found</p>
+      } @else {
+        <ul class="record-list">
+          @for (doc of documents(); track doc.id || $index) {
+            <li>
+              <i class="pi pi-file"></i>
+              <div>
+                <strong>{{ doc.title }} ({{ docType(doc) }})</strong>
+                <span>
+                  File: {{ docFile(doc) }}
+                  @if (docExpiry(doc)) {
+                    <ng-container> | Expiry: {{ formatDate(docExpiry(doc)) }}</ng-container>
+                  }
+                </span>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="section-card">
+      <h3><i class="pi pi-book"></i> Education & Qualifications</h3>
+      @if (!educations().length) {
+        <p class="empty-text">No education records added</p>
+      } @else {
+        <ul class="record-list">
+          @for (edu of educations(); track $index) {
+            <li>
+              <i class="pi pi-graduation-cap"></i>
+              <div>
+                <strong>{{ edu.degree }} - {{ edu.institution }}</strong>
+                <span>Year: {{ edu.passingYear || '—' }} | Result: {{ edu.result || '—' }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="section-card">
+      <h3><i class="pi pi-history"></i> Work Experience History</h3>
+      @if (!experiences().length) {
+        <p class="empty-text">No experience records added</p>
+      } @else {
+        <ul class="record-list">
+          @for (exp of experiences(); track $index) {
+            <li>
+              <i class="pi pi-briefcase"></i>
+              <div>
+                <strong>{{ exp.company }} ({{ exp.period }})</strong>
+                <span>{{ exp.responsibilities || 'No responsibilities listed' }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="section-card">
+      <h3><i class="pi pi-star"></i> Skills & Technical Expertise</h3>
+      @if (!skills().length) {
+        <p class="empty-text">No skills recorded</p>
+      } @else {
+        <div class="chip-row">
+          @for (s of skills(); track s) {
+            <span class="skill-chip">{{ s }}</span>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>

@@ -7,6 +7,7 @@ import { TagModule } from 'primeng/tag';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { PosDashboardService, PosDashboardData } from '../../../core/services/pos-dashboard.service';
+import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
 
 export type DateFilterPreset = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH';
 
@@ -27,6 +28,7 @@ export type DateFilterPreset = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH';
 })
 export class PosDashboardComponent implements OnInit {
   private dashboardService = inject(PosDashboardService);
+  private tenantApi = inject(TenantSettingsService);
 
   isLoading = signal(false);
   activeDateFilter = signal<DateFilterPreset>('ALL');
@@ -59,8 +61,8 @@ export class PosDashboardComponent implements OnInit {
     { label: 'Vendors / Suppliers', labelAr: 'الموردين', icon: 'pi pi-building', route: '/suppliers', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
     { label: 'Accounting Ledger', labelAr: 'دفتر الحسابات', icon: 'pi pi-book', route: '/accounting', color: '#ec4899', bg: 'rgba(236,72,153,0.1)' },
     { label: 'Cash Drawer', labelAr: 'الصندوق النقدي', icon: 'pi pi-wallet', route: '/pos/terminal', color: '#06b6d4', bg: 'rgba(6,182,212,0.1)' },
-    { label: 'Kitchen & Delivery', labelAr: 'المطبخ والتوصيل', icon: 'pi pi-truck', route: '/pos/terminal', color: '#14b8a6', bg: 'rgba(20,184,166,0.1)' },
-    { label: 'Inventory Stock', labelAr: 'المخزون', icon: 'pi pi-box', route: '/pos/terminal', color: '#eab308', bg: 'rgba(234,179,8,0.1)' },
+    { label: 'Kitchen & Delivery', labelAr: 'المطبخ والتوصيل', icon: 'pi pi-truck', route: '/orders/delivery', color: '#14b8a6', bg: 'rgba(20,184,166,0.1)' },
+    { label: 'Inventory Stock', labelAr: 'المخزون', icon: 'pi pi-box', route: '/inventory', color: '#eab308', bg: 'rgba(234,179,8,0.1)' },
     { label: 'Trial Balance', labelAr: 'ميزان المراجعة', icon: 'pi pi-chart-line', route: '/reports/trial-balance', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
     { label: 'Payment Receipts', labelAr: 'سندات القبض', icon: 'pi pi-credit-card', route: '/invoices', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
     { label: 'ZATCA Compliance', labelAr: 'امتثال زاتكا', icon: 'pi pi-shield', route: '/invoices', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
@@ -74,7 +76,18 @@ export class PosDashboardComponent implements OnInit {
   });
 
   ngOnInit() {
+    this.loadTenantMode();
     this.loadData();
+  }
+
+  private loadTenantMode() {
+    this.tenantApi.getTenant().subscribe({
+      next: res => {
+        const key = String(res.tenant?.businessType || 'retail').replace(/[\s&/-]+/g, '').toLowerCase();
+        this.restaurantMode.set(key.includes('restaurant') || key.includes('food') || key === 'fnb');
+      },
+      error: () => {}
+    });
   }
 
   setDateFilter(preset: DateFilterPreset) {
@@ -119,7 +132,7 @@ export class PosDashboardComponent implements OnInit {
   }
 
   getZatcaSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' {
-    switch (status) {
+    switch ((status || '').toUpperCase()) {
       case 'CLEARED':
       case 'REPORTED':
         return 'success';
@@ -135,7 +148,7 @@ export class PosDashboardComponent implements OnInit {
   }
 
   getPaymentSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' {
-    switch (status) {
+    switch ((status || '').toUpperCase()) {
       case 'PAID':
         return 'success';
       case 'PARTIAL':

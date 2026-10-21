@@ -123,7 +123,7 @@ export async function PUT(
       'isMarketingAuthHolderApplicable', 'marketingAuthHolderId', 'isPrescriptionRequired',
       'controlledSubstanceSchedule', 'storageConditionId', 'requiresBatchTracking',
       'isApparel', 'apparelProductTypeId', 'fiberComposition', 'genderId', 'ageGroupId',
-      'isUnderwear', 'isTaxExempt', 'isPointsApplicable', 'pointsPerProduct',
+      'isUnderwear', 'isTaxExempt', 'isDiscountable', 'isExcizable', 'isPointsApplicable', 'pointsPerProduct',
       'isProductDisplayPosApp', 'isProductDisplayWebsiteApp', 'isProductDisplayRackLabel',
       'isProductDisplayTag', 'isProductDisplayPriceTag', 'isProductDisplayHangingTag',
       'isProductDisplayElectronicScale', 'isProductDisplayWeighingScale', 'isVerifiedByBuyer',

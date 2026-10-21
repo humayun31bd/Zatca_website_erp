@@ -36,6 +36,7 @@ export interface TenantInfoResponse {
     email?: string;
     logoUrl?: string;
     whatsappNumber?: string;
+    businessType?: string | null;
   };
 }
 

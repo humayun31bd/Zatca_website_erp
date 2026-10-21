@@ -1,0 +1,64 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Manage Users</h1>
+      <p class="page-subtitle">Tenant logins, roles, and access accounts.</p>
+    </div>
+    <div class="toolbar-actions">
+      <input class="search-field" [(ngModel)]="searchQuery" placeholder="Search email..." />
+      <select class="search-field" [(ngModel)]="roleFilter">
+        <option>All</option>
+        @for (role of roles; track role) { <option [value]="role">{{ displayRole(role) }}</option> }
+      </select>
+      <button type="button" class="btn-primary" (click)="openAdd()"><i class="pi pi-plus"></i> Add User</button>
+    </div>
+  </div>
+  @if (bannerError()) { <div class="alert error">{{ bannerError() }}</div> }
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+  @if (isLoading()) {
+    <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading users...</div>
+  } @else {
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+          <tbody>
+            @for (item of filtered(); track item.id) {
+              <tr>
+                <td>{{ item.email }}</td>
+                <td><span class="type-chip">{{ displayRole(item.role) }}</span></td>
+                <td class="row-actions">
+                  <button type="button" class="icon-btn" (click)="openAdd(item)"><i class="pi pi-pencil"></i></button>
+                  <button type="button" class="icon-btn danger" (click)="remove(item)"><i class="pi pi-trash"></i></button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="3" class="empty">No users found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>
+@if (showDialog()) {
+  <div class="dialog-backdrop" (click)="showDialog.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h2>{{ editingId ? 'Edit User' : 'Add User' }}</h2>
+      <div class="dialog-body">
+        <div class="form-group"><label>Email</label><input [(ngModel)]="formEmail" /></div>
+        <div class="form-group"><label>Password {{ editingId ? '(leave blank to keep)' : '' }}</label><input type="password" [(ngModel)]="formPassword" /></div>
+        <div class="form-group">
+          <label>Role</label>
+          <select [(ngModel)]="formRole">
+            @for (role of roles; track role) { <option [value]="role">{{ displayRole(role) }}</option> }
+          </select>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="showDialog.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="save()">Save</button>
+      </div>
+    </div>
+  </div>
+}

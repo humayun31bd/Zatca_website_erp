@@ -39,8 +39,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { businessType, productPolicy } = body;
 
-    if (!businessType || !productPolicy) {
-      return NextResponse.json({ error: 'businessType and productPolicy are required' }, { status: 400 });
+    if (!productPolicy || typeof productPolicy !== 'object') {
+      return NextResponse.json({ error: 'productPolicy is required' }, { status: 400 });
     }
 
     const [existing] = await db.select()
@@ -48,10 +48,13 @@ export async function POST(req: Request) {
       .where(eq(tenantSettings.tenantId, session.tenantId));
 
     if (existing) {
+      const current = (existing.productPolicy && typeof existing.productPolicy === 'object')
+        ? existing.productPolicy as Record<string, unknown>
+        : {};
+      const merged = { ...current, ...productPolicy };
       const [updated] = await db.update(tenantSettings)
         .set({
-          businessType,
-          productPolicy,
+          productPolicy: merged,
           updatedAt: new Date(),
         })
         .where(eq(tenantSettings.tenantId, session.tenantId))
@@ -61,7 +64,7 @@ export async function POST(req: Request) {
       const [inserted] = await db.insert(tenantSettings)
         .values({
           tenantId: session.tenantId,
-          businessType,
+          businessType: businessType || 'Retail',
           productPolicy,
         })
         .returning();

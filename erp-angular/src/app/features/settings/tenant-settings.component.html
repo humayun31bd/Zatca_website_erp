@@ -1,0 +1,258 @@
+<div class="settings-hub">
+  <aside class="settings-nav" aria-label="Settings sections">
+    @for (group of navGroups; track group.id) {
+      <div class="nav-group">
+        <button type="button" class="nav-group-header" (click)="toggleGroup(group.id)">
+          <i [class]="group.icon"></i>
+          <span>{{ group.label }}</span>
+          <i class="pi pi-chevron-right chevron" [class.open]="isGroupExpanded(group.id)"></i>
+        </button>
+        @if (isGroupExpanded(group.id)) {
+          <div class="nav-group-items">
+            @for (item of group.items; track item.id) {
+              <button
+                type="button"
+                class="nav-item"
+                [class.active]="selectedNavId() === item.id"
+                (click)="selectNav(item.id)"
+              >
+                <i [class]="item.icon"></i>
+                <span>{{ item.label }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+  </aside>
+
+  <div class="settings-content">
+    @if (selectedNavId() === 'websites') {
+      <app-client-websites-panel></app-client-websites-panel>
+    } @else if (selectedNavId() === 'smtp') {
+      <app-smtp-settings-panel></app-smtp-settings-panel>
+    } @else if (selectedNavId() === 'taxes') {
+      <app-taxes-panel></app-taxes-panel>
+    } @else if (selectedNavId() === 'payments') {
+      <app-payment-methods-panel></app-payment-methods-panel>
+    } @else if (selectedNavId() === 'branches') {
+      <app-branches-panel></app-branches-panel>
+    } @else if (selectedNavId() === 'warehouses') {
+      <app-warehouses-panel></app-warehouses-panel>
+    } @else if (selectedNavId() === 'counters') {
+      <app-counters-panel></app-counters-panel>
+    } @else if (selectedNavId() === 'manage-users') {
+      <app-users-panel></app-users-panel>
+    } @else if (selectedNavId() === 'cost-centers') {
+      <app-cost-centers-panel></app-cost-centers-panel>
+    } @else if (selectedNavId() === 'purchase-flow') {
+      <app-purchase-flow-panel></app-purchase-flow-panel>
+    } @else if (selectedNavId() === 'product-settings') {
+      <app-product-settings-panel></app-product-settings-panel>
+    } @else if (selectedNavId() === 'products') {
+      <app-products-panel></app-products-panel>
+    } @else if (selectedNavId() === 'hardware') {
+      <app-hardware-panel></app-hardware-panel>
+    } @else if (selectedNavId() === 'voucher-policy') {
+      <app-voucher-policy-panel></app-voucher-policy-panel>
+    } @else if (selectedNavId() === 'financial-year') {
+      <app-financial-years-panel></app-financial-years-panel>
+    } @else if (selectedNavId() === 'rbac') {
+      <app-rbac-panel></app-rbac-panel>
+    } @else if (selectedNavId() === 'language') {
+      <app-language-panel></app-language-panel>
+    } @else if (selectedNavId() === 'plans') {
+      <app-marketing-plans-panel></app-marketing-plans-panel>
+    } @else if (selectedNavId() === 'zatca') {
+      <app-zatca-panel></app-zatca-panel>
+    } @else if (selectedNavId() === 'tenant') {
+      <div class="tenant-panel">
+        <div class="panel-toolbar">
+          <div>
+            <h1 class="page-title">Tenant &amp; Business Profile</h1>
+            <p class="page-subtitle">Company profile, country compliance, business type, and plan entitlements</p>
+          </div>
+        </div>
+
+        @if (saveError()) {
+          <div class="alert error"><i class="pi pi-exclamation-circle"></i>{{ saveError() }}</div>
+        }
+        @if (saveSuccess()) {
+          <div class="alert success"><i class="pi pi-check-circle"></i>{{ saveSuccess() }}</div>
+        }
+
+        @if (isLoading()) {
+          <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading tenant settings...</div>
+        } @else {
+          <section class="banner">
+            <div class="banner-icon"><i class="pi pi-building"></i></div>
+            <div class="banner-copy">
+              <h2>Tenant Setup &amp; Regional Policy Engine</h2>
+              <p>Tenant ID: {{ tenantId() || 'tenant-auto' }} · Status: {{ status() }} · Active Plan: {{ marketingPlan() }}</p>
+            </div>
+            <span class="compliance-pill"><i class="pi pi-verified"></i>{{ selectedCountry().compliance }}</span>
+          </section>
+
+          <form [formGroup]="form" (ngSubmit)="save()">
+            <section class="card">
+              <div class="card-head">
+                <h3><i class="pi pi-globe"></i> 1. Tenant Location &amp; Tax Compliance Standard</h3>
+                <button type="button" class="btn-ghost" (click)="applyCountryDefaults()">
+                  <i class="pi pi-refresh"></i>
+                  Reset to Country Defaults
+                </button>
+              </div>
+              <p class="hint">Select your business country. Currency, tax rates, e-invoicing compliance, decimal places, and timezone will automatically configure.</p>
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label>Operating Country &amp; Legal Tax Framework *</label>
+                  <select formControlName="countryCode" (change)="onCountryChange(form.controls.countryCode.value || 'SA')">
+                    @for (c of countries; track c.countryCode) {
+                      <option [value]="c.countryCode">{{ c.flag }} {{ c.countryName }} ({{ c.countryCode }}) — {{ c.compliance }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Currency Code</label>
+                  <input type="text" formControlName="currencyCode" />
+                </div>
+                <div class="form-group">
+                  <label>Currency Symbol</label>
+                  <input type="text" formControlName="currencySymbol" />
+                </div>
+                <div class="form-group">
+                  <label>Decimal Places (2 or 3)</label>
+                  <input type="number" formControlName="decimalPlaces" min="0" max="4" />
+                </div>
+                <div class="form-group">
+                  <label>Tax Rate (%) *</label>
+                  <input type="number" formControlName="taxRate" min="0" step="0.1" />
+                </div>
+                <div class="form-group span-2">
+                  <label>Tax Type Name / Label</label>
+                  <input type="text" formControlName="taxType" />
+                </div>
+                <div class="form-group">
+                  <label>Time Zone</label>
+                  <input type="text" formControlName="timezone" />
+                </div>
+                <div class="form-group">
+                  <label>Date Format Pattern</label>
+                  <input type="text" formControlName="dateFormat" />
+                </div>
+              </div>
+              <div class="lang-note">
+                <i class="pi pi-language"></i>
+                Language Preference: Primary {{ selectedCountry().primaryLanguage | uppercase }} | Secondary {{ selectedCountry().secondaryLanguage | uppercase }}
+                @if (selectedCountry().tertiaryLanguage) {
+                  | Tertiary {{ selectedCountry().tertiaryLanguage | uppercase }}
+                }
+              </div>
+            </section>
+
+            <section class="card">
+              <h3><i class="pi pi-th-large"></i> 2. Business Type &amp; Product Policy Automation</h3>
+              <p class="hint">Select your industry segment. The POS cashier and product catalog will automatically adapt workflows and features.</p>
+              <div class="chip-row">
+                @for (b of businessTypes; track b.id) {
+                  <button type="button" class="choice-chip" [class.active]="businessType() === b.id" (click)="setBusinessType(b.id)">
+                    <i [class]="b.icon"></i>
+                    {{ b.label }}
+                  </button>
+                }
+              </div>
+              <div class="feature-box">
+                <strong><i [class]="selectedBusiness().icon"></i> Active POS &amp; Product Policy Features for {{ selectedBusiness().label }}</strong>
+                <div class="chip-row">
+                  @for (f of selectedBusiness().features; track f) {
+                    <span class="feature-chip"><i class="pi pi-check-circle"></i> {{ f }}</span>
+                  }
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <h3><i class="pi pi-id-card"></i> 3. Marketing Plan Purchased &amp; SaaS Entitlements</h3>
+              <p class="hint">Features and quota boundaries are unlocked according to the active subscription plan.</p>
+              <div class="plan-grid">
+                @for (p of plans; track p.name) {
+                  <button type="button" class="plan-card" [class.active]="marketingPlan() === p.name" (click)="setPlan(p.name)">
+                    <div class="plan-title">
+                      <span>{{ p.label }}</span>
+                      @if (marketingPlan() === p.name) {
+                        <i class="pi pi-check-circle"></i>
+                      }
+                    </div>
+                    <small>{{ p.branches }}</small>
+                    <small>{{ p.counters }}</small>
+                    <small>{{ p.invoices }}</small>
+                  </button>
+                }
+              </div>
+            </section>
+
+            <section class="card">
+              <h3><i class="pi pi-shop"></i> 4. Business Entity Profile &amp; Contact Details</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Company / Business Name *</label>
+                  <input type="text" formControlName="name" />
+                  @if (fieldInvalid('name')) { <span class="field-error">Company name is required</span> }
+                </div>
+                <div class="form-group">
+                  <label>Tenant Code / Subdomain</label>
+                  <input type="text" formControlName="code" />
+                </div>
+                <div class="form-group">
+                  <label>VAT / Tax Registration Number (TRN/BIN) *</label>
+                  <input type="text" formControlName="vatNumber" />
+                  @if (fieldInvalid('vatNumber')) { <span class="field-error">VAT number is required</span> }
+                </div>
+                <div class="form-group">
+                  <label>Official Contact Email *</label>
+                  <input type="email" formControlName="email" />
+                  @if (fieldInvalid('email')) { <span class="field-error">Valid email is required</span> }
+                </div>
+                <div class="form-group">
+                  <label>Phone / WhatsApp Notification Number</label>
+                  <input type="text" formControlName="whatsappNumber" />
+                </div>
+                <div class="form-group">
+                  <label>Business Logo Image URL</label>
+                  <input type="text" formControlName="logoUrl" />
+                </div>
+                <div class="form-group full">
+                  <label>Main Branch / Showroom Address</label>
+                  <textarea formControlName="address" rows="2"></textarea>
+                </div>
+              </div>
+            </section>
+
+            <div class="form-actions">
+              <button type="button" class="btn-cancel" (click)="loadTenant()" [disabled]="isLoading() || isSaving()">
+                <i class="pi pi-refresh"></i>
+                Reset to Saved
+              </button>
+              <button type="submit" class="btn-primary" [disabled]="isLoading() || isSaving()">
+                @if (isSaving()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+                  <span>Saving Configuration...</span>
+                } @else {
+                  <i class="pi pi-save"></i>
+                  <span>Save Tenant Setup</span>
+                }
+              </button>
+            </div>
+          </form>
+        }
+      </div>
+    } @else {
+      <div class="placeholder-panel">
+        <div class="placeholder-icon"><i [class]="selectedNavItem().icon"></i></div>
+        <h2>{{ selectedNavItem().label }}</h2>
+        <p>This settings panel is coming next. Tenant &amp; Business Profile is fully available from the General Settings menu.</p>
+        <button type="button" class="btn-primary" (click)="selectNav('tenant')">Open Tenant &amp; Business Profile</button>
+      </div>
+    }
+  </div>
+</div>

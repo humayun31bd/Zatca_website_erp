@@ -1,0 +1,81 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Payment Methods</h1>
+      <p class="page-subtitle">Enable POS and invoice payment options. Cash cannot be removed.</p>
+    </div>
+    <button type="button" class="btn-primary" (click)="openAdd()"><i class="pi pi-plus"></i> Add Method</button>
+  </div>
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+  <section class="table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Arabic</th>
+            <th>Default</th>
+            <th>Active</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (method of methods(); track method.id) {
+            <tr>
+              <td>
+                <span class="domain-cell" style="display:inline-flex;align-items:center;gap:8px">
+                  <span class="color-dot active" [style.background]="method.color"></span>
+                  <strong>{{ method.name }}</strong>
+                </span>
+              </td>
+              <td>{{ method.nameAr }}</td>
+              <td>
+                <button type="button" class="btn-ghost" (click)="setDefault(method.id)">
+                  {{ method.isDefault ? 'Default' : 'Set default' }}
+                </button>
+              </td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [checked]="method.isActive" (change)="toggleActive(method.id)" />
+                  <span></span>
+                </label>
+              </td>
+              <td>
+                @if (method.id !== 'cash') {
+                  <button type="button" class="icon-btn danger" (click)="remove(method.id)"><i class="pi pi-trash"></i></button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+@if (showDialog()) {
+  <div class="dialog-backdrop" (click)="showDialog.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h2>Add Payment Method</h2>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label>Method Name (English)</label>
+          <input [(ngModel)]="formName" />
+        </div>
+        <div class="form-group">
+          <label>اسم طريقة الدفع (عربي)</label>
+          <input [(ngModel)]="formNameAr" dir="rtl" />
+        </div>
+        <div class="preset-row">
+          @for (c of colors; track c) {
+            <button type="button" class="color-dot" [class.active]="formColor === c" [style.background]="c" (click)="formColor = c"></button>
+          }
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="showDialog.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="add()">Add</button>
+      </div>
+    </div>
+  </div>
+}

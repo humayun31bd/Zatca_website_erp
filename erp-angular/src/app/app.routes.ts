@@ -82,6 +82,13 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
+        path: 'inventory/stock-management',
+        loadComponent: () =>
+          import('./features/inventory/stock-management/stock-management.component').then(
+            m => m.StockManagementComponent
+          )
+      },
+      {
         path: 'inventory/print-labels',
         loadComponent: () =>
           import('./features/inventory/print-labels/print-labels.component').then(
@@ -119,6 +126,16 @@ export const routes: Routes = [
           import('./features/pos/pos-terminal/pos-terminal.component').then(m => m.PosTerminalComponent)
       },
       {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/settings/tenant-settings.component').then(m => m.TenantSettingsComponent)
+      },
+      {
+        path: 'settings/:panel',
+        loadComponent: () =>
+          import('./features/settings/tenant-settings.component').then(m => m.TenantSettingsComponent)
+      },
+      {
         path: 'hr',
         redirectTo: 'hr/dashboard',
         pathMatch: 'full'
@@ -127,6 +144,21 @@ export const routes: Routes = [
         path: 'hr/dashboard',
         loadComponent: () =>
           import('./features/hr/hr-dashboard/hr-dashboard.component').then(m => m.HrDashboardComponent)
+      },
+      {
+        path: 'hr/employees/new',
+        loadComponent: () =>
+          import('./features/hr/employees/employee-form.component').then(m => m.EmployeeFormComponent)
+      },
+      {
+        path: 'hr/employees/:id/edit',
+        loadComponent: () =>
+          import('./features/hr/employees/employee-form.component').then(m => m.EmployeeFormComponent)
+      },
+      {
+        path: 'hr/employees/:id',
+        loadComponent: () =>
+          import('./features/hr/employees/employee-detail.component').then(m => m.EmployeeDetailComponent)
       },
       {
         path: 'hr/employees',

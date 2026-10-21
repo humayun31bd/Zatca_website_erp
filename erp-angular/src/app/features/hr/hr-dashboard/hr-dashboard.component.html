@@ -6,10 +6,10 @@
       <p class="page-subtitle">Workforce analytics, compliance tracking, and quick management actions</p>
     </div>
     <div class="header-actions">
-      <button class="btn-primary" (click)="navigateToAddEmployee()">
+      <a class="btn-primary" routerLink="/hr/employees/new">
         <i class="pi pi-user-plus"></i>
         <span>Add Employee</span>
-      </button>
+      </a>
       <a routerLink="/hr/attendance" class="btn-outline">
         <i class="pi pi-clock"></i>
         <span>Attendance</span>
@@ -129,7 +129,7 @@
           } @else {
             <div class="employee-list">
               @for (emp of recentEmployees(); track emp.id) {
-                <div class="employee-row">
+                <a class="employee-row" [routerLink]="['/hr/employees', emp.id]">
                   <div class="emp-avatar">
                     {{ emp.firstName.charAt(0) }}{{ emp.lastName.charAt(0) }}
                   </div>
@@ -143,7 +143,7 @@
                     </span>
                     <span class="salary-tag">{{ emp.basicSalary ? (emp.basicSalary | currency:'SAR ':'symbol':'1.0-0') : 'N/A' }}</span>
                   </div>
-                </div>
+                </a>
               }
             </div>
           }

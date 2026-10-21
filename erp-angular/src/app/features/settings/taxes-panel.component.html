@@ -1,0 +1,76 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Manage Taxes</h1>
+      <p class="page-subtitle">Tax groups used on products, invoices, and POS.</p>
+    </div>
+    <div class="toolbar-actions">
+      <input class="search-field" [(ngModel)]="searchQuery" placeholder="Search taxes..." />
+      <button type="button" class="btn-primary" (click)="openAdd()"><i class="pi pi-plus"></i> Add Tax</button>
+    </div>
+  </div>
+
+  @if (bannerError()) { <div class="alert error">{{ bannerError() }}</div> }
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+
+  @if (isLoading()) {
+    <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading taxes...</div>
+  } @else {
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tax Name</th>
+              <th>Rate</th>
+              <th>Type</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tax of filtered(); track tax.id) {
+              <tr>
+                <td>{{ displayName(tax) }}</td>
+                <td>{{ displayRate(tax) }}</td>
+                <td><span class="type-chip">{{ tax.type || 'VAT' }}</span></td>
+                <td>
+                  <button type="button" class="icon-btn danger" (click)="remove(tax.id)" title="Delete">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="empty">No taxes found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>
+
+@if (showDialog()) {
+  <div class="dialog-backdrop" (click)="showDialog.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h2>Add Tax</h2>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label>Tax Name</label>
+          <input [(ngModel)]="formName" placeholder="Standard Rate" />
+        </div>
+        <div class="form-group">
+          <label>Rate</label>
+          <input [(ngModel)]="formRate" placeholder="15" />
+        </div>
+        <div class="form-group">
+          <label>Tax Type</label>
+          <input [(ngModel)]="formType" placeholder="VAT" />
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="showDialog.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="save()">Save</button>
+      </div>
+    </div>
+  </div>
+}

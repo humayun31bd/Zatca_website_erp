@@ -726,18 +726,9 @@ export class CategoriesComponent implements OnInit {
     this.showToast(`Imported ${count} of ${rows.length} categories!`, 'success');
   }
 
-  // Helper for generating dynamic vibrant color badges for category cards
-  getCategoryTheme(name: string): { bg: string; iconBg: string; color: string; border: string; gradient: string } {
+  getCategoryTheme(name: string): string {
     const hash = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const themes = [
-      { bg: 'bg-emerald-500/10', iconBg: 'bg-emerald-500/20 text-emerald-400', color: 'text-emerald-400', border: 'border-emerald-500/20', gradient: 'from-emerald-500/20 via-emerald-500/10 to-teal-900/30' },
-      { bg: 'bg-blue-500/10', iconBg: 'bg-blue-500/20 text-blue-400', color: 'text-blue-400', border: 'border-blue-500/20', gradient: 'from-blue-500/20 via-blue-500/10 to-indigo-900/30' },
-      { bg: 'bg-amber-500/10', iconBg: 'bg-amber-500/20 text-amber-400', color: 'text-amber-400', border: 'border-amber-500/20', gradient: 'from-amber-500/20 via-amber-500/10 to-orange-900/30' },
-      { bg: 'bg-purple-500/10', iconBg: 'bg-purple-500/20 text-purple-400', color: 'text-purple-400', border: 'border-purple-500/20', gradient: 'from-purple-500/20 via-purple-500/10 to-fuchsia-900/30' },
-      { bg: 'bg-rose-500/10', iconBg: 'bg-rose-500/20 text-rose-400', color: 'text-rose-400', border: 'border-rose-500/20', gradient: 'from-rose-500/20 via-rose-500/10 to-pink-900/30' },
-      { bg: 'bg-cyan-500/10', iconBg: 'bg-cyan-500/20 text-cyan-400', color: 'text-cyan-400', border: 'border-cyan-500/20', gradient: 'from-cyan-500/20 via-cyan-500/10 to-sky-900/30' },
-      { bg: 'bg-indigo-500/10', iconBg: 'bg-indigo-500/20 text-indigo-400', color: 'text-indigo-400', border: 'border-indigo-500/20', gradient: 'from-indigo-500/20 via-indigo-500/10 to-violet-900/30' }
-    ];
+    const themes = ['emerald', 'blue', 'amber', 'purple', 'rose', 'cyan', 'indigo'];
     return themes[hash % themes.length];
   }
 }

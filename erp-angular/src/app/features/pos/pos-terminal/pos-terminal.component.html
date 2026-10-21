@@ -278,6 +278,7 @@
   <div class="cart-section">
     <!-- Register Header: Order Type & Customer -->
     <div class="cart-header">
+      @if (isRestaurant()) {
       <div class="order-type-tabs">
         <button 
           type="button" 
@@ -304,9 +305,10 @@
           <i class="pi pi-send"></i> Delivery
         </button>
       </div>
+      }
 
       <!-- Dine-in / Delivery Extra Inputs -->
-      @if (orderType() === 'dine_in') {
+      @if (isRestaurant() && orderType() === 'dine_in') {
         <div class="extra-field-row">
           <i class="pi pi-hashtag text-muted"></i>
           <input 
@@ -319,7 +321,7 @@
         </div>
       }
 
-      @if (orderType() === 'delivery') {
+      @if (isRestaurant() && orderType() === 'delivery') {
         <div class="extra-field-row">
           <i class="pi pi-map-marker text-muted"></i>
           <input 

@@ -1,0 +1,67 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Manage Counters</h1>
+      <p class="page-subtitle">POS registers assigned to each branch.</p>
+    </div>
+    <div class="toolbar-actions">
+      <input class="search-field" [(ngModel)]="searchQuery" placeholder="Search counters..." />
+      <select class="search-field" [(ngModel)]="statusFilter">
+        <option>All</option><option>Active</option><option>Inactive</option>
+      </select>
+      <button type="button" class="btn-primary" (click)="openAdd()"><i class="pi pi-plus"></i> Add Counter</button>
+    </div>
+  </div>
+  @if (bannerError()) { <div class="alert error">{{ bannerError() }}</div> }
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+  @if (isLoading()) {
+    <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading counters...</div>
+  } @else {
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Branch</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            @for (item of filtered(); track item.id) {
+              <tr>
+                <td><strong>{{ item.name }}</strong></td>
+                <td>{{ item.branchName || '-' }}</td>
+                <td><span class="status-chip" [class.active]="item.isActive !== false" [class.inactive]="item.isActive === false">{{ item.isActive === false ? 'Inactive' : 'Active' }}</span></td>
+                <td class="row-actions">
+                  <button type="button" class="icon-btn" (click)="openAdd(item)"><i class="pi pi-pencil"></i></button>
+                  <button type="button" class="icon-btn danger" (click)="remove(item)"><i class="pi pi-trash"></i></button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="empty">No counters found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>
+@if (showDialog()) {
+  <div class="dialog-backdrop" (click)="showDialog.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h2>{{ editingId ? 'Edit Counter' : 'Add Counter' }}</h2>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label>Branch</label>
+          <select [(ngModel)]="formBranchId">
+            @for (b of branches(); track b.id) { <option [value]="b.id">{{ b.name }}</option> }
+          </select>
+        </div>
+        <div class="form-group"><label>Counter Name</label><input [(ngModel)]="formName" placeholder="Counter 1" /></div>
+        <div class="switch-row">
+          <div><h4>Active</h4></div>
+          <label class="switch"><input type="checkbox" [(ngModel)]="formActive" /><span></span></label>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="showDialog.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="save()">Save</button>
+      </div>
+    </div>
+  </div>
+}

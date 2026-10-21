@@ -59,17 +59,29 @@ export class PosDashboardService {
     }
 
     return this.http.get<any>(url).pipe(
-      map(res => {
-        if (res && res.data) {
-          return res.data as PosDashboardData;
-        }
-        return this.getEmptyData();
-      }),
+      map(res => this.normalize(res?.data || res)),
       catchError(err => {
         console.error('Failed to fetch POS Dashboard data', err);
         return of(this.getEmptyData());
       })
     );
+  }
+
+  private normalize(raw: Partial<PosDashboardData> | null | undefined): PosDashboardData {
+    const empty = this.getEmptyData();
+    if (!raw || typeof raw !== 'object') return empty;
+    return {
+      totalRevenue: Number(raw.totalRevenue) || 0,
+      totalOrders: Number(raw.totalOrders) || 0,
+      totalVat: Number(raw.totalVat) || 0,
+      totalDiscount: Number(raw.totalDiscount) || 0,
+      averageTicketSize: Number(raw.averageTicketSize) || 0,
+      todayRevenue: Number(raw.todayRevenue) || 0,
+      todayOrders: Number(raw.todayOrders) || 0,
+      topProducts: Array.isArray(raw.topProducts) ? raw.topProducts : [],
+      lowStock: Array.isArray(raw.lowStock) ? raw.lowStock : [],
+      recentTransactions: Array.isArray(raw.recentTransactions) ? raw.recentTransactions : []
+    };
   }
 
   private getEmptyData(): PosDashboardData {

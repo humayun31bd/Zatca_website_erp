@@ -1,0 +1,26 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Hardware & Printers</h1>
+      <p class="page-subtitle">Manage connected thermal receipt printers, cash drawers, and barcode scanners.</p>
+    </div>
+  </div>
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+  @if (!defaultId()) {
+    <div class="alert error">No default POS printer selected. Printing will use the system dialog.</div>
+  }
+  <section class="card">
+    <div class="card-head"><h3>Default POS Printer</h3></div>
+    @for (printer of printers; track printer.id) {
+      <div class="switch-row">
+        <div>
+          <h4>{{ printer.name }}</h4>
+          <p>{{ printer.type }}</p>
+        </div>
+        <button type="button" class="btn-ghost" (click)="setDefault(printer.id)">
+          {{ defaultId() === printer.id ? 'Default' : 'Set as default' }}
+        </button>
+      </div>
+    }
+  </section>
+</div>

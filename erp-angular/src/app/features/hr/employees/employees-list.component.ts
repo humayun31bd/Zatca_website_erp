@@ -1,58 +1,29 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HrService, Employee } from '../../../core/services/hr.service';
 
 @Component({
   selector: 'app-employees-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './employees-list.component.html',
   styleUrls: ['./employees-list.component.scss']
 })
 export class EmployeesListComponent implements OnInit {
   private hrService = inject(HrService);
-  private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   employees = signal<Employee[]>([]);
   isLoading = signal(true);
-  isSaving = signal(false);
 
-  // Filters
   searchQuery = signal('');
   statusFilter = signal('ALL');
   paymentFilter = signal('ALL');
   departmentFilter = signal('ALL');
   isGridView = signal(false);
-
-  // Dialog State
-  showDialog = signal(false);
-  isEditMode = signal(false);
-  currentEmployeeId = signal<string | null>(null);
-  activeTab = signal<'personal' | 'job' | 'financial'>('personal');
-
-  employeeForm: FormGroup = this.fb.group({
-    firstName: ['', Validators.required],
-    lastName: ['', Validators.required],
-    email: [''],
-    phone: [''],
-    address: [''],
-    nationalId: [''],
-    iqamaExpiryDate: [''],
-    passportNumber: [''],
-    passportExpiryDate: [''],
-    departmentName: [''],
-    designationName: [''],
-    joiningDate: [''],
-    status: ['ACTIVE', Validators.required],
-    basicSalary: [0],
-    housingAllowance: [0],
-    transportAllowance: [0],
-    otherAllowance: [0],
-    paymentMethod: ['BANK', Validators.required]
-  });
 
   // Unique departments for filter dropdown
   departments = computed(() => {
@@ -201,16 +172,20 @@ export class EmployeesListComponent implements OnInit {
     this.loadEmployees();
     this.route.queryParams.subscribe(params => {
       if (params['action'] === 'new') {
-        this.openCreateDialog();
+        this.openCreatePage();
       }
     });
+  }
+
+  openCreatePage() {
+    this.router.navigate(['/hr/employees/new']);
   }
 
   loadEmployees() {
     this.isLoading.set(true);
     this.hrService.getEmployees().subscribe({
       next: (data) => {
-        this.employees.set(data || []);
+        this.employees.set(Array.isArray(data) ? data : []);
         this.isLoading.set(false);
       },
       error: () => {
@@ -219,101 +194,12 @@ export class EmployeesListComponent implements OnInit {
     });
   }
 
-  openCreateDialog() {
-    this.isEditMode.set(false);
-    this.currentEmployeeId.set(null);
-    this.activeTab.set('personal');
-    this.employeeForm.reset({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      address: '',
-      nationalId: '',
-      iqamaExpiryDate: '',
-      passportNumber: '',
-      passportExpiryDate: '',
-      departmentName: '',
-      designationName: '',
-      joiningDate: new Date().toISOString().substring(0, 10),
-      status: 'ACTIVE',
-      basicSalary: 0,
-      housingAllowance: 0,
-      transportAllowance: 0,
-      otherAllowance: 0,
-      paymentMethod: 'BANK'
-    });
-    this.showDialog.set(true);
+  openDetail(emp: Employee) {
+    this.router.navigate(['/hr/employees', emp.id]);
   }
 
-  openEditDialog(emp: Employee) {
-    this.isEditMode.set(true);
-    this.currentEmployeeId.set(emp.id);
-    this.activeTab.set('personal');
-
-    const formatDateStr = (val: any) => {
-      if (!val) return '';
-      const d = new Date(val);
-      return isNaN(d.getTime()) ? '' : d.toISOString().substring(0, 10);
-    };
-
-    this.employeeForm.patchValue({
-      firstName: emp.firstName,
-      lastName: emp.lastName,
-      email: emp.email || '',
-      phone: emp.phone || '',
-      address: emp.address || '',
-      nationalId: emp.nationalId || '',
-      iqamaExpiryDate: formatDateStr(emp.iqamaExpiryDate),
-      passportNumber: emp.passportNumber || '',
-      passportExpiryDate: formatDateStr(emp.passportExpiryDate),
-      departmentName: emp.departmentName || '',
-      designationName: emp.designationName || '',
-      joiningDate: formatDateStr(emp.joiningDate),
-      status: emp.status || 'ACTIVE',
-      basicSalary: Number(emp.basicSalary) || 0,
-      housingAllowance: Number(emp.housingAllowance) || 0,
-      transportAllowance: Number(emp.transportAllowance) || 0,
-      otherAllowance: Number(emp.otherAllowance) || 0,
-      paymentMethod: emp.paymentMethod || 'BANK'
-    });
-    this.showDialog.set(true);
-  }
-
-  saveEmployee() {
-    if (this.employeeForm.invalid) {
-      this.employeeForm.markAllAsTouched();
-      return;
-    }
-
-    this.isSaving.set(true);
-    const formVal = this.employeeForm.value;
-
-    if (this.isEditMode() && this.currentEmployeeId()) {
-      this.hrService.updateEmployee(this.currentEmployeeId()!, formVal).subscribe({
-        next: () => {
-          this.isSaving.set(false);
-          this.showDialog.set(false);
-          this.loadEmployees();
-        },
-        error: (err) => {
-          this.isSaving.set(false);
-          alert('Failed to update employee: ' + (err.error?.error || err.message));
-        }
-      });
-    } else {
-      this.hrService.createEmployee(formVal).subscribe({
-        next: () => {
-          this.isSaving.set(false);
-          this.showDialog.set(false);
-          this.loadEmployees();
-        },
-        error: (err) => {
-          this.isSaving.set(false);
-          alert('Failed to create employee: ' + (err.error?.error || err.message));
-        }
-      });
-    }
+  openEditPage(emp: Employee) {
+    this.router.navigate(['/hr/employees', emp.id, 'edit']);
   }
 
   deleteEmployee(emp: Employee) {
@@ -328,9 +214,5 @@ export class EmployeesListComponent implements OnInit {
         alert('Failed to delete employee: ' + (err.error?.error || err.message));
       }
     });
-  }
-
-  closeDialog() {
-    this.showDialog.set(false);
   }
 }

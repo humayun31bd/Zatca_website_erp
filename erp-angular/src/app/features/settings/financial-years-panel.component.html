@@ -1,0 +1,95 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Financial Years &amp; Period Lock</h1>
+      <p class="page-subtitle">Accounting years, monthly periods, and close / lock status.</p>
+    </div>
+    <button type="button" class="btn-primary" (click)="openAdd()"><i class="pi pi-plus"></i> Add Year</button>
+  </div>
+  @if (bannerError()) { <div class="alert error">{{ bannerError() }}</div> }
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+  @if (isLoading()) {
+    <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading financial years...</div>
+  } @else {
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Year</th><th>Start</th><th>End</th><th>Active</th><th>Closed</th><th>Periods</th></tr></thead>
+          <tbody>
+            @for (item of items(); track item.id) {
+              <tr>
+                <td>
+                  <button type="button" class="link-btn" (click)="toggleYear(item.id)">
+                    <i class="pi" [class.pi-chevron-down]="expandedYearId() === item.id" [class.pi-chevron-right]="expandedYearId() !== item.id"></i>
+                    <strong>{{ displayName(item) }}</strong>
+                  </button>
+                </td>
+                <td>{{ displayStart(item) }}</td>
+                <td>{{ displayEnd(item) }}</td>
+                <td><span class="status-chip" [class.active]="item.isActive" [class.inactive]="!item.isActive">{{ item.isActive ? 'Active' : 'Inactive' }}</span></td>
+                <td>{{ item.isClosed ? 'Closed' : 'Open' }}</td>
+                <td>{{ lockedCount(item) }}/{{ periodsOf(item).length }} locked</td>
+              </tr>
+              @if (expandedYearId() === item.id) {
+                <tr>
+                  <td colspan="6">
+                    @if (periodsOf(item).length === 0) {
+                      <p class="empty">No periods for this year.</p>
+                    } @else {
+                      <table>
+                        <thead><tr><th>#</th><th>Period</th><th>From</th><th>To</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                          @for (period of periodsOf(item); track period.id) {
+                            <tr>
+                              <td>{{ period.periodNumber }}</td>
+                              <td>{{ period.periodName }}</td>
+                              <td>{{ period.startDate || '-' }}</td>
+                              <td>{{ period.endDate || '-' }}</td>
+                              <td>
+                                <span class="status-chip" [class.inactive]="period.isLocked" [class.active]="!period.isLocked">
+                                  {{ period.isLocked ? 'Locked' : 'Open' }}
+                                </span>
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  class="btn-ghost"
+                                  [disabled]="lockingId() === period.id"
+                                  (click)="toggleLock(period)"
+                                >
+                                  {{ period.isLocked ? 'Unlock' : 'Lock' }}
+                                </button>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+                  </td>
+                </tr>
+              }
+            } @empty {
+              <tr><td colspan="6" class="empty">No financial years found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>
+@if (showDialog()) {
+  <div class="dialog-backdrop" (click)="showDialog.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h2>Add Financial Year</h2>
+      <div class="dialog-body">
+        <div class="form-group"><label>Name</label><input [(ngModel)]="formName" /></div>
+        <div class="form-group"><label>From Date</label><input type="date" [(ngModel)]="formFrom" /></div>
+        <div class="form-group"><label>To Date</label><input type="date" [(ngModel)]="formTo" /></div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="showDialog.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="save()">Save</button>
+      </div>
+    </div>
+  </div>
+}

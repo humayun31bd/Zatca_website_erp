@@ -1,0 +1,36 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Marketing Plans</h1>
+      <p class="page-subtitle">Entitlements for branches, counters, and monthly invoices.</p>
+    </div>
+  </div>
+  <div class="option-grid">
+    @for (plan of plans(); track plan.name) {
+      <div class="option-card">
+        <h4>{{ plan.name }}</h4>
+        <p>Branches: {{ unlimited(plan.branches) }}</p>
+        <p>Counters: {{ unlimited(plan.counters) }}</p>
+        <p>Invoices / month: {{ unlimited(plan.invoices) }}</p>
+        <p>Users: {{ unlimited(plan.users) }}</p>
+        <button type="button" class="btn-ghost" (click)="openEdit(plan)">Edit</button>
+      </div>
+    }
+  </div>
+</div>
+@if (showDialog() && editing) {
+  <div class="dialog-backdrop" (click)="showDialog.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h2>Edit Plan: {{ editing.name }}</h2>
+      <div class="dialog-body">
+        <div class="form-group"><label>No. of Branches (-1 unlimited)</label><input type="number" [(ngModel)]="formBranches" /></div>
+        <div class="form-group"><label>No. of Counters</label><input type="number" [(ngModel)]="formCounters" /></div>
+        <div class="form-group"><label>Invoices / month</label><input type="number" [(ngModel)]="formInvoices" /></div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="showDialog.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="save()">Save</button>
+      </div>
+    </div>
+  </div>
+}

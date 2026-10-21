@@ -7,12 +7,22 @@ export const tenants = sqliteTable('tenants', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   parentTenantId: text('parent_tenant_id').references((): any => tenants.id), // For Agency model (null = root/agency)
   name: text('name').notNull(),
-  vatNumber: text().notNull(),
+  vatNumber: text('vat_number').notNull(),
   email: text('email').notNull().unique(),
   subdomain: text('subdomain').unique(),
   logoUrl: text('logo_url'),
   status: text('status').default('ACTIVE').notNull(),
   whatsappNumber: text('whatsapp_number'),
+  address: text('address'),
+  countryCode: text('country_code').default('SA'),
+  currencyCode: text('currency_code').default('SAR'),
+  currencySymbol: text('currency_symbol').default('SAR'),
+  taxRate: real('tax_rate').default(15),
+  taxType: text('tax_type').default('VAT'),
+  timezone: text('timezone').default('Asia/Riyadh'),
+  dateFormat: text('date_format').default('YYYY-MM-DD'),
+  decimalPlaces: integer('decimal_places').default(2),
+  marketingPlan: text('marketing_plan').default('STANDARD'),
 
   // Multi-Gateway settings
   paymentGateway: text('payment_gateway').default('TAP').notNull(),
@@ -215,6 +225,8 @@ export const products = sqliteTable('products', {
   sizeId: text('size_id'),
   isUnderwear: integer('is_underwear', { mode: 'boolean' }).default(false),
   isTaxExempt: integer('is_tax_exempt', { mode: 'boolean' }).default(false),
+  isDiscountable: integer('is_discountable', { mode: 'boolean' }).default(true),
+  isExcizable: integer('is_excizable', { mode: 'boolean' }).default(false),
 
   // Loyalty & Display Flags
   isPointsApplicable: integer('is_points_applicable', { mode: 'boolean' }).default(false),

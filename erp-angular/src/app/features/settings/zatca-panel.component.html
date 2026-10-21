@@ -1,0 +1,39 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">ZATCA Phase 2 Integration</h1>
+      <p class="page-subtitle">Manage Cryptographic Stamp Identifiers (CSID) and connect to the FATOORA portal.</p>
+    </div>
+  </div>
+  @if (bannerError()) { <div class="alert error">{{ bannerError() }}</div> }
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+  <section class="banner">
+    <span class="status-chip" [class.active]="hasCompliance()" [class.inactive]="!hasCompliance()">
+      Compliance CSID: {{ hasCompliance() ? 'Active' : 'Missing' }}
+    </span>
+    <span class="status-chip" [class.active]="hasProduction()" [class.inactive]="!hasProduction()">
+      Production CSID: {{ hasProduction() ? 'Active' : 'Missing' }}
+    </span>
+  </section>
+  <section class="card">
+    <div class="card-head"><h3>Compliance CSID (CCSID)</h3></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>FATOORA Portal OTP</label>
+        <input [(ngModel)]="otp" placeholder="6-digit OTP" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn-primary" (click)="generateCcsid()" [disabled]="isLoading()">Generate CCSID</button>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card-head"><h3>Production CSID (PCSID)</h3></div>
+    <p class="page-subtitle">
+      {{ hasCompliance() ? 'Compliance CSID is active. You can now generate the Production CSID.' : 'A Compliance CSID is required before generating a Production CSID.' }}
+    </p>
+    <div class="form-actions">
+      <button type="button" class="btn-primary" (click)="generatePcsid()" [disabled]="!hasCompliance() || isLoading()">Generate Production CSID</button>
+    </div>
+  </section>
+</div>

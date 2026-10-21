@@ -1,0 +1,398 @@
+<div class="settings-panel rbac-hub">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Role-Based Access Control</h1>
+      <p class="page-subtitle">Users, delegates, login, passwords, roles, page access, and module hibernation.</p>
+    </div>
+    <div class="toolbar-actions">
+      <button type="button" class="btn-primary" (click)="savePolicy()">
+        <i class="pi pi-save"></i> Save Permission Policy
+      </button>
+    </div>
+  </div>
+
+  <nav class="rbac-tabs" aria-label="RBAC sections">
+    @for (item of tabs; track item.id) {
+      <div class="rbac-tab-wrap">
+        <button
+          type="button"
+          class="rbac-tab"
+          [class.active]="tab() === item.id"
+          (click)="selectTab(item.id)"
+        >
+          <i [class]="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </button>
+        <button
+          type="button"
+          class="tab-help-btn"
+          [class.active]="tab() === item.id"
+          [attr.aria-label]="'Help for ' + item.label"
+          title="Help"
+          (click)="openHelp(item.id, $event)"
+        >
+          <i class="pi pi-question-circle"></i>
+        </button>
+      </div>
+    }
+  </nav>
+
+  @if (bannerError()) { <div class="alert error" role="alert">{{ bannerError() }}</div> }
+  @if (bannerSuccess()) { <div class="alert success" role="status">{{ bannerSuccess() }}</div> }
+
+  @if (tab() === 'users') {
+    <div class="panel-toolbar compact">
+      <p class="page-subtitle">Tenant logins stored in /api/v1/users.</p>
+      <div class="toolbar-actions">
+        <input class="search-field" [(ngModel)]="searchQuery" placeholder="Search email..." />
+        <select class="search-field" [(ngModel)]="roleFilter">
+          <option>All</option>
+          @for (role of apiRoles; track role) { <option [value]="role">{{ displayRole(role) }}</option> }
+        </select>
+        <button type="button" class="btn-primary" (click)="openUser()"><i class="pi pi-plus"></i> Add User</button>
+      </div>
+    </div>
+    @if (isLoading()) {
+      <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading users...</div>
+    } @else {
+      <section class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Email</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody>
+              @for (item of filteredUsers(); track item.id) {
+                <tr>
+                  <td>{{ item.email }}</td>
+                  <td><span class="type-chip">{{ displayRole(item.role) }}</span></td>
+                  <td>{{ item.createdAt ? (item.createdAt | date:'yyyy-MM-dd') : '-' }}</td>
+                  <td class="row-actions">
+                    <button type="button" class="icon-btn" aria-label="Edit user" (click)="openUser(item)"><i class="pi pi-pencil"></i></button>
+                    <button type="button" class="icon-btn danger" aria-label="Delete user" (click)="removeUser(item)"><i class="pi pi-trash"></i></button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4" class="empty">No users found.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  }
+
+  @if (tab() === 'delegates') {
+    <div class="panel-toolbar compact">
+      <p class="page-subtitle">Temporary authority handoff. Stored locally until a delegation API exists.</p>
+      <button type="button" class="btn-primary" (click)="openDelegate()"><i class="pi pi-plus"></i> Add Delegation</button>
+    </div>
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>From</th><th>To</th><th>Scope</th><th>Start</th><th>End</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            @for (row of delegates; track row.id) {
+              <tr>
+                <td>{{ row.fromEmail }}</td>
+                <td>{{ row.toEmail }}</td>
+                <td>{{ row.scope }}</td>
+                <td>{{ row.startsAt }}</td>
+                <td>{{ row.endsAt }}</td>
+                <td><span class="status-chip" [class.active]="row.status === 'Active'" [class.inactive]="row.status !== 'Active'">{{ row.status }}</span></td>
+                <td class="row-actions">
+                  <button type="button" class="icon-btn" aria-label="Edit delegation" (click)="openDelegate(row)"><i class="pi pi-pencil"></i></button>
+                  <button type="button" class="btn-ghost" [disabled]="row.status === 'Revoked'" (click)="revokeDelegate(row)">Revoke</button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7" class="empty">No delegations yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (tab() === 'login') {
+    <p class="page-subtitle">Control who can sign in, lock accounts, and require MFA. Preview-only until login flags exist on the API.</p>
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>User</th><th>Email</th><th>Last login</th><th>Can login</th><th>Locked</th><th>MFA</th></tr></thead>
+          <tbody>
+            @for (profile of loginProfiles; track profile.email) {
+              <tr>
+                <td>{{ profile.displayName }}</td>
+                <td>{{ profile.email }}</td>
+                <td>{{ profile.lastLogin }}</td>
+                <td>
+                  <label class="switch">
+                    <input type="checkbox" [checked]="profile.canLogin" (change)="toggleLogin(profile)" />
+                    <span></span>
+                  </label>
+                </td>
+                <td>
+                  <label class="switch">
+                    <input type="checkbox" [checked]="profile.locked" (change)="toggleLock(profile)" />
+                    <span></span>
+                  </label>
+                </td>
+                <td>
+                  <label class="switch">
+                    <input type="checkbox" [checked]="profile.mfa" (change)="toggleMfa(profile)" />
+                    <span></span>
+                  </label>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6" class="empty">No login profiles.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (tab() === 'password') {
+    <section class="card password-card">
+      <div class="form-group">
+        <label for="pwd-user">User</label>
+        <select id="pwd-user" [(ngModel)]="passwordUser">
+          <option value="">Select user</option>
+          @for (user of users(); track user.id) {
+            <option [value]="user.email">{{ user.email }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="pwd-new">New password</label>
+        <div class="password-field">
+          <input id="pwd-new" [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="newPassword" autocomplete="new-password" />
+          <button type="button" class="icon-btn" [attr.aria-label]="showNewPassword ? 'Hide password' : 'Show password'" (click)="showNewPassword = !showNewPassword">
+            <i class="pi" [class.pi-eye]="!showNewPassword" [class.pi-eye-slash]="showNewPassword"></i>
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="pwd-confirm">Confirm password</label>
+        <div class="password-field">
+          <input id="pwd-confirm" [type]="showConfirmPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword" autocomplete="new-password" />
+          <button type="button" class="icon-btn" [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'" (click)="showConfirmPassword = !showConfirmPassword">
+            <i class="pi" [class.pi-eye]="!showConfirmPassword" [class.pi-eye-slash]="showConfirmPassword"></i>
+          </button>
+        </div>
+      </div>
+      <p class="hint">Minimum 8 characters. Updates /api/v1/users/:id.</p>
+      <div class="form-actions">
+        <button type="button" class="btn-primary" (click)="changePassword()">Update Password</button>
+      </div>
+    </section>
+  }
+
+  @if (tab() === 'roles') {
+    <section class="card">
+      <div class="role-toolbar">
+        <div class="form-group">
+          <label for="role-select">Select Role to Configure</label>
+          <select id="role-select" [(ngModel)]="selectedRole" (ngModelChange)="onRoleChange()">
+            @for (role of roles; track role) { <option [value]="role">{{ role }}</option> }
+          </select>
+        </div>
+        <div class="preset-row">
+          <button type="button" class="preset-btn" (click)="applyPreset('MAKER')">Maker Preset</button>
+          <button type="button" class="preset-btn" (click)="applyPreset('CHECKER')">Checker Preset</button>
+          <button type="button" class="preset-btn" (click)="applyPreset('APPROVER')">Approver Preset</button>
+          <button type="button" class="preset-btn" (click)="applyPreset('AUDITOR')">Auditor (Read-Only)</button>
+        </div>
+      </div>
+      <div class="legend">C = Create Draft | R = Read/View | U = Update Draft | A = Checker Approve | P = Post / Period Lock</div>
+      <div class="table-wrap">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>System Module / Menu Access</th>
+              @for (action of actions; track action) { <th>{{ actionLabels[action] }}</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (module of modules; track module) {
+              <tr>
+                <td>{{ module }}</td>
+                @for (action of actions; track action) {
+                  <td>
+                    <label class="switch">
+                      <input type="checkbox" [checked]="perm(module, action)" (change)="toggle(module, action)" [attr.aria-label]="module + ' ' + action" />
+                      <span></span>
+                    </label>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="table-card">
+      <div class="card-head"><h3>User Account Role Assignments</h3></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+          <tbody>
+            @for (row of assignments; track row.email) {
+              <tr>
+                <td>{{ row.name }}</td>
+                <td>{{ row.email }}</td>
+                <td>
+                  <select class="search-field" [ngModel]="row.role" (ngModelChange)="assignRole(row, $event)">
+                    @for (role of assignmentRoles; track role) { <option [value]="role">{{ role }}</option> }
+                  </select>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (tab() === 'pages') {
+    <p class="page-subtitle">Grant view / create / edit on each menu page. Stored locally until a permissions API exists.</p>
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Group</th><th>Page</th><th>Route</th><th>View</th><th>Create</th><th>Edit</th></tr></thead>
+          <tbody>
+            @for (row of pageAccess; track row.route) {
+              <tr>
+                <td>{{ row.group }}</td>
+                <td>{{ row.page }}</td>
+                <td class="mono">{{ row.route }}</td>
+                <td>
+                  <label class="switch">
+                    <input type="checkbox" [checked]="row.view" (change)="togglePage(row, 'view')" />
+                    <span></span>
+                  </label>
+                </td>
+                <td>
+                  <label class="switch">
+                    <input type="checkbox" [checked]="row.create" [disabled]="!row.view" (change)="togglePage(row, 'create')" />
+                    <span></span>
+                  </label>
+                </td>
+                <td>
+                  <label class="switch">
+                    <input type="checkbox" [checked]="row.edit" [disabled]="!row.view" (change)="togglePage(row, 'edit')" />
+                    <span></span>
+                  </label>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (tab() === 'hibernate') {
+    <div class="panel-toolbar compact">
+      <p class="page-subtitle">Hide entire sidebar modules without deleting data. {{ hibernatedCount() }} module(s) hibernated.</p>
+    </div>
+    <div class="option-grid">
+      @for (mod of hibernateModules; track mod.key) {
+        <article class="option-card" [class.active]="mod.hibernated">
+          <div class="switch-row">
+            <div>
+              <h4>{{ mod.name }}</h4>
+              <p>{{ mod.description }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [checked]="mod.hibernated" (change)="toggleHibernate(mod)" [attr.aria-label]="'Hibernate ' + mod.name" />
+              <span></span>
+            </label>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>
+
+@if (showUserDialog()) {
+  <div class="dialog-backdrop" (click)="showUserDialog.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h2>{{ editingId ? 'Edit User' : 'Add User' }}</h2>
+      <div class="dialog-body">
+        <div class="form-group"><label for="user-email">Email</label><input id="user-email" [(ngModel)]="formEmail" /></div>
+        <div class="form-group">
+          <label for="user-password">Password {{ editingId ? '(leave blank to keep)' : '' }}</label>
+          <input id="user-password" type="password" [(ngModel)]="formPassword" />
+        </div>
+        <div class="form-group">
+          <label for="user-role">Role</label>
+          <select id="user-role" [(ngModel)]="formRole">
+            @for (role of apiRoles; track role) { <option [value]="role">{{ displayRole(role) }}</option> }
+          </select>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="showUserDialog.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="saveUser()">Save</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showDelegateDialog()) {
+  <div class="dialog-backdrop" (click)="showDelegateDialog.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h2>{{ delegateForm.fromEmail ? 'Edit Delegation' : 'Add Delegation' }}</h2>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label for="dlg-from">From (delegator)</label>
+          <select id="dlg-from" [(ngModel)]="delegateForm.fromEmail">
+            <option value="">Select user</option>
+            @for (user of users(); track user.id) { <option [value]="user.email">{{ user.email }}</option> }
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="dlg-to">To (delegatee)</label>
+          <select id="dlg-to" [(ngModel)]="delegateForm.toEmail">
+            <option value="">Select user</option>
+            @for (user of users(); track user.id) { <option [value]="user.email">{{ user.email }}</option> }
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="dlg-scope">Scope</label>
+          <select id="dlg-scope" [(ngModel)]="delegateForm.scope">
+            <option>All modules</option>
+            @for (module of modules; track module) { <option [value]="module">{{ module }}</option> }
+          </select>
+        </div>
+        <div class="form-group"><label for="dlg-start">Starts</label><input id="dlg-start" type="date" [(ngModel)]="delegateForm.startsAt" /></div>
+        <div class="form-group"><label for="dlg-end">Ends</label><input id="dlg-end" type="date" [(ngModel)]="delegateForm.endsAt" /></div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="showDelegateDialog.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="saveDelegate()">Save</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showHelp()) {
+  <div class="dialog-backdrop" (click)="showHelp.set(false)">
+    <div class="dialog help-dialog" (click)="$event.stopPropagation()" role="dialog" [attr.aria-labelledby]="'rbac-help-title'">
+      <h2 id="rbac-help-title"><i class="pi pi-question-circle"></i> {{ helpTopic().title }}</h2>
+      <p class="hint">{{ helpTopic().summary }}</p>
+      <div class="dialog-body help-body">
+        @for (section of helpTopic().sections; track section.heading) {
+          <article class="help-section">
+            <h3>{{ section.heading }}</h3>
+            <p>{{ section.body }}</p>
+          </article>
+        }
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-primary" (click)="showHelp.set(false)">Got it</button>
+      </div>
+    </div>
+  </div>
+}

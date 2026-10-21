@@ -9,10 +9,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const tenantId = authService.tenantId();
 
   let url = req.url;
-  // Prepend baseUrl if path is relative
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     const cleanPath = url.startsWith('/') ? url : `/${url}`;
-    url = `${API_ENDPOINTS.baseUrl}${cleanPath}`;
+    url = cleanPath.startsWith('/api/')
+      ? cleanPath
+      : `${API_ENDPOINTS.baseUrl}${cleanPath}`;
   }
 
   // Clone headers with Bearer token & x-tenant-id
