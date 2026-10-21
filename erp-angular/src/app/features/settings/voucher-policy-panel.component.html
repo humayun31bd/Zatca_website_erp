@@ -1,0 +1,52 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Voucher Entry Policy</h1>
+      <p class="page-subtitle">Approval rules and numbering formula for PV, RV, CV, and JV.</p>
+    </div>
+  </div>
+  @if (bannerError()) { <div class="alert error">{{ bannerError() }}</div> }
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+  @if (isLoading()) {
+    <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading voucher policy...</div>
+  } @else {
+    <section class="card">
+      <div class="switch-row">
+        <div><h4>Require cashier approval</h4><p>POS cash movements wait for accountant review.</p></div>
+        <label class="switch"><input type="checkbox" [(ngModel)]="requireCashierApproval" /><span></span></label>
+      </div>
+      <div class="switch-row">
+        <div><h4>Direct-post system vouchers</h4><p>Auto-generated vouchers post without a second check.</p></div>
+        <label class="switch"><input type="checkbox" [(ngModel)]="directPostSystemVouchers" /><span></span></label>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>POS Voucher Control</label>
+          <select [(ngModel)]="posVoucherControl">
+            <option value="ACCOUNTANT_APPROVAL">Accountant Approval</option>
+            <option value="DIRECT_POST">Direct Post</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Reset Period</label>
+          <select [(ngModel)]="resetPeriod">
+            <option value="YEARLY">Yearly</option>
+            <option value="QUARTERLY">Quarterly</option>
+            <option value="MONTHLY">Monthly</option>
+            <option value="NEVER">Never</option>
+          </select>
+        </div>
+        <div class="form-group"><label>PV Code</label><input [(ngModel)]="pvCode" /></div>
+        <div class="form-group"><label>RV Code</label><input [(ngModel)]="rvCode" /></div>
+        <div class="form-group"><label>CV Code</label><input [(ngModel)]="cvCode" /></div>
+        <div class="form-group"><label>JV Code</label><input [(ngModel)]="jvCode" /></div>
+        <div class="form-group full"><label>Numbering Formula</label><input [(ngModel)]="numberingFormula" /></div>
+        <div class="form-group"><label>Sequence Padding</label><input type="number" [(ngModel)]="seqPadding" /></div>
+        <div class="form-group"><label>Preview</label><input [value]="preview()" disabled /></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-primary" (click)="save()" [disabled]="isSaving()">Save Policy</button>
+      </div>
+    </section>
+  }
+</div>

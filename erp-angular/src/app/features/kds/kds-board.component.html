@@ -126,6 +126,14 @@
     </div>
   </div>
 
+  @if (loadError() && orders().length === 0 && !isLoading()) {
+    <div class="loading-state">
+      <i class="pi pi-exclamation-triangle spinner-lg"></i>
+      <p>{{ loadError() }}</p>
+      <button type="button" class="btn-back-pos" (click)="fetchOrders(true)">Retry</button>
+    </div>
+  }
+
   <!-- Loading Indicator -->
   @if (isLoading() && orders().length === 0) {
     <div class="loading-state">

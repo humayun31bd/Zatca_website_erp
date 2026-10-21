@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
       totalRevenue: sql<number>`COALESCE(SUM(${invoices.totalAmount}), 0)`.mapWith(Number),
       totalOrders: sql<number>`COUNT(${invoices.id})`.mapWith(Number),
       totalVat: sql<number>`COALESCE(SUM(${invoices.totalVatAmount}), 0)`.mapWith(Number),
-      totalDiscount: sql<number>`COALESCE(SUM(${invoices.discountAmount}), 0)`.mapWith(Number),
     })
     .from(invoices)
     .where(and(...invoiceConditions));
@@ -43,7 +42,14 @@ export async function GET(req: NextRequest) {
     const totalRevenue = statsResult[0]?.totalRevenue || 0;
     const totalOrders = statsResult[0]?.totalOrders || 0;
     const totalVat = statsResult[0]?.totalVat || 0;
-    const totalDiscount = statsResult[0]?.totalDiscount || 0;
+
+    const discountResult = await db.select({
+      totalDiscount: sql<number>`COALESCE(SUM(${invoiceLineItems.discountAmount}), 0)`.mapWith(Number),
+    })
+    .from(invoiceLineItems)
+    .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
+    .where(and(...invoiceConditions));
+    const totalDiscount = discountResult[0]?.totalDiscount || 0;
     const averageTicketSize = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     // 2. Today's Revenue
@@ -69,7 +75,7 @@ export async function GET(req: NextRequest) {
     .from(invoiceLineItems)
     .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
     .innerJoin(products, eq(invoiceLineItems.productId, products.id))
-    .where(and(eq(invoices.tenantId, tenantId), ...invoiceConditions))
+    .where(and(...invoiceConditions))
     .groupBy(products.id, products.productName, products.name)
     .orderBy(desc(sql`SUM(${invoiceLineItems.quantity})`))
     .limit(10);
@@ -99,7 +105,7 @@ export async function GET(req: NextRequest) {
       totalAmount: invoices.totalAmount,
       zatcaStatus: invoices.zatcaStatus,
       paymentStatus: invoices.paymentStatus,
-      paymentMethod: invoices.paymentMethod,
+      paymentMethod: invoices.paymentGateway,
       issueDatetime: invoices.issueDatetime,
       deliveryType: invoices.deliveryType,
     })

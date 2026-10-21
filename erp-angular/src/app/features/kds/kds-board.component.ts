@@ -27,6 +27,7 @@ export class KdsBoardComponent implements OnInit, OnDestroy {
   autoRefreshEnabled = signal<boolean>(true);
   isSoundOn = signal<boolean>(true);
   toastMessage = signal<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  loadError = signal<string | null>(null);
 
   // Auto-refresh and clock timers
   private refreshTimer: any = null;
@@ -185,6 +186,7 @@ export class KdsBoardComponent implements OnInit, OnDestroy {
     this.kdsService.getOrders({ limit: 100 }).subscribe({
       next: (res) => {
         this.isLoading.set(false);
+        this.loadError.set(null);
         if (res.success && res.orders) {
           // Check for newly arrived orders to trigger chime
           let hasNewOrder = false;
@@ -207,6 +209,8 @@ export class KdsBoardComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.isLoading.set(false);
+        const msg = err?.error?.details || err?.error?.error || 'Failed to load kitchen orders';
+        this.loadError.set(msg);
         console.error('Failed to load KDS orders:', err);
       }
     });

@@ -117,21 +117,15 @@
   </aside>
 
   <!-- Main Viewport Area -->
-  <div class="erp-main">
-    <!-- Top Bar -->
-    <header class="erp-topbar">
-      <div class="topbar-left">
-        <div class="tenant-chip">
-          <i class="pi pi-building"></i>
-          <span>Tenant: {{ authService.tenantId().substring(0, 8) }}...</span>
-        </div>
-      </div>
+  <div class="erp-main" [class.pos-fullscreen]="isPosTerminal()">
+    @if (!isPosTerminal()) {
+      <header class="erp-topbar">
+        <div class="topbar-left"></div>
+        <div class="topbar-right"></div>
+      </header>
+    }
 
-      <div class="topbar-right"></div>
-    </header>
-
-    <!-- Page Content Viewport -->
-    <main class="page-viewport">
+    <main class="page-viewport" [class.pos-viewport]="isPosTerminal()">
       <router-outlet></router-outlet>
     </main>
   </div>

@@ -56,10 +56,11 @@
         <i class="pi" [ngClass]="isTableView() ? 'pi-th-large' : 'pi-list'"></i>
       </button>
 
-      <!-- Print Barcode Labels -->
-      <a routerLink="/inventory/print-labels" class="action-btn" title="Print Barcode & Shelf Labels">
-        <i class="pi pi-qrcode"></i>
-      </a>
+      @if (formVis().barcodePrinting) {
+        <a routerLink="/inventory/print-labels" class="action-btn" title="Print Barcode & Shelf Labels">
+          <i class="pi pi-qrcode"></i>
+        </a>
+      }
 
       <!-- Import CSV -->
       <button 
@@ -518,22 +519,26 @@
           <i class="pi pi-wallet"></i>
           Pricing & VAT
         </button>
-        <button 
-          type="button" 
-          class="form-tab-btn" 
-          [class.active]="activeFormTab() === 'stock'" 
-          (click)="activeFormTab.set('stock')">
-          <i class="pi pi-database"></i>
-          Stock & Packaging
-        </button>
-        <button 
-          type="button" 
-          class="form-tab-btn" 
-          [class.active]="activeFormTab() === 'verticals'" 
-          (click)="activeFormTab.set('verticals')">
-          <i class="pi pi-tags"></i>
-          Industry Verticals
-        </button>
+        @if (formVis().showStockTab) {
+          <button 
+            type="button" 
+            class="form-tab-btn" 
+            [class.active]="activeFormTab() === 'stock'" 
+            (click)="activeFormTab.set('stock')">
+            <i class="pi pi-database"></i>
+            Stock & Packaging
+          </button>
+        }
+        @if (formVis().showVerticalsTab) {
+          <button 
+            type="button" 
+            class="form-tab-btn" 
+            [class.active]="activeFormTab() === 'verticals'" 
+            (click)="activeFormTab.set('verticals')">
+            <i class="pi pi-tags"></i>
+            Industry Verticals
+          </button>
+        }
         <button 
           type="button" 
           class="form-tab-btn" 
@@ -572,30 +577,49 @@
             </div>
 
             <div class="form-row">
-              <div class="form-group">
-                <label>Category</label>
-                <select [(ngModel)]="productForm.categoryId">
-                  <option value="">-- Select Category --</option>
-                  @for (cat of categories(); track cat.id) {
-                    <option [value]="cat.id">{{ cat.name }}</option>
-                  }
-                </select>
-              </div>
+              @if (formVis().categories) {
+                <div class="form-group">
+                  <label>Category</label>
+                  <select [(ngModel)]="productForm.categoryId">
+                    <option value="">-- Select Category --</option>
+                    @for (cat of categories(); track cat.id) {
+                      <option [value]="cat.id">{{ cat.name }}</option>
+                    }
+                  </select>
+                </div>
+              }
 
               <div class="form-group">
                 <label>Brand / Manufacturer</label>
-                <input type="text" [(ngModel)]="productForm.brandId" placeholder="e.g. Almarai, Apple, Nike" />
+                <div class="lookup-field">
+                  <select [(ngModel)]="productForm.brandId">
+                    <option value="">-- Select Brand --</option>
+                    @for (brand of brandCatalog(); track brand.id) {
+                      <option [value]="brand.name">{{ brand.name }}</option>
+                    }
+                  </select>
+                  <button
+                    type="button"
+                    class="lookup-search-btn"
+                    (click)="openBrandLookupModal()"
+                    title="Search brands"
+                    aria-label="Search brands">
+                    <i class="pi pi-search"></i>
+                  </button>
+                </div>
               </div>
 
-              <div class="form-group">
-                <label>Unit of Measure</label>
-                <select [(ngModel)]="productForm.unitId">
-                  <option value="">-- Select Unit --</option>
-                  @for (unit of units(); track unit.id) {
-                    <option [value]="unit.id">{{ unit.name }} ({{ unit.shortName }})</option>
-                  }
-                </select>
-              </div>
+              @if (formVis().units) {
+                <div class="form-group">
+                  <label>Unit of Measure</label>
+                  <select [(ngModel)]="productForm.unitId">
+                    <option value="">-- Select Unit --</option>
+                    @for (unit of units(); track unit.id) {
+                      <option [value]="unit.id">{{ unit.name }} ({{ unit.shortName }})</option>
+                    }
+                  </select>
+                </div>
+              }
             </div>
 
             <div class="form-group">
@@ -654,96 +678,154 @@
               </div>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label>Tax / VAT Rate %</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="productForm.taxRate" 
-                  (ngModelChange)="calculatePricesFromCost()" 
-                  placeholder="15" />
+            @if (formVis().taxRates) {
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Tax / VAT Rate %</label>
+                  <input 
+                    type="number" 
+                    [(ngModel)]="productForm.taxRate" 
+                    (ngModelChange)="calculatePricesFromCost()" 
+                    placeholder="15" />
+                </div>
+
+                <div class="form-group">
+                  <label>Tax Calculation Type</label>
+                  <select [(ngModel)]="productForm.taxType" (ngModelChange)="calculatePricesFromCost()">
+                    <option value="Exclusive">Tax Exclusive (Added on checkout)</option>
+                    <option value="Inclusive">Tax Inclusive (Included in price)</option>
+                  </select>
+                </div>
+
+                @if (formVis().taxFree) {
+                  <div class="form-group">
+                    <label>ZATCA VAT Status</label>
+                    <div class="checkbox-control" style="margin-top: 10px;">
+                      <input type="checkbox" [(ngModel)]="productForm.isTaxExempt" (ngModelChange)="calculatePricesFromCost()" />
+                      <span>Tax Exempt (0% VAT)</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (formVis().discountable || formVis().excise) {
+              <div class="form-row">
+                @if (formVis().discountable) {
+                  <div class="form-group">
+                    <label>Discount Policy</label>
+                    <div class="checkbox-control" style="margin-top: 10px;">
+                      <input type="checkbox" [(ngModel)]="productForm.isDiscountable" />
+                      <span>Discountable at POS / invoice</span>
+                    </div>
+                  </div>
+                }
+                @if (formVis().excise) {
+                  <div class="form-group">
+                    <label>Excise</label>
+                    <div class="checkbox-control" style="margin-top: 10px;">
+                      <input type="checkbox" [(ngModel)]="productForm.isExcizable" />
+                      <span>Subject to excise tax</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (formVis().sellingPriceGroup) {
+              <div class="section-divider">
+                <span>Wholesale & Multi-Tier Pricing</span>
               </div>
 
-              <div class="form-group">
-                <label>Tax Calculation Type</label>
-                <select [(ngModel)]="productForm.taxType" (ngModelChange)="calculatePricesFromCost()">
-                  <option value="Exclusive">Tax Exclusive (Added on checkout)</option>
-                  <option value="Inclusive">Tax Inclusive (Included in price)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label>ZATCA VAT Status</label>
-                <div class="checkbox-control" style="margin-top: 10px;">
-                  <input type="checkbox" [(ngModel)]="productForm.isTaxExempt" (ngModelChange)="calculatePricesFromCost()" />
-                  <span>Tax Exempt (0% VAT)</span>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Retail Price (SAR)</label>
+                  <input type="number" step="0.01" [(ngModel)]="productForm.retailPrice" placeholder="0.00" />
+                </div>
+                <div class="form-group">
+                  <label>Distributor Price (SAR)</label>
+                  <input type="number" step="0.01" [(ngModel)]="productForm.distributorPrice" placeholder="0.00" />
+                </div>
+                <div class="form-group">
+                  <label>Special Price (SAR)</label>
+                  <input type="number" step="0.01" [(ngModel)]="productForm.specialPrice" placeholder="0.00" />
                 </div>
               </div>
-            </div>
-
-            <div class="section-divider">
-              <span>Wholesale & Multi-Tier Pricing</span>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>Retail Price (SAR)</label>
-                <input type="number" step="0.01" [(ngModel)]="productForm.retailPrice" placeholder="0.00" />
-              </div>
-              <div class="form-group">
-                <label>Distributor Price (SAR)</label>
-                <input type="number" step="0.01" [(ngModel)]="productForm.distributorPrice" placeholder="0.00" />
-              </div>
-              <div class="form-group">
-                <label>Special Price (SAR)</label>
-                <input type="number" step="0.01" [(ngModel)]="productForm.specialPrice" placeholder="0.00" />
-              </div>
-            </div>
+            }
           </div>
         }
 
         <!-- TAB 3: STOCK & PACKAGING -->
         @if (activeFormTab() === 'stock') {
           <div class="tab-pane">
+            @if (formVis().stock) {
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Initial Stock In Hand</label>
+                  <input type="number" [(ngModel)]="productForm.stockQuantity" placeholder="0" />
+                </div>
+
+                @if (formVis().lowStockAlert) {
+                  <div class="form-group">
+                    <label>Low Stock Reorder Alert Level</label>
+                    <input type="number" [(ngModel)]="productForm.minStockLevel" placeholder="5" />
+                  </div>
+                }
+
+                <div class="form-group">
+                  <label>Minimum Order Quantity (MOQ)</label>
+                  <input type="number" [(ngModel)]="productForm.minOrderQty" placeholder="1" />
+                </div>
+              </div>
+            }
+
             <div class="form-row">
-              <div class="form-group">
-                <label>Initial Stock In Hand</label>
-                <input type="number" [(ngModel)]="productForm.stockQuantity" placeholder="0" />
-              </div>
+              @if (formVis().weightScale) {
+                <div class="form-group">
+                  <label>Unit Weight (kg)</label>
+                  <input type="number" step="0.01" [(ngModel)]="productForm.weight" placeholder="1.0" />
+                </div>
+              }
 
-              <div class="form-group">
-                <label>Low Stock Reorder Alert Level</label>
-                <input type="number" [(ngModel)]="productForm.minStockLevel" placeholder="5" />
-              </div>
-
-              <div class="form-group">
-                <label>Minimum Order Quantity (MOQ)</label>
-                <input type="number" [(ngModel)]="productForm.minOrderQty" placeholder="1" />
-              </div>
+              @if (formVis().stock) {
+                <div class="form-group">
+                  <label>Pieces per Packet / Box</label>
+                  <input type="number" [(ngModel)]="productForm.packetSize" placeholder="1" />
+                </div>
+              }
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label>Unit Weight (kg)</label>
-                <input type="number" step="0.01" [(ngModel)]="productForm.weight" placeholder="1.0" />
+            @if (formVis().productExpiry || formVis().lotNumber) {
+              <div class="form-row">
+                @if (formVis().lotNumber) {
+                  <div class="form-group">
+                    <label>Lot / Batch Number</label>
+                    <input type="text" [(ngModel)]="productForm.lotNumber" placeholder="e.g. LOT-2026-041" />
+                  </div>
+                }
+                @if (formVis().productExpiry) {
+                  <div class="form-group">
+                    <label>Expiry Date</label>
+                    <input type="date" [(ngModel)]="productForm.expiryDate" />
+                  </div>
+                }
               </div>
-
-              <div class="form-group">
-                <label>Pieces per Packet / Box</label>
-                <input type="number" [(ngModel)]="productForm.packetSize" placeholder="1" />
-              </div>
-            </div>
+            }
 
             <div class="checkbox-list">
-              <label class="checkbox-control">
-                <input type="checkbox" [(ngModel)]="productForm.isWeightBased" />
-                <span><strong>Weight-Based Product:</strong> Sold by scale / weight (fruits, meat, bulk)</span>
-              </label>
+              @if (formVis().weightScale) {
+                <label class="checkbox-control">
+                  <input type="checkbox" [(ngModel)]="productForm.isWeightBased" />
+                  <span><strong>Weight-Based Product:</strong> Sold by scale / weight (fruits, meat, bulk)</span>
+                </label>
+              }
 
-              <label class="checkbox-control">
-                <input type="checkbox" [(ngModel)]="productForm.isPacketOfPieces" />
-                <span><strong>Packet of Pieces:</strong> Track inventory in packets / cartons</span>
-              </label>
+              @if (formVis().stock) {
+                <label class="checkbox-control">
+                  <input type="checkbox" [(ngModel)]="productForm.isPacketOfPieces" />
+                  <span><strong>Packet of Pieces:</strong> Track inventory in packets / cartons</span>
+                </label>
+              }
             </div>
           </div>
         }
@@ -755,14 +837,20 @@
               <label>Product Industry Vertical</label>
               <select [(ngModel)]="productForm.productType">
                 <option value="Standard">Standard Retail / Food & Beverage</option>
-                <option value="Electronics">Electronics, Mobile & Hardware</option>
-                <option value="Pharmacy">Pharmacy, Medicine & Healthcare</option>
-                <option value="Apparel">Apparel, Clothing & Footwear</option>
+                @if (formVis().showElectronics) {
+                  <option value="Electronics">Electronics, Mobile & Hardware</option>
+                }
+                @if (formVis().showPharmacy) {
+                  <option value="Pharmacy">Pharmacy, Medicine & Healthcare</option>
+                }
+                @if (formVis().showApparel || formVis().variableProduct) {
+                  <option value="Apparel">Apparel, Clothing & Footwear</option>
+                }
               </select>
             </div>
 
             <!-- Electronics Vertical Options -->
-            @if (productForm.productType === 'Electronics') {
+            @if (productForm.productType === 'Electronics' && formVis().showElectronics) {
               <div class="vertical-subform">
                 <h4><i class="pi pi-desktop"></i> Electronics & Hardware Attributes</h4>
                 <div class="form-row">
@@ -780,28 +868,32 @@
                   </div>
                 </div>
 
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Warranty Period (Months)</label>
-                    <input type="number" [(ngModel)]="productForm.warrantyMonths" placeholder="24" />
+                @if (formVis().warranty) {
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Warranty Period (Months)</label>
+                      <input type="number" [(ngModel)]="productForm.warrantyMonths" placeholder="24" />
+                    </div>
                   </div>
-                </div>
+                }
 
-                <div class="checkbox-list">
-                  <label class="checkbox-control">
-                    <input type="checkbox" [(ngModel)]="productForm.isImeiRequired" />
-                    <span>Requires <strong>IMEI Number Scan</strong> at POS</span>
-                  </label>
-                  <label class="checkbox-control">
-                    <input type="checkbox" [(ngModel)]="productForm.requiresSerialTracking" />
-                    <span>Requires <strong>Serial Number Tracking</strong></span>
-                  </label>
-                </div>
+                @if (formVis().imeiSerial) {
+                  <div class="checkbox-list">
+                    <label class="checkbox-control">
+                      <input type="checkbox" [(ngModel)]="productForm.isImeiRequired" />
+                      <span>Requires <strong>IMEI Number Scan</strong> at POS</span>
+                    </label>
+                    <label class="checkbox-control">
+                      <input type="checkbox" [(ngModel)]="productForm.requiresSerialTracking" />
+                      <span>Requires <strong>Serial Number Tracking</strong></span>
+                    </label>
+                  </div>
+                }
               </div>
             }
 
             <!-- Pharmacy Vertical Options -->
-            @if (productForm.productType === 'Pharmacy') {
+            @if (productForm.productType === 'Pharmacy' && formVis().showPharmacy) {
               <div class="vertical-subform">
                 <h4><i class="pi pi-heart"></i> Pharmacy & Healthcare Attributes</h4>
                 <div class="form-row">
@@ -821,20 +913,24 @@
                 </div>
 
                 <div class="checkbox-list">
-                  <label class="checkbox-control">
-                    <input type="checkbox" [(ngModel)]="productForm.isPrescriptionRequired" />
-                    <span>Requires <strong>Doctor's Prescription (Rx)</strong> to dispense</span>
-                  </label>
-                  <label class="checkbox-control">
-                    <input type="checkbox" [(ngModel)]="productForm.requiresBatchTracking" />
-                    <span>Requires <strong>Batch & Expiry Date Tracking</strong></span>
-                  </label>
+                  @if (formVis().prescription) {
+                    <label class="checkbox-control">
+                      <input type="checkbox" [(ngModel)]="productForm.isPrescriptionRequired" />
+                      <span>Requires <strong>Doctor's Prescription (Rx)</strong> to dispense</span>
+                    </label>
+                  }
+                  @if (formVis().lotNumber || formVis().productExpiry) {
+                    <label class="checkbox-control">
+                      <input type="checkbox" [(ngModel)]="productForm.requiresBatchTracking" />
+                      <span>Requires <strong>Batch & Expiry Date Tracking</strong></span>
+                    </label>
+                  }
                 </div>
               </div>
             }
 
             <!-- Apparel Vertical Options -->
-            @if (productForm.productType === 'Apparel') {
+            @if (productForm.productType === 'Apparel' && (formVis().showApparel || formVis().variableProduct)) {
               <div class="vertical-subform">
                 <h4><i class="pi pi-tag"></i> Apparel & Fashion Attributes</h4>
                 <div class="form-group">
@@ -862,15 +958,19 @@
                 <span>Display on <strong>POS Cashier Terminal</strong></span>
               </label>
 
-              <label class="checkbox-control">
-                <input type="checkbox" [(ngModel)]="productForm.isProductDisplayWebsiteApp" />
-                <span>Display on <strong>Online Store / Customer Website</strong></span>
-              </label>
+              @if (formVis().publishEcommerce) {
+                <label class="checkbox-control">
+                  <input type="checkbox" [(ngModel)]="productForm.isProductDisplayWebsiteApp" />
+                  <span>Display on <strong>Online Store / Customer Website</strong></span>
+                </label>
+              }
 
-              <label class="checkbox-control">
-                <input type="checkbox" [(ngModel)]="productForm.isProductDisplayRackLabel" />
-                <span>Eligible for <strong>Shelf & Rack Barcode Label Printing</strong></span>
-              </label>
+              @if (formVis().barcodePrinting) {
+                <label class="checkbox-control">
+                  <input type="checkbox" [(ngModel)]="productForm.isProductDisplayRackLabel" />
+                  <span>Eligible for <strong>Shelf & Rack Barcode Label Printing</strong></span>
+                </label>
+              }
             </div>
 
             <div class="section-divider">
@@ -901,6 +1001,92 @@
           <i class="pi pi-check"></i>
           <span>{{ editingProduct() ? 'Update Product' : 'Save Product' }}</span>
         </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showBrandLookupModal()) {
+  <div class="modal-backdrop lookup-backdrop" (click)="closeBrandLookupModal()">
+    <div class="modal-content lookup-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="brand-lookup-title">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge purple">
+            <i class="pi pi-tags"></i>
+          </div>
+          <div>
+            <h3 id="brand-lookup-title">Select Brand / Manufacturer</h3>
+            <p>Search, filter by letter, then select a brand</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="closeBrandLookupModal()" aria-label="Close brand lookup">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body lookup-body">
+        <div class="lookup-search-row">
+          <div class="lookup-search-input">
+            <i class="pi pi-search"></i>
+            <input
+              type="search"
+              [ngModel]="brandSearchQuery()"
+              (ngModelChange)="brandSearchQuery.set($event)"
+              placeholder="Search brand name..."
+              aria-label="Search brand name" />
+          </div>
+          @if (productForm.brandId) {
+            <button type="button" class="btn-secondary" (click)="clearSelectedBrand()">Clear</button>
+          }
+        </div>
+
+        <div class="letter-filter-bar" role="tablist" aria-label="Filter brands by letter">
+          @for (letter of brandLetters; track letter) {
+            <button
+              type="button"
+              class="letter-chip"
+              [class.active]="brandLetterFilter() === letter"
+              (click)="setBrandLetterFilter(letter)">
+              {{ letter }}
+            </button>
+          }
+        </div>
+
+        <div class="lookup-results">
+          @if (filteredLookupBrands().length === 0) {
+            <div class="lookup-empty">
+              <i class="pi pi-inbox"></i>
+              <p>No brands match this search.</p>
+            </div>
+          } @else {
+            <div class="lookup-list">
+              @for (brand of filteredLookupBrands(); track brand.id) {
+                <button
+                  type="button"
+                  class="lookup-item"
+                  [class.selected]="productForm.brandId === brand.name"
+                  (click)="selectBrand(brand)">
+                  <span class="lookup-item-name">{{ brand.name }}</span>
+                  @if (productForm.brandId === brand.name) {
+                    <i class="pi pi-check"></i>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="lookup-add-row">
+          <input
+            type="text"
+            [(ngModel)]="newBrandName"
+            placeholder="Add new brand, e.g. Almarai"
+            aria-label="New brand name" />
+          <button type="button" class="btn-primary" (click)="createBrandFromLookup()">
+            <i class="pi pi-plus"></i>
+            <span>Add Brand</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -1,0 +1,211 @@
+<div class="stock-page">
+  @if (toast()) {
+    <div class="stock-toast" [class]="'toast-' + toast()!.type">{{ toast()!.text }}</div>
+  }
+
+  <header class="stock-header">
+    <div class="header-left">
+      <div class="icon-box"><i class="pi pi-building"></i></div>
+      <div>
+        <div class="title-row">
+          <a routerLink="/inventory" class="crumb">Inventory</a>
+          <span class="crumb-sep">/</span>
+          <h1>Stock Management & Transfer</h1>
+          <span class="count-pill">{{ totalSku() }} SKUs</span>
+        </div>
+        <p class="subtitle">إدارة المخزون والتحويلات بين المستودعات والفروع</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-primary" (click)="openTransfer()">
+        <i class="pi pi-send"></i>
+        <span>New Transfer</span>
+      </button>
+      <button type="button" class="action-btn" (click)="loadAll()" title="Refresh">
+        <i class="pi pi-refresh"></i>
+      </button>
+    </div>
+  </header>
+
+  <section class="kpi-row">
+    <div class="kpi">
+      <span class="kpi-label">Total Units</span>
+      <strong>{{ totalUnits() }}</strong>
+    </div>
+    <div class="kpi kpi-ok">
+      <span class="kpi-label">In Stock</span>
+      <strong>{{ inStockCount() }}</strong>
+    </div>
+    <div class="kpi kpi-low">
+      <span class="kpi-label">Low Stock</span>
+      <strong>{{ lowStockCount() }}</strong>
+    </div>
+    <div class="kpi kpi-out">
+      <span class="kpi-label">Out of Stock</span>
+      <strong>{{ outOfStockCount() }}</strong>
+    </div>
+  </section>
+
+  <div class="tabs">
+    <button type="button" [class.active]="activeTab() === 'stock'" (click)="activeTab.set('stock')">On-hand Stock</button>
+    <button type="button" [class.active]="activeTab() === 'transfers'" (click)="activeTab.set('transfers')">Transfers</button>
+  </div>
+
+  @if (loadError() && activeTab() === 'stock') {
+    <div class="error-banner">
+      <span>{{ loadError() }}</span>
+      <button type="button" (click)="loadAll()">Retry</button>
+    </div>
+  }
+
+  @if (activeTab() === 'stock') {
+    <div class="toolbar">
+      <input
+        type="text"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        placeholder="Search name, barcode, brand"
+      />
+      <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+        <option value="ALL">All statuses</option>
+        <option value="ok">In Stock</option>
+        <option value="low">Low Stock</option>
+        <option value="out">Out of Stock</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      @if (isLoading()) {
+        <div class="empty">Loading stock...</div>
+      } @else if (filteredStock().length === 0) {
+        <div class="empty">No stock rows match the current filters.</div>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Barcode</th>
+              <th>Brand</th>
+              <th class="num">On Hand</th>
+              <th class="num">Min Level</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredStock(); track row.id) {
+              <tr>
+                <td class="name">{{ row.name }}</td>
+                <td>{{ row.barcode || '—' }}</td>
+                <td>{{ row.brand || '—' }}</td>
+                <td class="num">{{ row.stockQuantity }}</td>
+                <td class="num">{{ row.minStockLevel }}</td>
+                <td>
+                  <span class="badge" [class]="'badge-' + statusOf(row)">{{ statusLabel(row) }}</span>
+                </td>
+                <td>
+                  <button type="button" class="link-btn" (click)="openAdjust(row)">Adjust</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  @if (activeTab() === 'transfers') {
+    <div class="table-wrap">
+      @if (transfers().length === 0) {
+        <div class="empty">No transfers yet. Create one to move stock between locations.</div>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Number</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Items</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tr of transfers(); track tr.id) {
+              <tr>
+                <td class="name">{{ tr.transferNumber }}</td>
+                <td>{{ tr.fromWarehouseName || tr.fromWarehouseId }}</td>
+                <td>{{ tr.toWarehouseName || tr.toWarehouseId }}</td>
+                <td>{{ tr.transferDate | date:'medium' }}</td>
+                <td><span class="badge badge-ok">{{ tr.status }}</span></td>
+                <td>{{ tr.items?.length || 0 }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+</div>
+
+@if (showAdjustModal() && adjusting()) {
+  <div class="modal-backdrop" (click)="closeAdjust()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>Adjust stock</h2>
+      <p class="modal-sub">{{ adjusting()!.name }}</p>
+      <label>
+        On-hand quantity
+        <input type="number" min="0" [(ngModel)]="adjustQuantity" />
+      </label>
+      <label>
+        Minimum level
+        <input type="number" min="0" [(ngModel)]="adjustMinLevel" />
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" (click)="closeAdjust()">Cancel</button>
+        <button type="button" class="btn-primary" [disabled]="isSubmitting()" (click)="saveAdjust()">Save</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showTransferModal()) {
+  <div class="modal-backdrop" (click)="closeTransfer()">
+    <div class="modal modal-wide" (click)="$event.stopPropagation()">
+      <h2>New stock transfer</h2>
+      <div class="grid-2">
+        <label>
+          From location
+          <input type="text" [(ngModel)]="transferForm.fromWarehouseName" />
+        </label>
+        <label>
+          To location
+          <input type="text" [(ngModel)]="transferForm.toWarehouseName" />
+        </label>
+      </div>
+      <label>
+        Remarks
+        <input type="text" [(ngModel)]="transferForm.remarks" />
+      </label>
+      <div class="transfer-rows">
+        @for (row of transferItems(); track $index; let i = $index) {
+          <div class="transfer-row">
+            <select [ngModel]="row.productId" (ngModelChange)="onTransferProductChange(i, $event)">
+              <option value="">Select product</option>
+              @for (p of stock(); track p.id) {
+                <option [value]="p.id">{{ p.name }}</option>
+              }
+            </select>
+            <input type="number" min="1" [(ngModel)]="row.quantity" />
+            <button type="button" class="link-btn" (click)="removeTransferRow(i)" [disabled]="transferItems().length === 1">Remove</button>
+          </div>
+        }
+      </div>
+      <button type="button" class="btn-ghost" (click)="addTransferRow()">+ Add line</button>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" (click)="closeTransfer()">Cancel</button>
+        <button type="button" class="btn-primary" [disabled]="isSubmitting()" (click)="saveTransfer()">Create transfer</button>
+      </div>
+    </div>
+  </div>
+}

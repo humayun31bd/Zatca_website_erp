@@ -207,6 +207,8 @@ export const unifiedProducts = sqliteTable('unified_products', {
   sizeId: text('size_id').references(() => sizes.id),
   isUnderwear: integer('is_underwear', { mode: 'boolean' }).default(false),
   isTaxExempt: integer('is_tax_exempt', { mode: 'boolean' }).default(false),
+  isDiscountable: integer('is_discountable', { mode: 'boolean' }).default(true),
+  isExcizable: integer('is_excizable', { mode: 'boolean' }).default(false),
 
   // Points & Display Flags
   isPointsApplicable: integer('is_points_applicable', { mode: 'boolean' }).default(false),

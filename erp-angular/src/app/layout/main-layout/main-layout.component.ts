@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterModule, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 
 export interface SidebarItem {
@@ -29,10 +30,12 @@ export interface SidebarGroup {
 })
 export class MainLayoutComponent implements OnInit {
   authService = inject(AuthService);
+  private router = inject(Router);
 
   isCollapsed = signal(false);
   isArabic = signal(false);
   searchQuery = signal('');
+  isPosTerminal = signal(false);
 
   // Groups that are expanded (default: Main, Sales & POS)
   expandedGroups = signal<Set<string>>(new Set(['Main', 'Sales & POS', 'Human Resource (HRM)']));
@@ -72,8 +75,7 @@ export class MainLayoutComponent implements OnInit {
         { label: 'Stock Management & Transfer', labelAr: 'إدارة المخزون والتحويلات', icon: 'pi pi-building', route: '/inventory/stock-management' },
         { label: 'Product Categories', labelAr: 'تصنيفات المنتجات', icon: 'pi pi-tags', route: '/inventory/categories' },
         { label: 'Sub Categories', labelAr: 'الفئات الفرعية', icon: 'pi pi-sitemap', route: '/inventory/sub-categories' },
-        { label: 'Print Barcode Labels', labelAr: 'طباعة ملصقات البار كود', icon: 'pi pi-qrcode', route: '/inventory/print-labels' },
-        { label: 'Product & Pricing Policy', labelAr: 'سياسات المنتجات والأسعار', icon: 'pi pi-shield', route: '/settings/product-policy' }
+        { label: 'Print Barcode Labels', labelAr: 'طباعة ملصقات البار كود', icon: 'pi pi-qrcode', route: '/inventory/print-labels' }
       ]
     },
     {
@@ -172,7 +174,17 @@ export class MainLayoutComponent implements OnInit {
     }).filter(group => group.children.length > 0);
   });
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.syncPosMode(this.router.url);
+    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(event => this.syncPosMode(event.urlAfterRedirects));
+  }
+
+  private syncPosMode(url: string): void {
+    const onPos = url.includes('/pos/terminal');
+    this.isPosTerminal.set(onPos);
+    if (onPos) this.isCollapsed.set(true);
+  }
 
   toggleGroup(label: string) {
     this.expandedGroups.update(set => {

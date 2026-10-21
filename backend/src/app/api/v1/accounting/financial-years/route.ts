@@ -51,12 +51,25 @@ export async function GET(req: NextRequest) {
       data = [seededFy];
     }
 
-    const formatted = data.map((y) => ({
-      ...y,
-      yearName: y.name,
-      startDate: y.fromDate ? new Date(y.fromDate).toISOString().split("T")[0] : "2026-07-01",
-      endDate: y.toDate ? new Date(y.toDate).toISOString().split("T")[0] : "2027-06-30",
-    }));
+    const formatted = [];
+    for (const y of data) {
+      const periods = await db
+        .select()
+        .from(financialPeriods)
+        .where(eq(financialPeriods.financialYearId, y.id))
+        .orderBy(financialPeriods.periodNumber);
+      formatted.push({
+        ...y,
+        yearName: y.name,
+        startDate: y.fromDate ? new Date(y.fromDate).toISOString().split("T")[0] : "2026-07-01",
+        endDate: y.toDate ? new Date(y.toDate).toISOString().split("T")[0] : "2027-06-30",
+        periods: periods.map((p) => ({
+          ...p,
+          startDate: p.fromDate ? new Date(p.fromDate).toISOString().split("T")[0] : "",
+          endDate: p.toDate ? new Date(p.toDate).toISOString().split("T")[0] : "",
+        })),
+      });
+    }
 
     return NextResponse.json({ success: true, financialYears: formatted });
   } catch (error: any) {

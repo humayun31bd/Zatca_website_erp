@@ -1,0 +1,47 @@
+<div class="settings-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Language Settings</h1>
+      <p class="page-subtitle">Custom English / Arabic labels used across the ERP.</p>
+    </div>
+    <input class="search-field" [(ngModel)]="searchQuery" placeholder="Search labels..." />
+  </div>
+  @if (bannerError()) { <div class="alert error">{{ bannerError() }}</div> }
+  @if (bannerSuccess()) { <div class="alert success">{{ bannerSuccess() }}</div> }
+  @if (isLoading()) {
+    <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading translations...</div>
+  } @else {
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Key</th><th>English</th><th>Arabic</th><th>Actions</th></tr></thead>
+          <tbody>
+            @for (key of keys(); track key) {
+              <tr>
+                <td>{{ key }}</td>
+                <td>{{ translations()[key].en }}</td>
+                <td dir="rtl">{{ translations()[key].ar }}</td>
+                <td><button type="button" class="icon-btn" (click)="openEdit(key)"><i class="pi pi-pencil"></i></button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>
+@if (showDialog()) {
+  <div class="dialog-backdrop" (click)="showDialog.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <h2>Update: {{ editKey }}</h2>
+      <div class="dialog-body">
+        <div class="form-group"><label>English Value</label><input [(ngModel)]="editEn" /></div>
+        <div class="form-group"><label>Arabic Value</label><input [(ngModel)]="editAr" dir="rtl" /></div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="showDialog.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="save()">Save</button>
+      </div>
+    </div>
+  </div>
+}

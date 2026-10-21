@@ -1,0 +1,147 @@
+<div class="websites-panel">
+  <div class="panel-toolbar">
+    <div>
+      <h1 class="page-title">Client Websites Management</h1>
+      <p class="page-subtitle">Manage client domains, reverse proxies, and Laravel PHP-FPM sites</p>
+    </div>
+    <div class="toolbar-actions">
+      <button type="button" class="icon-btn" (click)="runHealthCheck()" [disabled]="isCheckingHealth()" title="Run Health & Uptime Check">
+        @if (isCheckingHealth()) {
+          <i class="pi pi-spin pi-spinner"></i>
+        } @else {
+          <i class="pi pi-heart"></i>
+        }
+      </button>
+      <button type="button" class="icon-btn" (click)="fetchWebsites()" title="Refresh List">
+        <i class="pi pi-refresh"></i>
+      </button>
+    </div>
+  </div>
+
+  @if (bannerError()) {
+    <div class="alert error"><i class="pi pi-exclamation-circle"></i>{{ bannerError() }}</div>
+  }
+  @if (bannerSuccess()) {
+    <div class="alert success"><i class="pi pi-check-circle"></i>{{ bannerSuccess() }}</div>
+  }
+
+  <section class="banner">
+    <div class="banner-icon"><i class="pi pi-server"></i></div>
+    <div class="banner-copy">
+      <h2>VPS Nginx Hosting Manager</h2>
+      <p>Manage client domains, subdomains, reverse proxies, and Laravel PHP-FPM sites directly on your VPS (165.73.244.224).</p>
+    </div>
+    <button type="button" class="btn-primary" (click)="openAddDialog()">
+      <i class="pi pi-plus"></i>
+      Add Client Website
+    </button>
+  </section>
+
+  @if (isLoading()) {
+    <div class="loading-banner"><i class="pi pi-spin pi-spinner"></i> Loading client websites...</div>
+  } @else {
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Domain Name</th>
+              <th>App Type</th>
+              <th>Port / Document Root</th>
+              <th>PHP Version</th>
+              <th>Status</th>
+              <th>SSL</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (site of websites(); track site.id) {
+              <tr>
+                <td>
+                  <span class="domain-cell">
+                    <i class="pi pi-globe"></i>
+                    <strong>{{ site.domainName || '-' }}</strong>
+                  </span>
+                </td>
+                <td><span class="type-chip">{{ displayAppType(site) }}</span></td>
+                <td>{{ displayTarget(site) }}</td>
+                <td>{{ site.phpVersion || '-' }}</td>
+                <td>
+                  <span class="status-chip" [class.active]="isActive(site)" [class.offline]="!isActive(site)">
+                    <i class="pi" [class.pi-check-circle]="isActive(site)" [class.pi-times-circle]="!isActive(site)"></i>
+                    {{ (site.status || 'pending') | uppercase }}
+                  </span>
+                </td>
+                <td>
+                  <i class="pi ssl-icon" [class.pi-lock]="site.sslActive" [class.pi-lock-open]="!site.sslActive" [class.on]="site.sslActive" [class.off]="!site.sslActive"></i>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button type="button" class="icon-btn" title="Re-sync Nginx Config">
+                      <i class="pi pi-sync"></i>
+                    </button>
+                    <button type="button" class="icon-btn danger" title="Delete Site" (click)="removeSite(site.id)">
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="empty">No client websites yet. Provision a domain to get started.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>
+
+@if (showDialog()) {
+  <div class="dialog-backdrop" (click)="closeDialog()">
+    <div class="dialog" (click)="$event.stopPropagation()" role="dialog" aria-labelledby="provision-title">
+      <h2 id="provision-title"><i class="pi pi-globe"></i> Provision Client Website</h2>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label>Domain Name (e.g. clientbrand.com)</label>
+          <input type="text" [(ngModel)]="domainName" placeholder="clientbrand.com" />
+        </div>
+        <div class="form-group">
+          <label>Application Type</label>
+          <select [ngModel]="appType" (ngModelChange)="onAppTypeChange($event)">
+            <option value="Next.js">Next.js / Node.js (Proxy Port)</option>
+            <option value="Laravel">PHP / Laravel (PHP-FPM)</option>
+            <option value="Static">Static HTML / Frontend</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ appType === 'Next.js' ? 'App Port (e.g. 3001)' : 'Document Root Path' }}</label>
+          <input type="text" [(ngModel)]="paramValue" />
+        </div>
+        @if (appType === 'Laravel') {
+          <div class="form-group">
+            <label>PHP Version</label>
+            <select [(ngModel)]="phpVersion">
+              <option value="8.1">PHP 8.1</option>
+              <option value="8.2">PHP 8.2</option>
+              <option value="8.3">PHP 8.3</option>
+            </select>
+          </div>
+        }
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-cancel" (click)="closeDialog()">Cancel</button>
+        <button type="button" class="btn-primary" (click)="provisionWebsite()" [disabled]="isProvisioning()">
+          @if (isProvisioning()) {
+            <i class="pi pi-spin pi-spinner"></i>
+            Provisioning...
+          } @else {
+            <i class="pi pi-send"></i>
+            Provision on VPS
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -82,6 +82,13 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
+        path: 'inventory/stock-management',
+        loadComponent: () =>
+          import('./features/inventory/stock-management/stock-management.component').then(
+            m => m.StockManagementComponent
+          )
+      },
+      {
         path: 'inventory/print-labels',
         loadComponent: () =>
           import('./features/inventory/print-labels/print-labels.component').then(
@@ -117,6 +124,16 @@ export const routes: Routes = [
         path: 'pos/terminal',
         loadComponent: () =>
           import('./features/pos/pos-terminal/pos-terminal.component').then(m => m.PosTerminalComponent)
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/settings/tenant-settings.component').then(m => m.TenantSettingsComponent)
+      },
+      {
+        path: 'settings/:panel',
+        loadComponent: () =>
+          import('./features/settings/tenant-settings.component').then(m => m.TenantSettingsComponent)
       },
       {
         path: 'hr',

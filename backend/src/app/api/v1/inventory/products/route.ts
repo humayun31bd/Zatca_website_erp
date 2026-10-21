@@ -147,6 +147,8 @@ export async function POST(request: NextRequest) {
       ageGroupId: body.ageGroupId,
       isUnderwear: body.isUnderwear ?? false,
       isTaxExempt: body.isTaxExempt ?? false,
+      isDiscountable: body.isDiscountable ?? true,
+      isExcizable: body.isExcizable ?? false,
       isPointsApplicable: body.isPointsApplicable ?? false,
       pointsPerProduct: body.pointsPerProduct ?? 0,
       isProductDisplayPosApp: body.isProductDisplayPosApp ?? true,

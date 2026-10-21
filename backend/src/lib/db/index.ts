@@ -270,6 +270,32 @@ sqlite.exec(`
     updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS financial_years (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    from_date INTEGER NOT NULL,
+    to_date INTEGER NOT NULL,
+    is_active INTEGER DEFAULT 0 NOT NULL,
+    is_closed INTEGER DEFAULT 0 NOT NULL,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL,
+    updated_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS financial_periods (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    financial_year_id TEXT NOT NULL,
+    period_number INTEGER NOT NULL,
+    period_name TEXT NOT NULL,
+    from_date INTEGER NOT NULL,
+    to_date INTEGER NOT NULL,
+    is_locked INTEGER DEFAULT 0 NOT NULL,
+    locked_at INTEGER,
+    locked_by TEXT,
+    created_at INTEGER DEFAULT (cast(strftime('%s', 'now') as integer)) NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS fiscal_year_opening_balances (
     id TEXT PRIMARY KEY,
     tenant_id TEXT NOT NULL,
@@ -482,6 +508,17 @@ try { sqlite.exec(`ALTER TABLE voucher_entry_policies ADD COLUMN cv_code TEXT DE
 try { sqlite.exec(`ALTER TABLE voucher_entry_policies ADD COLUMN jv_code TEXT DEFAULT 'JV' NOT NULL;`); } catch (e) {}
 try { sqlite.exec(`ALTER TABLE voucher_entry_policies ADD COLUMN seq_padding INTEGER DEFAULT 6 NOT NULL;`); } catch (e) {}
 
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN address TEXT;`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN country_code TEXT DEFAULT 'SA';`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN currency_code TEXT DEFAULT 'SAR';`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN currency_symbol TEXT DEFAULT 'SAR';`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN tax_rate REAL DEFAULT 15;`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN tax_type TEXT DEFAULT 'VAT';`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN timezone TEXT DEFAULT 'Asia/Riyadh';`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN date_format TEXT DEFAULT 'YYYY-MM-DD';`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN decimal_places INTEGER DEFAULT 2;`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE tenants ADD COLUMN marketing_plan TEXT DEFAULT 'STANDARD';`); } catch (e) {}
+
 try {
   sqlite.exec(`ALTER TABLE tenant_settings ADD COLUMN smtp_settings TEXT DEFAULT '{}' NOT NULL;`);
 } catch (e) {}
@@ -526,6 +563,115 @@ try { sqlite.exec(`ALTER TABLE payroll ADD COLUMN transport_allowance REAL DEFAU
 try { sqlite.exec(`ALTER TABLE payroll ADD COLUMN other_allowance REAL DEFAULT 0;`); } catch (e) {}
 try { sqlite.exec(`ALTER TABLE payroll ADD COLUMN overtime_hours REAL DEFAULT 0;`); } catch (e) {}
 try { sqlite.exec(`ALTER TABLE payroll ADD COLUMN overtime_pay REAL DEFAULT 0;`); } catch (e) {}
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS brands (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    brand_name TEXT NOT NULL,
+    UNIQUE (tenant_id, brand_name)
+  );
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS tax_categories (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    category_name TEXT NOT NULL,
+    tax_rate REAL NOT NULL,
+    UNIQUE (tenant_id, category_name)
+  );
+`);
+
+try { sqlite.exec(`ALTER TABLE products ADD COLUMN is_discountable INTEGER DEFAULT 1;`); } catch (e) {}
+try { sqlite.exec(`ALTER TABLE products ADD COLUMN is_excizable INTEGER DEFAULT 0;`); } catch (e) {}
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS sub_categories (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    category_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT
+  );
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS units (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    short_name TEXT NOT NULL,
+    base_unit INTEGER DEFAULT 1 NOT NULL
+  );
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS product_units (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    product_id TEXT NOT NULL,
+    unit_code TEXT NOT NULL,
+    conversion_factor REAL NOT NULL,
+    barcode TEXT,
+    price REAL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS inventory_transfers (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    transfer_number TEXT NOT NULL,
+    from_warehouse_id TEXT NOT NULL,
+    from_warehouse_name TEXT,
+    to_warehouse_id TEXT NOT NULL,
+    to_warehouse_name TEXT,
+    status TEXT DEFAULT 'COMPLETED' NOT NULL,
+    transfer_date TEXT NOT NULL,
+    remarks TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
+  );
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS inventory_transfer_items (
+    id TEXT PRIMARY KEY,
+    transfer_id TEXT NOT NULL,
+    product_id TEXT,
+    product_name TEXT NOT NULL,
+    quantity REAL NOT NULL
+  );
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS inventory_adjustments (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    adjustment_number TEXT NOT NULL,
+    warehouse_id TEXT NOT NULL,
+    warehouse_name TEXT,
+    reason TEXT NOT NULL,
+    status TEXT DEFAULT 'APPROVED' NOT NULL,
+    adjusted_by TEXT,
+    adjustment_date TEXT NOT NULL,
+    remarks TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
+  );
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS inventory_adjustment_items (
+    id TEXT PRIMARY KEY,
+    adjustment_id TEXT NOT NULL,
+    product_id TEXT,
+    product_name TEXT NOT NULL,
+    adjustment_type TEXT NOT NULL,
+    quantity REAL NOT NULL
+  );
+`);
 try { sqlite.exec(`ALTER TABLE payroll ADD COLUMN present_days INTEGER DEFAULT 0;`); } catch (e) {}
 try { sqlite.exec(`ALTER TABLE payroll ADD COLUMN absent_days INTEGER DEFAULT 0;`); } catch (e) {}
 try { sqlite.exec(`ALTER TABLE payroll ADD COLUMN late_days INTEGER DEFAULT 0;`); } catch (e) {}
@@ -544,6 +690,151 @@ try { sqlite.exec(`ALTER TABLE cost_centers ADD COLUMN monthly_budget REAL DEFAU
 try { sqlite.exec(`ALTER TABLE accounts ADD COLUMN has_cost_center INTEGER DEFAULT 0 NOT NULL;`); } catch (e) {}
 try { sqlite.exec(`ALTER TABLE voucher_lines ADD COLUMN cost_center_id TEXT;`); } catch (e) {}
 try { sqlite.exec(`ALTER TABLE journal_entry_lines ADD COLUMN cost_center_id TEXT;`); } catch (e) {}
+
+const productColumns = [
+  ['is_electronics', 'INTEGER DEFAULT 0'],
+  ['is_model_number', 'INTEGER DEFAULT 0'],
+  ['model_number', 'TEXT'],
+  ['is_color_applicable', 'INTEGER DEFAULT 0'],
+  ['color_id', 'TEXT'],
+  ['is_storage_capacity_applicable', 'INTEGER DEFAULT 0'],
+  ['storage_capacity', 'TEXT'],
+  ['storage_capacity_id', 'TEXT'],
+  ['is_ram_applicable', 'INTEGER DEFAULT 0'],
+  ['ram', 'TEXT'],
+  ['ram_id', 'TEXT'],
+  ['is_warranty_applicable', 'INTEGER DEFAULT 0'],
+  ['warranty_months', 'INTEGER DEFAULT 0'],
+  ['warrenty_periods_days', 'INTEGER DEFAULT 0'],
+  ['warranty_provider_id', 'TEXT'],
+  ['is_imei_required', 'INTEGER DEFAULT 0'],
+  ['requires_serial_tracking', 'INTEGER DEFAULT 0'],
+  ['is_color_variant', 'INTEGER DEFAULT 0'],
+  ['color_variant_id', 'TEXT'],
+  ['is_size_variant', 'INTEGER DEFAULT 0'],
+  ['size_variant_id', 'TEXT'],
+  ['size_variant_ids', "TEXT DEFAULT '[]'"],
+  ['is_medicine', 'INTEGER DEFAULT 0'],
+  ['is_generic_name_applicable', 'INTEGER DEFAULT 0'],
+  ['generic_name', 'TEXT'],
+  ['is_active_ingredient_applicable', 'INTEGER DEFAULT 0'],
+  ['active_ingredient', 'TEXT'],
+  ['is_strength_applicable', 'INTEGER DEFAULT 0'],
+  ['strength_id', 'TEXT'],
+  ['is_dosage_form_applicable', 'INTEGER DEFAULT 0'],
+  ['dosage_form_id', 'TEXT'],
+  ['is_manufacturer_applicable', 'INTEGER DEFAULT 0'],
+  ['manufacturer_id', 'TEXT'],
+  ['is_marketing_auth_holder_applicable', 'INTEGER DEFAULT 0'],
+  ['marketing_auth_holder_id', 'TEXT'],
+  ['is_prescription_required', 'INTEGER DEFAULT 0'],
+  ['controlled_substance_schedule', 'TEXT'],
+  ['storage_condition_id', 'TEXT'],
+  ['requires_batch_tracking', 'INTEGER DEFAULT 0'],
+  ['is_apparel', 'INTEGER DEFAULT 0'],
+  ['apparel_product_type_id', 'TEXT'],
+  ['fiber_composition', 'TEXT'],
+  ['gender_id', 'TEXT'],
+  ['age_group_id', 'TEXT'],
+  ['size_id', 'TEXT'],
+  ['is_underwear', 'INTEGER DEFAULT 0'],
+  ['is_tax_exempt', 'INTEGER DEFAULT 0'],
+  ['is_points_applicable', 'INTEGER DEFAULT 0'],
+  ['points_perproduct', 'INTEGER DEFAULT 0'],
+  ['is_product_display_pos_app', 'INTEGER DEFAULT 1'],
+  ['is_product_display_website_app', 'INTEGER DEFAULT 0'],
+  ['is_product_display_rack_label', 'INTEGER DEFAULT 0'],
+  ['is_product_display_tag', 'INTEGER DEFAULT 0'],
+  ['is_product_display_price_tag', 'INTEGER DEFAULT 0'],
+  ['is_product_display_hanging_tag', 'INTEGER DEFAULT 0'],
+  ['is_product_display_electronic_scale', 'INTEGER DEFAULT 0'],
+  ['is_product_display_weighing_scale', 'INTEGER DEFAULT 0'],
+  ['is_verified_by_buyer', 'INTEGER DEFAULT 0'],
+  ['is_verified_by_supplier', 'INTEGER DEFAULT 0'],
+  ['is_offers', 'INTEGER DEFAULT 0'],
+  ['return_days', 'INTEGER DEFAULT 7'],
+  ['exchange_days', 'INTEGER DEFAULT 30'],
+  ['promised_delivery_days', 'INTEGER DEFAULT 2'],
+  ['is_payment_available_cod', 'INTEGER DEFAULT 1'],
+  ['is_accelerated_checkout_available', 'INTEGER DEFAULT 0'],
+  ['is_subscription_available', 'INTEGER DEFAULT 0']
+];
+for (const [colName, colType] of productColumns) {
+  try { sqlite.exec(`ALTER TABLE products ADD COLUMN "${colName}" ${colType}`); } catch (e) {}
+}
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS delivery_drivers (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    vehicle_type TEXT DEFAULT 'bike' NOT NULL,
+    vehicle_plate TEXT,
+    is_active INTEGER DEFAULT 1 NOT NULL,
+    is_available INTEGER DEFAULT 1 NOT NULL,
+    current_latitude REAL,
+    current_longitude REAL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS delivery_orders (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    order_number TEXT NOT NULL UNIQUE,
+    invoice_id TEXT,
+    order_type TEXT NOT NULL DEFAULT 'take_away',
+    channel TEXT NOT NULL DEFAULT 'pos',
+    status TEXT NOT NULL DEFAULT 'WFC',
+    aggregator TEXT,
+    aggregator_reference TEXT,
+    customer_name TEXT,
+    customer_phone TEXT,
+    delivery_address TEXT,
+    delivery_latitude REAL,
+    delivery_longitude REAL,
+    table_number TEXT,
+    driver_id TEXT,
+    driver_name TEXT,
+    driver_phone TEXT,
+    vehicle_info TEXT,
+    delivery_fee REAL DEFAULT 0 NOT NULL,
+    subtotal REAL DEFAULT 0 NOT NULL,
+    tax_amount REAL DEFAULT 0 NOT NULL,
+    discount_amount REAL DEFAULT 0 NOT NULL,
+    total_amount REAL DEFAULT 0 NOT NULL,
+    items TEXT NOT NULL,
+    note TEXT,
+    estimated_time_minutes INTEGER DEFAULT 30 NOT NULL,
+    confirmed_at INTEGER,
+    cooking_started_at INTEGER,
+    ready_at INTEGER,
+    dispatched_at INTEGER,
+    delivered_at INTEGER,
+    cancelled_at INTEGER,
+    cancel_reason TEXT,
+    cancelled_by TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS order_status_logs (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    order_id TEXT NOT NULL,
+    from_status TEXT,
+    to_status TEXT NOT NULL,
+    changed_by TEXT,
+    actor_role TEXT DEFAULT 'cashier' NOT NULL,
+    note TEXT,
+    created_at INTEGER NOT NULL
+  );
+`);
 
 if (process.env.NODE_ENV !== 'production') {
   globalForDb.conn = sqlite;

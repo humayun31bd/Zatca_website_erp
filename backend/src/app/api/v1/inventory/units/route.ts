@@ -12,7 +12,27 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
     }
 
-    const allUnits = await db.select().from(units).where(eq(units.tenantId, tenantId));
+    let allUnits = await db.select().from(units).where(eq(units.tenantId, tenantId));
+    if (allUnits.length === 0) {
+      const defaults = [
+        { name: 'Piece', shortName: 'pcs' },
+        { name: 'Kilogram', shortName: 'kg' },
+        { name: 'Gram', shortName: 'g' },
+        { name: 'Liter', shortName: 'L' },
+        { name: 'Box', shortName: 'box' },
+        { name: 'Carton', shortName: 'ctn' },
+        { name: 'Pack', shortName: 'pk' },
+        { name: 'Meter', shortName: 'm' },
+      ];
+      for (const unit of defaults) {
+        try {
+          await db.insert(units).values({ tenantId, name: unit.name, shortName: unit.shortName, baseUnit: true });
+        } catch {
+          continue;
+        }
+      }
+      allUnits = await db.select().from(units).where(eq(units.tenantId, tenantId));
+    }
     return NextResponse.json(allUnits);
   } catch (error: any) {
     console.error('Error fetching units:', error);

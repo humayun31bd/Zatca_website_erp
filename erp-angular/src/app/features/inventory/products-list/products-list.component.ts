@@ -2,7 +2,10 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { ProductsService, ProductItem, ProductCategory, ProductSubCategory, ProductUnit } from '../../../core/services/products.service';
+import { ProductsService, ProductItem, ProductCategory, ProductSubCategory, ProductUnit, ProductBrand } from '../../../core/services/products.service';
+import { SettingsHubService } from '../../../core/services/settings-hub.service';
+import { DEFAULT_PRODUCT_POLICY, ProductFormVisibility, resolveProductFormVisibility } from './product-form-visibility';
+import { BRAND_LETTERS, BrandLookupItem, collectBrandCatalog, filterBrands } from './brand-lookup';
 
 @Component({
   selector: 'app-products-list',
@@ -13,6 +16,7 @@ import { ProductsService, ProductItem, ProductCategory, ProductSubCategory, Prod
 })
 export class ProductsListComponent implements OnInit {
   private productsService = inject(ProductsService);
+  private settingsHub = inject(SettingsHubService);
   private router = inject(Router);
 
   // --- Reactive Signals State ---
@@ -20,6 +24,7 @@ export class ProductsListComponent implements OnInit {
   categories = signal<ProductCategory[]>([]);
   subCategories = signal<ProductSubCategory[]>([]);
   units = signal<ProductUnit[]>([]);
+  storedBrands = signal<BrandLookupItem[]>([]);
 
   isLoading = signal<boolean>(false);
   isSubmitting = signal<boolean>(false);
@@ -69,21 +74,28 @@ export class ProductsListComponent implements OnInit {
   showImportCsvModal = signal<boolean>(false);
   csvImportText = signal<string>('');
 
+  showBrandLookupModal = signal<boolean>(false);
+  brandSearchQuery = signal<string>('');
+  brandLetterFilter = signal<string>('ALL');
+  brandLetters = BRAND_LETTERS;
+  newBrandName = '';
+
   toastMessage = signal<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  formVis = signal<ProductFormVisibility>(resolveProductFormVisibility(DEFAULT_PRODUCT_POLICY));
 
   // --- Product Form Model ---
   productForm = this.getDefaultProductForm();
 
-  // Brands extracted dynamically from active products
-  availableBrands = computed(() => {
-    const set = new Set<string>();
-    this.products().forEach(p => {
-      if (p.brandId && p.brandId.trim().length > 0) {
-        set.add(p.brandId.trim());
-      }
-    });
-    return Array.from(set).sort();
-  });
+  brandCatalog = computed(() => collectBrandCatalog(
+    this.storedBrands(),
+    this.products().map(p => p.brandId)
+  ));
+
+  availableBrands = computed(() => this.brandCatalog().map(b => b.name));
+
+  filteredLookupBrands = computed(() =>
+    filterBrands(this.brandCatalog(), this.brandSearchQuery(), this.brandLetterFilter())
+  );
 
   // Filtered and Sorted Products List
   filteredProducts = computed(() => {
@@ -176,6 +188,28 @@ export class ProductsListComponent implements OnInit {
     this.fetchCategories();
     this.fetchSubCategories();
     this.fetchUnits();
+    this.fetchBrands();
+    this.loadProductPolicy();
+  }
+
+  loadProductPolicy(): void {
+    this.settingsHub.getProductPolicy().subscribe({
+      next: (res) => {
+        const policy = (res.productPolicy || {}) as Record<string, boolean>;
+        this.formVis.set(resolveProductFormVisibility(policy));
+        this.ensureActiveFormTabVisible();
+      },
+      error: () => {
+        this.formVis.set(resolveProductFormVisibility(DEFAULT_PRODUCT_POLICY));
+      }
+    });
+  }
+
+  ensureActiveFormTabVisible(): void {
+    const vis = this.formVis();
+    const tab = this.activeFormTab();
+    if (tab === 'stock' && !vis.showStockTab) this.activeFormTab.set('general');
+    if (tab === 'verticals' && !vis.showVerticalsTab) this.activeFormTab.set('general');
   }
 
   fetchProducts(): void {
@@ -214,6 +248,67 @@ export class ProductsListComponent implements OnInit {
     });
   }
 
+  fetchBrands(): void {
+    this.productsService.getBrands().subscribe({
+      next: (data) => this.storedBrands.set(this.normalizeBrands(data)),
+      error: (err) => console.error('Failed to load brands:', err)
+    });
+  }
+
+  openBrandLookupModal(): void {
+    this.brandSearchQuery.set('');
+    this.brandLetterFilter.set('ALL');
+    this.newBrandName = '';
+    this.showBrandLookupModal.set(true);
+  }
+
+  closeBrandLookupModal(): void {
+    this.showBrandLookupModal.set(false);
+  }
+
+  setBrandLetterFilter(letter: string): void {
+    this.brandLetterFilter.set(letter);
+  }
+
+  selectBrand(brand: BrandLookupItem): void {
+    this.productForm.brandId = brand.name;
+    this.closeBrandLookupModal();
+  }
+
+  clearSelectedBrand(): void {
+    this.productForm.brandId = '';
+  }
+
+  createBrandFromLookup(): void {
+    const name = (this.newBrandName || this.brandSearchQuery()).trim();
+    if (!name) {
+      this.showToast('Enter a brand name to add', 'error');
+      return;
+    }
+
+    this.productsService.createBrand({ name }).subscribe({
+      next: (created) => {
+        const item = { id: created.id, name: created.name || created.brandName || name };
+        this.storedBrands.set(collectBrandCatalog([...this.storedBrands(), item], []));
+        this.productForm.brandId = item.name;
+        this.closeBrandLookupModal();
+        this.showToast(`Brand "${item.name}" added`, 'success');
+      },
+      error: (err) => {
+        this.showToast(err.error?.error || 'Failed to add brand', 'error');
+      }
+    });
+  }
+
+  private normalizeBrands(data: ProductBrand[] | null | undefined): BrandLookupItem[] {
+    return (data || [])
+      .map(item => ({
+        id: item.id,
+        name: (item.name || item.brandName || '').trim()
+      }))
+      .filter(item => item.name.length > 0);
+  }
+
   // --- Sorting & View Toggles ---
   setSort(col: string): void {
     if (this.sortColumn() === col) {
@@ -247,6 +342,7 @@ export class ProductsListComponent implements OnInit {
     this.editingProduct.set(null);
     this.productForm = this.getDefaultProductForm();
     this.activeFormTab.set('general');
+    this.ensureActiveFormTabVisible();
     this.showProductFormModal.set(true);
   }
 
@@ -270,6 +366,8 @@ export class ProductsListComponent implements OnInit {
       taxRate: product.taxRate ?? 15,
       taxType: 'Exclusive',
       isTaxExempt: !!product.isTaxExempt,
+      isDiscountable: product.isDiscountable !== false,
+      isExcizable: !!product.isExcizable,
       retailPrice: Number(product.retailPrice || product.price || 0),
       distributorPrice: Number(product.distributorPrice || product.price || 0),
       specialPrice: Number(product.specialPrice || product.price || 0),
@@ -301,6 +399,8 @@ export class ProductsListComponent implements OnInit {
 
       fiberComposition: product.fiberComposition || '',
       isUnderwear: !!product.isUnderwear,
+      lotNumber: product.lotNumber || '',
+      expiryDate: product.expiryDate || '',
 
       // Channels
       isProductDisplayPosApp: product.isProductDisplayPosApp !== false,
@@ -311,6 +411,7 @@ export class ProductsListComponent implements OnInit {
     };
 
     this.activeFormTab.set('general');
+    this.ensureActiveFormTabVisible();
     this.showProductFormModal.set(true);
   }
 
@@ -349,6 +450,8 @@ export class ProductsListComponent implements OnInit {
       price: this.productForm.price,
       baseSellingPrice: this.productForm.price,
       isTaxExempt: this.productForm.isTaxExempt,
+      isDiscountable: this.productForm.isDiscountable,
+      isExcizable: this.productForm.isExcizable,
       taxRate: this.productForm.taxRate,
       retailPrice: this.productForm.retailPrice,
       distributorPrice: this.productForm.distributorPrice,
@@ -379,6 +482,8 @@ export class ProductsListComponent implements OnInit {
       controlledSubstanceSchedule: this.productForm.controlledSubstanceSchedule,
       isPrescriptionRequired: this.productForm.isPrescriptionRequired,
       requiresBatchTracking: this.productForm.requiresBatchTracking,
+      lotNumber: this.productForm.lotNumber || null,
+      expiryDate: this.productForm.expiryDate || null,
 
       isApparel: this.productForm.productType === 'Apparel',
       fiberComposition: this.productForm.fiberComposition,
@@ -668,6 +773,8 @@ export class ProductsListComponent implements OnInit {
       taxRate: 15,
       taxType: 'Exclusive',
       isTaxExempt: false,
+      isDiscountable: true,
+      isExcizable: false,
       retailPrice: 0,
       distributorPrice: 0,
       specialPrice: 0,
@@ -697,6 +804,8 @@ export class ProductsListComponent implements OnInit {
 
       fiberComposition: '',
       isUnderwear: false,
+      lotNumber: '',
+      expiryDate: '',
 
       isProductDisplayPosApp: true,
       isProductDisplayWebsiteApp: false,

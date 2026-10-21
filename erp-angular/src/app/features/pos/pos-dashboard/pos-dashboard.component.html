@@ -99,14 +99,14 @@
       </div>
     </div>
 
-    <div class="kpi-card stock-card" [class.alert-active]="dashboardData().lowStock.length > 0">
+      <div class="kpi-card stock-card" [class.alert-active]="(dashboardData().lowStock || []).length > 0">
       <div class="kpi-top">
         <span class="kpi-label">Low Stock Alerts</span>
         <div class="kpi-icon-box"><i class="pi pi-exclamation-triangle"></i></div>
       </div>
       <div class="kpi-value font-mono">{{ dashboardData().lowStock.length }}</div>
       <div class="kpi-footer">
-        <span class="kpi-sub">{{ dashboardData().lowStock.length > 0 ? 'Items below reorder point' : 'All stock levels healthy' }}</span>
+        <span class="kpi-sub">{{ (dashboardData().lowStock || []).length > 0 ? 'Items below reorder point' : 'All stock levels healthy' }}</span>
       </div>
     </div>
   </div>
@@ -148,18 +148,18 @@
             <p class="card-subtitle">Top selling catalog items by gross revenue & units sold</p>
           </div>
         </div>
-        <span class="item-count-badge">{{ dashboardData().topProducts.length }} Top Items</span>
+        <span class="item-count-badge">{{ (dashboardData().topProducts || []).length }} Top Items</span>
       </div>
 
       <div class="card-body">
-        @if (dashboardData().topProducts.length === 0) {
+        @if ((dashboardData().topProducts || []).length === 0) {
           <div class="empty-state">
             <i class="pi pi-inbox"></i>
             <p>No product sales recorded in selected timeframe</p>
           </div>
         } @else {
           <div class="products-list">
-            @for (prod of dashboardData().topProducts; track prod.productId; let idx = $index) {
+            @for (prod of dashboardData().topProducts || []; track prod.productId; let idx = $index) {
               <div class="product-row">
                 <span class="rank-badge" [class.top-three]="idx < 3">#{{ idx + 1 }}</span>
                 <div class="product-details">
@@ -195,18 +195,18 @@
             <p class="card-subtitle">Critical low stock requiring purchase reorder replenishment</p>
           </div>
         </div>
-        <span class="warning-count-badge">{{ dashboardData().lowStock.length }} Alerts</span>
+        <span class="warning-count-badge">{{ (dashboardData().lowStock || []).length }} Alerts</span>
       </div>
 
       <div class="card-body">
-        @if (dashboardData().lowStock.length === 0) {
+        @if ((dashboardData().lowStock || []).length === 0) {
           <div class="empty-state success-state">
             <i class="pi pi-check-circle"></i>
             <p>Stock levels are optimal. No critical shortages detected.</p>
           </div>
         } @else {
           <div class="stock-list">
-            @for (stock of dashboardData().lowStock; track stock.id) {
+            @for (stock of dashboardData().lowStock || []; track stock.id) {
               <div class="stock-row">
                 <div class="stock-info">
                   <span class="stock-name" [title]="stock.name">{{ stock.name }}</span>
@@ -240,7 +240,7 @@
     </div>
 
     <div class="config-grid">
-      <!-- Restaurant Mode Toggle -->
+      @if (restaurantMode()) {
       <div class="config-card">
         <div class="config-icon"><i class="pi pi-building"></i></div>
         <div class="config-text">
@@ -259,6 +259,7 @@
           </button>
         </div>
       </div>
+      }
 
       <!-- Currency Configuration -->
       <div class="config-card">
@@ -326,7 +327,7 @@
     </div>
 
     <div class="table-wrapper">
-      @if (dashboardData().recentTransactions.length === 0) {
+      @if ((dashboardData().recentTransactions || []).length === 0) {
         <div class="empty-state">
           <i class="pi pi-receipt"></i>
           <p>No POS transactions found for this period</p>
@@ -345,7 +346,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (tx of dashboardData().recentTransactions; track tx.id) {
+            @for (tx of dashboardData().recentTransactions || []; track tx.id) {
               <tr>
                 <td>
                   <span class="inv-num font-mono">{{ tx.invoiceNumber }}</span>

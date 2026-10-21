@@ -90,8 +90,8 @@ export interface DriversResponse {
 })
 export class KdsService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/v1/orders/delivery';
-  private driversUrl = '/api/v1/orders/drivers';
+  private apiUrl = '/orders/delivery';
+  private driversUrl = '/orders/drivers';
 
   private audioCtx: AudioContext | null = null;
   public soundEnabled = true;
@@ -110,7 +110,13 @@ export class KdsService {
     if (filters?.search) params = params.set('search', filters.search);
     if (filters?.limit) params = params.set('limit', filters.limit.toString());
 
-    return this.http.get<OrdersResponse>(this.apiUrl, { params });
+    return this.http.get<OrdersResponse>(this.apiUrl, { params }).pipe(
+      tap(res => {
+        if (res?.orders) {
+          res.orders = res.orders.map(order => this.normalizeOrder(order));
+        }
+      })
+    );
   }
 
   updateOrderStatus(
@@ -176,6 +182,26 @@ export class KdsService {
       this.driversUrl,
       driver
     );
+  }
+
+  private normalizeOrder(order: DeliveryOrder): DeliveryOrder {
+    let items = order.items as DeliveryOrderItem[] | string | null;
+    if (typeof items === 'string') {
+      try {
+        items = JSON.parse(items);
+      } catch {
+        items = [];
+      }
+    }
+    return {
+      ...order,
+      items: Array.isArray(items) ? items : [],
+      deliveryFee: Number(order.deliveryFee) || 0,
+      subtotal: Number(order.subtotal) || 0,
+      taxAmount: Number(order.taxAmount) || 0,
+      discountAmount: Number(order.discountAmount) || 0,
+      totalAmount: Number(order.totalAmount) || 0
+    };
   }
 
   // --- Audio Alert Bell using Web Audio API ---

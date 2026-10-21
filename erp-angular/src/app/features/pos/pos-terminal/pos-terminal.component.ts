@@ -83,6 +83,11 @@ export class PosTerminalComponent implements OnInit {
   // Tenant & User Identity (Prominently displayed on POS & Terminal Sessions)
   tenantName = signal<string>('Shapla Supermarket Chain Ltd');
   tenantVat = signal<string>('300123456700003');
+  businessType = signal<string>('retail');
+  isRestaurant = computed(() => {
+    const key = this.businessType().replace(/[\s&/-]+/g, '').toLowerCase();
+    return key.includes('restaurant') || key.includes('food') || key === 'fnb';
+  });
   userName = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return 'Lead Cashier Operator';
@@ -529,6 +534,14 @@ export class PosTerminalComponent implements OnInit {
         }
         if (res?.tenant?.vatNumber) {
           this.tenantVat.set(res.tenant.vatNumber);
+        }
+        if (res?.tenant?.businessType) {
+          this.businessType.set(String(res.tenant.businessType));
+        }
+        if (!this.isRestaurant()) {
+          this.orderType.set('take_away');
+          this.tableNumber.set('');
+          this.deliveryAddress.set('');
         }
       },
       error: (err) => console.warn('Could not load tenant info, using current fallback:', err)

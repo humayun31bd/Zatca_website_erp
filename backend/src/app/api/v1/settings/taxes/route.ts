@@ -9,9 +9,28 @@ export async function GET(req: NextRequest) {
     const session = await verifySession(req);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const data = await db.query.taxCategories.findMany({
-      where: eq(taxCategories.tenantId, session.tenantId as string),
+    const tenantId = session.tenantId as string;
+    let data = await db.query.taxCategories.findMany({
+      where: eq(taxCategories.tenantId, tenantId),
     });
+
+    if (!data.length) {
+      const defaults = [
+        { categoryName: 'Standard Rate', taxRate: 15 },
+        { categoryName: 'Zero Rate', taxRate: 0 },
+        { categoryName: 'Exempt', taxRate: 0 },
+      ];
+      for (const row of defaults) {
+        try {
+          await db.insert(taxCategories).values({ tenantId, ...row });
+        } catch {
+          continue;
+        }
+      }
+      data = await db.query.taxCategories.findMany({
+        where: eq(taxCategories.tenantId, tenantId),
+      });
+    }
 
     return NextResponse.json({ success: true, taxes: data });
   } catch (error: any) {
